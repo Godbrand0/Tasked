@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { connect, disconnect as stacksDisconnect } from "@stacks/connect";
 import type { UserRole } from "@/lib/mock";
 
 export interface WalletState {
@@ -94,6 +93,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   async function handleConnect() {
     try {
+      const { connect } = await import("@stacks/connect");
       const result = await connect({ forceWalletSelect: true });
 
       // Find the STX address — wallets return both BTC and STX addresses
@@ -124,7 +124,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   function handleDisconnect() {
     try {
-      stacksDisconnect();
+      import("@stacks/connect").then(({ disconnect }) => disconnect()).catch(() => {});
       localStorage.removeItem(STORAGE_KEY);
     } catch {}
     setWallet(EMPTY);

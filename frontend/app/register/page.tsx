@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,6 +30,14 @@ function StepDot({ label, active, done }: { label: string; active: boolean; done
 }
 
 export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterPageInner />
+    </Suspense>
+  );
+}
+
+function RegisterPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { connected, isRegistered, address, connect, register: registerWallet } = useWallet();
