@@ -7,15 +7,17 @@ import TaskCard from "@/components/ui/TaskCard";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { MOCK_TASKS, MOCK_LEADERBOARD } from "@/lib/mock";
 import { formatUSDX, TIERS } from "@/lib/constants";
+import { useWallet } from "@/lib/wallet-context";
 
-// Mock contributor profile
 const CONTRIBUTOR = MOCK_LEADERBOARD[0];
 const APPLIED_IDS = [1, 3];
 const ACTIVE_ID = 3;
 
 export default function ContributorPage() {
+  const { username, experienceLevel, tasksCompleted, totalEarned, connected, isRegistered } = useWallet();
   const [showAll, setShowAll] = useState(false);
-  const myTier = CONTRIBUTOR.experienceLevel;
+  const displayName = (connected && isRegistered && username) ? username : CONTRIBUTOR.username;
+  const myTier = (connected && isRegistered) ? experienceLevel : CONTRIBUTOR.experienceLevel;
 
   const matchedTasks = MOCK_TASKS.filter(
     (t) => t.status === "OPEN" && t.experienceMin <= myTier && t.experienceMax >= myTier
@@ -41,8 +43,9 @@ export default function ContributorPage() {
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5", margin: 0 }}>{CONTRIBUTOR.username}</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5", margin: 0 }}>{displayName}</h1>
                 {CONTRIBUTOR.githubVerified && <Badge color="green">GitHub Verified</Badge>}
+                <Badge color="purple">Contributor</Badge>
               </div>
               <TierBadge tier={CONTRIBUTOR.experienceLevel} />
             </div>
@@ -55,8 +58,8 @@ export default function ContributorPage() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "Tasks Completed", value: String(CONTRIBUTOR.tasksCompleted),          color: "#00D395", icon: "✓"  },
-            { label: "Total Earned",    value: `${formatUSDX(CONTRIBUTOR.totalEarned)} USDX`, color: "#F7931A", icon: "💰" },
+            { label: "Tasks Completed", value: String(connected && isRegistered ? tasksCompleted : CONTRIBUTOR.tasksCompleted), color: "#00D395", icon: "✓" },
+            { label: "Total Earned",    value: `${formatUSDX(connected && isRegistered ? totalEarned : CONTRIBUTOR.totalEarned)} USDX`, color: "#F7931A", icon: "💰" },
             { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: "🏅" },
             { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "#60A5FA", icon: "🎯" },
           ].map(({ label, value, color, icon }) => (

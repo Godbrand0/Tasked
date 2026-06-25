@@ -1,4 +1,10 @@
-// Landing page — Server Component, no interactivity needed
+"use client";
+
+import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+
+// Landing page
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -129,12 +135,22 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 
-function Navbar() {
+const ROLE_DASHBOARD: Record<string, string> = {
+  creator:     "/creator",
+  contributor: "/contributor",
+  investor:    "/investor",
+};
+
+function LandingNavbar() {
+  const router = useRouter();
+  const { connected, isRegistered, connect, role, address } = useWallet();
+
+  const dashboardHref = role ? ROLE_DASHBOARD[role] : "/register";
+
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(16px)", background: "rgba(10,10,15,0.85)", borderBottom: "1px solid #1E1E2A" }}>
-      <style>{`.tasked-nav-link:hover { color: #F0F0F5 !important; }`}</style>
+      <style>{`.tasked-nav-link:hover { color: #F0F0F5 !important; } .landing-btn-outline:hover { border-color: #F7931A80 !important; color: #F0F0F5 !important; } .landing-btn-primary:hover { background: #E8851A !important; }`}</style>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, background: "linear-gradient(135deg, #F7931A, #C4711A)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
@@ -144,23 +160,34 @@ function Navbar() {
           <span style={{ fontWeight: 700, fontSize: 20, color: "#F0F0F5", letterSpacing: "-0.02em" }}>Tasked</span>
         </div>
 
-        {/* Nav links */}
         <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="hidden sm:flex">
-          {["How it works", "Features", "Docs", "Leaderboard"].map((link) => (
-            <a key={link} href="#" className="tasked-nav-link" style={{ color: "#9090B0", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>
-              {link}
-            </a>
+          {[["#how-it-works", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]].map(([href, label]) => (
+            <a key={label} href={href} className="tasked-nav-link" style={{ color: "#9090B0", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>{label}</a>
           ))}
         </div>
 
-        {/* CTA */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <a href="#" style={{ color: "#9090B0", fontSize: 14, fontWeight: 500, textDecoration: "none", padding: "8px 16px" }}>
-            Sign in
-          </a>
-          <a href="#" style={{ background: "#F7931A", color: "#0A0A0F", fontSize: 14, fontWeight: 700, textDecoration: "none", padding: "8px 18px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Connect Wallet — shows abbreviated address when connected */}
+          <button
+            onClick={() => { if (!connected) connect(); }}
+            className="landing-btn-outline"
+            style={{ display: "flex", alignItems: "center", gap: 8, color: connected ? "#F0F0F5" : "#9090B0", fontSize: 14, fontWeight: connected ? 600 : 500, padding: "8px 14px", background: connected ? "#111116" : "transparent", border: "1px solid #2E2E3A", borderRadius: 8, cursor: connected ? "default" : "pointer", transition: "all 0.15s" }}>
+            {connected && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#00D395", flexShrink: 0 }} />}
+            <span style={{ fontFamily: connected ? "var(--font-geist-mono)" : "inherit", fontSize: connected ? 13 : 14 }}>
+              {connected ? formatAddress(address) : "Connect Wallet"}
+            </span>
+          </button>
+
+          {/* Launch App — routes based on role */}
+          <button
+            onClick={() => {
+              if (!connected) { connect(); return; }
+              router.push(isRegistered ? dashboardHref : "/register");
+            }}
+            className="landing-btn-primary"
+            style={{ background: "#F7931A", color: "#0A0A0F", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
             Launch App <IconArrow />
-          </a>
+          </button>
         </div>
       </div>
     </nav>
@@ -213,14 +240,13 @@ function FloatingBadge({ style, children }: { style: React.CSSProperties; childr
 }
 
 function Hero() {
+  const { connect } = useWallet();
   return (
     <section style={{ padding: "96px 24px 80px", position: "relative", overflow: "hidden" }}>
-      {/* Background glow */}
       <div style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 800, height: 600, background: "radial-gradient(ellipse, rgba(247,147,26,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", top: 100, right: 100, width: 400, height: 400, background: "radial-gradient(ellipse, rgba(85,70,255,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="block sm:grid">
-        {/* Left */}
         <div>
           <div style={{ marginBottom: 24 }}>
             <Badge color="orange">
@@ -238,10 +264,10 @@ function Hero() {
             Post tasks, lock USDX in escrow, match contributors by experience level — all enforced by Clarity contracts. No trust required.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <a href="#" style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={connect} style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Post a Task <IconArrow />
-            </a>
-            <a href="#" style={{ background: "transparent", color: "#F0F0F5", fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid #1E1E2A", display: "flex", alignItems: "center", gap: 8 }}>
+            </button>
+            <a href="/tasks" style={{ background: "transparent", color: "#F0F0F5", fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid #1E1E2A", display: "flex", alignItems: "center", gap: 8 }}>
               Find Work
             </a>
           </div>
@@ -438,6 +464,7 @@ function ExperienceSection() {
 // ─── User Roles ───────────────────────────────────────────────────────────────
 
 function RolesSection() {
+  const { connect } = useWallet();
   const roles = [
     {
       icon: <IconCode />,
@@ -519,9 +546,9 @@ function RolesSection() {
                   </li>
                 ))}
               </ul>
-              <a href="#" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: bg, border: `1px solid ${color}30`, color, fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+              <button onClick={connect} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: bg, border: `1px solid ${color}30`, color, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" }}>
                 {cta} <IconArrow />
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -711,6 +738,7 @@ function TokensSection() {
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function CTASection() {
+  const { connect } = useWallet();
   return (
     <section style={{ padding: "96px 24px" }}>
       <div style={{ maxWidth: 960, margin: "0 auto", background: "linear-gradient(135deg, #111116 0%, #16121A 100%)", border: "1px solid #F7931A28", borderRadius: 24, padding: "64px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
@@ -724,15 +752,15 @@ function CTASection() {
             Post a task, find work, or invest in the builders shaping the Bitcoin-secured ecosystem.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <a href="#" style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={connect} style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Post a Task <IconArrow />
-            </a>
-            <a href="#" style={{ background: "#5546FF18", color: "#8B80FF", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid #5546FF30", display: "flex", alignItems: "center", gap: 8 }}>
+            </button>
+            <a href="/tasks" style={{ background: "#5546FF18", color: "#8B80FF", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid #5546FF30", display: "flex", alignItems: "center", gap: 8 }}>
               Find Work
             </a>
-            <a href="#" style={{ background: "#00D39518", color: "#00D395", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid #00D39530", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={connect} style={{ background: "#00D39518", color: "#00D395", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "1px solid #00D39530", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Become a Patron
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -804,7 +832,7 @@ function Footer() {
 export default function Home() {
   return (
     <div className="font-(family-name:--font-geist-sans)">
-      <Navbar />
+      <LandingNavbar />
       <Hero />
       <TrustBar />
       <HowItWorks />

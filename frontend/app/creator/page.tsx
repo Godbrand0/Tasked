@@ -6,9 +6,13 @@ import TaskCard from "@/components/ui/TaskCard";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { MOCK_TASKS, MOCK_WALLET, MOCK_WAVE } from "@/lib/mock";
 import { formatUSDX } from "@/lib/constants";
+import { useWallet } from "@/lib/wallet-context";
 
 export default function CreatorPage() {
-  const myTasks = MOCK_TASKS.filter((t) => t.creator === MOCK_WALLET.address);
+  const { connected, isRegistered, role, username, address } = useWallet();
+  const displayAddress = address || MOCK_WALLET.address;
+  const displayUsername = username || MOCK_WALLET.username;
+  const myTasks = MOCK_TASKS.filter((t) => t.creator === displayAddress || t.creator === MOCK_WALLET.address);
   const openTasks = myTasks.filter((t) => t.status === "OPEN");
   const activeTasks = myTasks.filter((t) => ["ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status));
   const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
@@ -25,14 +29,15 @@ export default function CreatorPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, #F7931A, #C4711A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white" }}>
-              {MOCK_WALLET.username.charAt(0).toUpperCase()}
+              {displayUsername.charAt(0).toUpperCase()}
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5", margin: 0 }}>{MOCK_WALLET.username}</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5", margin: 0 }}>{displayUsername}</h1>
                 {MOCK_WALLET.githubVerified && <Badge color="green">GitHub Verified</Badge>}
+                <Badge color="orange">Creator</Badge>
               </div>
-              <div style={{ fontSize: 13, color: "#7070A0", fontFamily: "var(--font-geist-mono)" }}>{MOCK_WALLET.address.slice(0, 12)}…{MOCK_WALLET.address.slice(-6)}</div>
+              <div style={{ fontSize: 13, color: "#7070A0", fontFamily: "var(--font-geist-mono)" }}>{displayAddress.slice(0, 12)}…{displayAddress.slice(-6)}</div>
             </div>
           </div>
           <Link href="/create" style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
