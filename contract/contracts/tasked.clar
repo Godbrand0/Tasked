@@ -36,11 +36,14 @@
 (define-constant GRANT-FUNDED-FEE-BPS u500)   ;; 5%
 (define-constant TREASURY-SHARE u60)           ;; 60% of fee
 (define-constant WAVE-POOL-SHARE u40)          ;; 40% of fee
-(define-constant WAVE-EPOCH-BLOCKS u1008)      ;; ~7 days at 10 min/block
+(define-constant WAVE-EPOCH-BLOCKS u4320)      ;; ~30 days at 10 min/block
 (define-constant GRANT-VOTING-BLOCKS u432)     ;; ~3 days
 (define-constant MIN-TASK-AMOUNT u1000000)     ;; 1 USDX (6 decimals)
 (define-constant MIN-STX-STAKE u1000000)       ;; 1 STX (6 decimals)
-(define-constant STX-VOTE-MULTIPLIER u10)
+(define-constant MIN-PATRON-DEPOSIT u50000000) ;; 50 USDX (6 decimals)
+(define-constant USDX-VOTE-DIVISOR u10)        ;; 100 USDX deposited = 10 vote units
+(define-constant STX-VOTE-DIVISOR u100)        ;; 1000 STX staked = 10 vote units
+(define-constant GRANT-PASS-THRESHOLD u70)     ;; 70% of cast votes required to pass
 (define-constant EXPERIENCE-UPDATE-COOLDOWN u144) ;; ~1 day
 
 ;; Experience Tiers
@@ -366,7 +369,7 @@
       (new-total (+ (get total-deposited patron) amount))
     )
     (asserts! (is-eq (contract-of usdx-token) .usdx-token) ERR-INVALID-TOKEN)
-    (asserts! (> amount u0) ERR-INVALID-AMOUNT)
+    (asserts! (>= amount MIN-PATRON-DEPOSIT) ERR-INVALID-AMOUNT)
 
     ;; Transfer USDX to contract
     (try! (contract-call? usdx-token transfer amount tx-sender (as-contract tx-sender) none))
@@ -480,8 +483,7 @@
       (vote (unwrap! (map-get? grant-votes { task-id: task-id }) ERR-TASK-NOT-FOUND))
       (patron (unwrap! (map-get? patrons { address: tx-sender }) ERR-NO-STAKE))
       (voted-already (default-to false (get voted (map-get? grant-voters { task-id: task-id, voter: tx-sender }))))
-      (weight (+ (get total-deposited patron) (get stx-staked patron))) ;; Wait, STX multiplier is applied: total-deposited + (stx-staked * multiplier)
-      (voting-weight (+ (get total-deposited patron) (* (get stx-staked patron) STX-VOTE-MULTIPLIER)))
+      (voting-weight (+ (/ (get total-deposited patron) USDX-VOTE-DIVISOR) (/ (get stx-staked patron) STX-VOTE-DIVISOR)))
     )
     (asserts! (is-eq (get status task) "GRANT_PENDING") ERR-INVALID-STATUS)
     (asserts! (< stacks-block-height (get deadline vote)) ERR-VOTING-CLOSED)
@@ -523,7 +525,7 @@
       (merge vote { executed: true })
     )
 
-    (if (> (get votes-for vote) (get votes-against vote))
+    (if (>= (* (get votes-for vote) u100) (* (+ (get votes-for vote) (get votes-against vote)) GRANT-PASS-THRESHOLD))
       (begin
         (asserts! (>= (var-get grant-pool-balance) amount) ERR-INSUFFICIENT-FUNDS)
         ;; Deduct from grant pool balance
@@ -538,18 +540,8 @@
           )
           (as-contract (try! (contract-call? usdx-token transfer treasury-fee tx-sender (var-get treasury-address) none)))
           (var-set wave-pool-amount (+ (var-get wave-pool-amount) wave-pool-fee))
-          
-          ;; Track tasks for wave rewards
-          (var-set wave-total-tasks (+ (var-get wave-total-tasks) u1))
-          (let
-            (
-              (creator-stats (default-to { task-count: u0 } (map-get? wave-creator-tasks { wave-id: current-wave, creator: (get creator task) })))
-            )
-            (map-set wave-creator-tasks
-              { wave-id: current-wave, creator: (get creator task) }
-              { task-count: (+ (get task-count creator-stats) u1) }
-            )
-          )
+          ;; Grant-funded tasks do not count toward the creator leaderboard —
+          ;; only self-funded tasks accumulate wave reward credits
         )
 
         (map-set tasks

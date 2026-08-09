@@ -4,7 +4,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge, StatusBadge, PatronTierBadge } from "@/components/ui/Badge";
 import { MOCK_WALLET, MOCK_TASKS, MOCK_WAVE } from "@/lib/mock";
-import { formatUSDX, TIERS } from "@/lib/constants";
+import { formatMUSD, TIERS } from "@/lib/constants";
 
 // Simulated role — in production derived from on-chain user profile
 const MOCK_ROLE = MOCK_WALLET.role;
@@ -62,7 +62,7 @@ export default function DashboardPage() {
               {MOCK_ROLE === "creator" && [
                 { label: "Tasks Posted",   value: String(myTasks.length),               color: "#F7931A" },
                 { label: "Active",         value: String(activeTasks.length),            color: "#60A5FA" },
-                { label: "USDX Escrowed", value: `${formatUSDX(totalEscrowed)}`,         color: "#00D395" },
+                { label: "MUSD Escrowed", value: `${formatMUSD(totalEscrowed)}`,         color: "#00D395" },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 12, padding: "18px 20px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
               ))}
               {MOCK_ROLE === "contributor" && [
                 { label: "Tasks Done",    value: String(MOCK_WALLET.tasksCompleted),              color: "#00D395" },
-                { label: "Total Earned",  value: `${formatUSDX(MOCK_WALLET.totalEarned)} USDX`,   color: "#F7931A" },
+                { label: "Total Earned",  value: `${formatMUSD(MOCK_WALLET.totalEarned)} MUSD`,   color: "#F7931A" },
                 { label: "Experience",    value: tier.label,                                       color: tier.color },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 12, padding: "18px 20px" }}>
@@ -98,7 +98,7 @@ export default function DashboardPage() {
                         onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement | null) && (((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement).style.color = "#F0F0F5")}>
                         <div>
                           <div className="task-title" style={{ fontSize: 14, fontWeight: 600, color: "#F0F0F5", marginBottom: 2, transition: "color 0.15s" }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "#7070A0" }}>{formatUSDX(task.amount)} USDX</div>
+                          <div style={{ fontSize: 12, color: "#7070A0" }}>{formatMUSD(task.amount)} MUSD</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
               <Link href="/leaderboard" style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 24 }}>🏆</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F5" }}>Leaderboard</div>
-                <div style={{ fontSize: 12, color: "#7070A0" }}>Top contributors by USDX earned</div>
+                <div style={{ fontSize: 12, color: "#7070A0" }}>Top contributors by MUSD earned</div>
               </Link>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#7070A0" }}>Pool</span>
-                  <span style={{ color: "#F7931A", fontWeight: 600 }}>{formatUSDX(MOCK_WAVE.poolAmount)} USDX</span>
+                  <span style={{ color: "#F7931A", fontWeight: 600 }}>{formatMUSD(MOCK_WAVE.poolAmount)} MUSD</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#7070A0" }}>Tasks this wave</span>

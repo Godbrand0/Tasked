@@ -2,7 +2,7 @@
 
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Landing page
 
@@ -149,7 +149,7 @@ function LandingNavbar() {
 
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(16px)", background: "rgba(10,10,15,0.85)", borderBottom: "1px solid #1E1E2A" }}>
-      <style>{`.tasked-nav-link:hover { color: #F0F0F5 !important; } .landing-btn-outline:hover { border-color: #F7931A80 !important; color: #F0F0F5 !important; } .landing-btn-primary:hover { background: #E8851A !important; }`}</style>
+      <style>{`.taskify-nav-link:hover { color: #F0F0F5 !important; } .landing-btn-outline:hover { border-color: #F7931A80 !important; color: #F0F0F5 !important; } .landing-btn-primary:hover { background: #E8851A !important; }`}</style>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, background: "linear-gradient(135deg, #F7931A, #C4711A)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -157,12 +157,12 @@ function LandingNavbar() {
               <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" />
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: 20, color: "#F0F0F5", letterSpacing: "-0.02em" }}>Tasked</span>
+          <span style={{ fontWeight: 700, fontSize: 20, color: "#F0F0F5", letterSpacing: "-0.02em" }}>Taskify</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="hidden sm:flex">
           {[["#how-it-works", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]].map(([href, label]) => (
-            <a key={label} href={href} className="tasked-nav-link" style={{ color: "#9090B0", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>{label}</a>
+            <a key={label} href={href} className="taskify-nav-link" style={{ color: "#9090B0", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>{label}</a>
           ))}
         </div>
 
@@ -206,13 +206,13 @@ function MockTaskCard() {
         </div>
       </div>
       <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 6px", lineHeight: 1.4 }}>
-        Build Stacks DeFi Analytics Dashboard
+        Build Mezo DeFi Analytics Dashboard
       </h3>
       <p style={{ fontSize: 13, color: "#7070A0", margin: "0 0 16px", lineHeight: 1.5 }}>
-        React frontend connecting to the Stacks API to display protocol TVL, volume, and token stats.
+        React frontend connecting to the Mezo API to display protocol TVL, volume, and token stats.
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <Badge color="orange">500 USDX</Badge>
+        <Badge color="orange">500 MUSD</Badge>
         <Badge color="purple">Mid-level · Senior</Badge>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16, borderTop: "1px solid #1E1E2A" }}>
@@ -250,7 +250,7 @@ function Hero() {
         <div>
           <div style={{ marginBottom: 24 }}>
             <Badge color="orange">
-              <span style={{ fontSize: 10 }}>⛓</span> Built on Stacks · Bitcoin-secured
+              <span style={{ fontSize: 10 }}>⛓</span> Built on Mezo · Bitcoin-secured
             </Badge>
           </div>
           <h1 style={{ fontSize: "clamp(36px, 5vw, 58px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 24px", color: "#F0F0F5" }}>
@@ -258,10 +258,10 @@ function Hero() {
             <span style={{ background: "linear-gradient(90deg, #F7931A, #FFB347)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               Bounty Board
             </span>{" "}
-            for Stacks Builders
+            for the Mezo Community
           </h1>
           <p style={{ fontSize: 18, color: "#9090B0", lineHeight: 1.7, margin: "0 0 36px", maxWidth: 480 }}>
-            Post tasks, lock USDX in escrow, match contributors by experience level — all enforced by Clarity contracts. No trust required.
+            Post Development tasks matched by experience tier, or Community tasks anyone can join — MUSD locks in escrow either way, all enforced by Solidity contracts. No trust required.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <button onClick={connect} style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -273,9 +273,9 @@ function Hero() {
           </div>
           <div style={{ marginTop: 36, display: "flex", gap: 32, flexWrap: "wrap" }}>
             {[
-              { val: "3%", label: "Protocol fee" },
-              { val: "7-day", label: "Wave rewards" },
-              { val: "5 tiers", label: "Experience matching" },
+              { val: "3–5%", label: "Protocol fee" },
+              { val: "30-day", label: "Wave rewards" },
+              { val: "2 task kinds", label: "Development · Community" },
             ].map(({ val, label }) => (
               <div key={label}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#F7931A" }}>{val}</div>
@@ -289,7 +289,7 @@ function Hero() {
         <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
           <FloatingBadge style={{ top: -12, left: 20, color: "#00D395" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00D395", display: "inline-block" }} />
-            USDX locked in escrow
+            MUSD locked in escrow
           </FloatingBadge>
           <MockTaskCard />
           <FloatingBadge style={{ bottom: 16, right: 8, color: "#8B80FF" }}>
@@ -306,10 +306,10 @@ function Hero() {
 function TrustBar() {
   const items = [
     { icon: <IconBitcoin />, label: "Bitcoin-secured" },
-    { icon: <IconShield />, label: "Clarity contracts" },
-    { icon: <IconGithub />, label: "GitHub-verified" },
+    { icon: <IconShield />, label: "Solidity contracts" },
+    { icon: <IconGithub />, label: "GitHub or X verified" },
     { icon: <IconLock />, label: "Trustless escrow" },
-    { icon: <IconCoins />, label: "USDX + STX native" },
+    { icon: <IconCoins />, label: "MUSD + MEZO native" },
   ];
   return (
     <div style={{ borderTop: "1px solid #1E1E2A", borderBottom: "1px solid #1E1E2A", padding: "20px 24px" }}>
@@ -332,21 +332,21 @@ function HowItWorks() {
     {
       num: "01",
       title: "Create & Lock Escrow",
-      desc: "Post a task, set the experience range required, choose USDX or STX — the token locks in the smart contract the moment the task goes live. No trust required from either side.",
+      desc: "Post a Development task with an experience range, or a Community task anyone can join — choose MUSD or MEZO. The token locks in the smart contract the moment the task goes live. No trust required from either side.",
       color: "#F7931A",
       icon: "🔒",
     },
     {
       num: "02",
-      title: "Experience-Matched Apply",
-      desc: "Contributors see only tasks matching their declared experience tier. When they apply, the Clarity contract verifies the match on-chain — not just in the UI.",
+      title: "Apply, or Just Join In",
+      desc: "Development tasks match one contributor by declared experience tier, verified on-chain at applyForTask. Community tasks skip that gate entirely — anyone joins with a proof-of-participation link, no code required.",
       color: "#5546FF",
       icon: "🎯",
     },
     {
       num: "03",
       title: "Work & Get Paid On-Chain",
-      desc: "Once the creator approves submitted work, the contract releases USDX directly to the contributor's principal. No intermediary, no delay, no counterparty risk.",
+      desc: "Approve a Development task's submission to release MUSD to one contributor, or pick up to N winners on a Community task and split the escrow between them — one transaction, no intermediary, no counterparty risk.",
       color: "#00D395",
       icon: "⚡",
     },
@@ -361,7 +361,7 @@ function HowItWorks() {
             Three steps. Zero trust.
           </h2>
           <p style={{ fontSize: 16, color: "#7070A0", marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto" }}>
-            Every action — escrow, matching, payment — is enforced by the Clarity contract, not by Tasked.
+            Every action — escrow, matching, payment — is enforced by the Solidity contract, not by Taskify.
           </p>
         </div>
 
@@ -407,13 +407,13 @@ function ExperienceSection() {
             to "best fit applies"
           </h2>
           <p style={{ fontSize: 15, color: "#7070A0", lineHeight: 1.8, margin: "0 0 28px" }}>
-            Creators select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The Clarity contract verifies the match when a contributor applies — not just the UI.
+            Creators select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The Solidity contract verifies the match when a contributor applies — not just the UI.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[
               { label: "Creators", text: "Get applicants who genuinely fit the task scope." },
               { label: "Contributors", text: "See a curated feed of relevant work, not noise." },
-              { label: "On-chain", text: "Experience gate is enforced at apply-for-task, not filtered away client-side." },
+              { label: "On-chain", text: "Experience gate is enforced at applyForTask, not filtered away client-side." },
             ].map(({ label, text }) => (
               <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#F7931A18", border: "1px solid #F7931A30", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, color: "#F7931A" }}>
@@ -452,9 +452,12 @@ function ExperienceSection() {
             ))}
             <div style={{ padding: "14px 24px", background: "#F7931A0A", borderTop: "1px solid #F7931A18", display: "flex", alignItems: "center", gap: 8 }}>
               <IconShield />
-              <span style={{ fontSize: 12, color: "#F7931A", fontWeight: 600 }}>Gate enforced on-chain by Clarity — not a UI filter</span>
+              <span style={{ fontSize: 12, color: "#F7931A", fontWeight: 600 }}>Gate enforced on-chain by Solidity — not a UI filter</span>
             </div>
           </Card>
+          <p style={{ fontSize: 12, color: "#7070A0", marginTop: 12, lineHeight: 1.6 }}>
+            This gate applies to <strong style={{ color: "#9090B0" }}>Development tasks</strong> only — Community tasks (memes, bug write-ups, social bounties) are open to anyone, no tier required.
+          </p>
         </div>
       </div>
     </section>
@@ -472,13 +475,13 @@ function RolesSection() {
       bg: "#F7931A18",
       title: "Creator",
       subtitle: "Fund the work",
-      desc: "Post tasks, lock USDX in escrow, set the experience range, and choose from matched applicants.",
+      desc: "Post a Development task matched by experience tier, or a Community task anyone can join — lock MUSD in escrow either way.",
       features: [
-        "Self-funded or community-grant tasks",
-        "Experience range picker (min → max tier)",
-        "GitHub-linked project identity",
-        "Approve work to release payment",
-        "Weekly wave pool rewards for active creators",
+        "Self-funded, community-grant, or Community (multi-winner) tasks",
+        "Experience range picker for Development tasks",
+        "Pick up to N winners on Community tasks — payout splits evenly, one transaction",
+        "Approve work (or select winners) to release payment",
+        "Wave pool rewards for active self-funded creators",
       ],
       cta: "Post a Task",
     },
@@ -487,13 +490,13 @@ function RolesSection() {
       color: "#5546FF",
       bg: "#5546FF18",
       title: "Contributor",
-      subtitle: "Get paid to build",
-      desc: "Browse experience-matched bounties, apply on-chain, complete work, and build a permanent on-chain reputation.",
+      subtitle: "Get paid to build — or just to show up",
+      desc: "GitHub-verified? Apply to experience-matched Development bounties. Just X-linked? Join Community tasks — memes, bug write-ups, social bounties — no code required.",
       features: [
-        "Experience-matched task feed",
-        "GitHub-verified identity",
-        "Permanent on-chain task history",
-        "Portable reputation (USDX earned + tasks done)",
+        "Development: experience-matched task feed, GitHub-verified identity",
+        "Community: join with a proof link, no experience tier or code needed",
+        "Permanent on-chain task history either way",
+        "Portable reputation (MUSD earned + tasks done)",
         "Public profile at /profile/[address]",
       ],
       cta: "Find Work",
@@ -504,13 +507,13 @@ function RolesSection() {
       bg: "#00D39518",
       title: "Investor",
       subtitle: "Shape what gets built",
-      desc: "Deposit USDX into the patron pool, stake STX for amplified governance weight, and vote on grant applications.",
+      desc: "Deposit MUSD into the patron pool, stake MEZO for amplified governance weight, and vote on grant applications.",
       features: [
-        "Permanent USDX deposits → patron tiers",
-        "STX staking boosts voting weight 10×",
+        "Permanent MUSD deposits → patron tiers",
+        "MEZO staking boosts voting weight 10×",
         "Vote For / Against grant applications",
         "Bronze → Silver → Gold → Diamond tiers",
-        "No lockup for STX stake — always withdrawable",
+        "No lockup for MEZO stake — always withdrawable",
       ],
       cta: "Become a Patron",
     },
@@ -520,7 +523,7 @@ function RolesSection() {
     <section style={{ padding: "96px 24px", background: "#0D0D12" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 64 }}>
-          <SectionLabel>Who is Tasked for?</SectionLabel>
+          <SectionLabel>Who is Taskify for?</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "#F0F0F5" }}>
             Three roles. One closed-loop economy.
           </h2>
@@ -576,7 +579,7 @@ function ProtocolSection() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
           {/* Task lifecycle */}
           <Card>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Task Lifecycle</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Task Lifecycle (Development)</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {states.map((state, i) => (
                 <div key={state} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < states.length - 1 ? "1px solid #1E1E2A" : "none" }}>
@@ -590,6 +593,9 @@ function ProtocolSection() {
                 </div>
               ))}
             </div>
+            <div style={{ marginTop: 14, fontSize: 12, color: "#7070A0", lineHeight: 1.6 }}>
+              Community tasks skip ASSIGNED / IN_PROGRESS / SUBMITTED entirely — they go straight from OPEN to FUNDS_RELEASED once the creator selects winners.
+            </div>
           </Card>
 
           {/* Fee breakdown */}
@@ -598,8 +604,8 @@ function ProtocolSection() {
               <div style={{ fontSize: 13, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Fee Collection</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {[
-                  { label: "Self-funded task fee", rate: "3%", example: "300 USDX on a 10k task" },
-                  { label: "Grant-funded task fee", rate: "5%", example: "500 USDX on a 10k task" },
+                  { label: "Self-funded task fee", rate: "3%", example: "300 MUSD on a 10k task" },
+                  { label: "Grant-funded task fee", rate: "5%", example: "500 MUSD on a 10k task" },
                 ].map(({ label, rate, example }) => (
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
@@ -625,7 +631,7 @@ function ProtocolSection() {
                 </div>
               </div>
               <div style={{ marginTop: 14, fontSize: 12, color: "#7070A0", lineHeight: 1.6 }}>
-                Wave pool distributes to active creators every ~7 days, proportional to tasks posted that epoch.
+                Wave pool distributes to active self-funded creators every ~30 days, proportional to tasks posted that epoch.
               </div>
             </Card>
           </div>
@@ -639,20 +645,20 @@ function ProtocolSection() {
 
 function TokensSection() {
   return (
-    <section style={{ padding: "96px 24px", background: "#0D0D12" }}>
+    <section id="tokens" style={{ padding: "96px 24px", background: "#0D0D12" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>Native tokens</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "#F0F0F5" }}>
-            USDX pays. STX governs.
+            MUSD pays. MEZO governs.
           </h2>
           <p style={{ fontSize: 16, color: "#7070A0", marginTop: 12 }}>
-            Both tokens are native to the Stacks ecosystem. Neither is speculative filler.
+            Both tokens are native to the Mezo ecosystem. Neither is speculative filler.
           </p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          {/* USDX */}
+          {/* MUSD */}
           <Card style={{ borderColor: "#00D39530" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "#00D39518", border: "1px solid #00D39530", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -660,19 +666,19 @@ function TokensSection() {
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#00D395", letterSpacing: "0.06em", textTransform: "uppercase" }}>Payment token</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5" }}>USDX</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5" }}>MUSD</div>
               </div>
             </div>
             <p style={{ fontSize: 14, color: "#7070A0", lineHeight: 1.7, margin: "0 0 20px" }}>
-              Bitcoin-backed stablecoin native to Stacks. The primary escrow currency — contributors know exactly what they earn with zero price exposure.
+              Bitcoin-backed stablecoin native to Mezo. The primary escrow currency — contributors know exactly what they earn with zero price exposure.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 "Locks in escrow at task creation",
                 "Releases directly to contributor on approval",
-                "Patron pool deposits denominated in USDX",
-                "Wave rewards paid in USDX",
-                "Multi-token tasks supported via SIP-010",
+                "Patron pool deposits denominated in MUSD",
+                "Wave rewards paid in MUSD",
+                "Multi-token tasks supported via ERC-20",
               ].map((f) => (
                 <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "#9090B0" }}>
                   <span style={{ color: "#00D395", flexShrink: 0, marginTop: 1 }}><IconCheck /></span>
@@ -682,7 +688,7 @@ function TokensSection() {
             </div>
           </Card>
 
-          {/* STX */}
+          {/* MEZO */}
           <Card style={{ borderColor: "#5546FF30" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "#5546FF18", border: "1px solid #5546FF30", display: "flex", alignItems: "center", justifyContent: "center", color: "#8B80FF" }}>
@@ -690,15 +696,15 @@ function TokensSection() {
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#8B80FF", letterSpacing: "0.06em", textTransform: "uppercase" }}>Governance token</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5" }}>STX</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5" }}>MEZO</div>
               </div>
             </div>
             <p style={{ fontSize: 14, color: "#7070A0", lineHeight: 1.7, margin: "0 0 20px" }}>
-              Native Stacks token. Stake STX to amplify voting weight on grant applications — turning passive holders into active ecosystem governors.
+              Native Mezo token. Stake MEZO to amplify voting weight on grant applications — turning passive holders into active ecosystem governors.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
-                "1 STX staked = 10 USDX governance weight",
+                "1 MEZO staked = 10 MUSD governance weight",
                 "Always withdrawable — no lockup or slashing",
                 "Multiplier adjustable by contract owner",
                 "Unstaking does not alter past votes",
@@ -718,17 +724,109 @@ function TokensSection() {
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>Voting weight formula</div>
             <code style={{ fontSize: 15, color: "#F0F0F5", fontFamily: "var(--font-geist-mono), monospace" }}>
-              <span style={{ color: "#00D395" }}>total-usdx-deposited</span>
+              <span style={{ color: "#00D395" }}>total-musd-deposited</span>
               {" + ("}
-              <span style={{ color: "#8B80FF" }}>stx-staked</span>
+              <span style={{ color: "#8B80FF" }}>mezo-staked</span>
               {" × "}
               <span style={{ color: "#F7931A" }}>10</span>
               {" / 1e6)"}
             </code>
           </div>
           <div style={{ fontSize: 13, color: "#7070A0", maxWidth: 320 }}>
-            Staking 1,000 STX adds 10,000 USDX-equivalent voting units. Capital commitment and ecosystem conviction both shape governance.
+            Staking 1,000 MEZO adds 10,000 MUSD-equivalent voting units. Capital commitment and ecosystem conviction both shape governance.
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+
+function IconChevron({ open }: { open: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+const FAQ_ITEMS = [
+  {
+    q: "What is Taskify?",
+    a: "Taskify is an on-chain bounty board on Mezo. Creators post tasks and lock MUSD in escrow, contributors apply and get paid on approval, and Patrons fund a community grant pool and vote on which grant-funded tasks get built. Every step — escrow, experience gating, payment — is enforced by the Taskify smart contract, not by a central party.",
+  },
+  {
+    q: "What is MUSD and why does Taskify use it?",
+    a: "MUSD is Mezo's native Bitcoin-backed stablecoin. It's the default escrow and payout currency, so contributors know exactly what a bounty is worth with no price exposure between the day a task is posted and the day it's paid out.",
+  },
+  {
+    q: "What is MEZO and what does staking it do?",
+    a: "MEZO is Mezo's governance token. Patrons can stake it to amplify their voting weight on grant applications — 1,000 MEZO staked adds meaningful voting power on top of any MUSD deposited. Staked MEZO is always withdrawable; there's no lockup or slashing.",
+  },
+  {
+    q: "How does experience matching work?",
+    a: "Creators set a minimum and maximum experience tier when posting a task. Contributors declare their own tier at registration. The contract itself checks the match when a contributor calls applyForTask — it's enforced on-chain, not just filtered in the UI.",
+  },
+  {
+    q: "What kind of tasks should I post as a creator?",
+    a: "Keep self-funded tasks small and tightly scoped — the bounty amounts on Taskify are modest, so the work should match. Think \"fix a broken footer layout,\" \"make the dashboard page responsive on mobile,\" \"add a loading skeleton to the tasks list,\" or \"write unit tests for one contract function.\" A task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
+  },
+  {
+    q: "Can I post a large, multi-week feature as one task?",
+    a: "You can, but it's not what the protocol is optimized for. Large scope is better split into several small self-funded tasks — each with its own escrow, its own applicant, and its own payout — or posted as a grant-funded task so the community can weigh in on whether the scope and requested amount make sense before any MUSD moves.",
+  },
+  {
+    q: "Is my money safe in escrow?",
+    a: "Funds move only through the Taskify contract: MUSD locks in at task creation and only leaves escrow when the creator approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no custodial intermediary holding funds at any point.",
+  },
+  {
+    q: "What fees does Taskify take?",
+    a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the protocol treasury and 40% goes into the wave pool, which is redistributed to active self-funded creators roughly every 30 days.",
+  },
+  {
+    q: "What wallets are supported?",
+    a: "Any standard Ethereum wallet via RainbowKit — MetaMask, Rabby, Rainbow, WalletConnect-compatible mobile wallets, or any browser-injected wallet.",
+  },
+  {
+    q: "Has the Taskify contract been audited?",
+    a: "The protocol is under active review. Check the repository for the latest audit status before depositing meaningful funds, and always start with amounts you're comfortable testing with.",
+  },
+];
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  return (
+    <section id="faq" style={{ padding: "96px 24px", background: "#0D0D12" }}>
+      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <SectionLabel>FAQ</SectionLabel>
+          <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "#F0F0F5" }}>
+            Frequently asked questions
+          </h2>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {FAQ_ITEMS.map((item, i) => {
+            const open = openIndex === i;
+            return (
+              <div key={item.q} style={{ background: "#111116", border: `1px solid ${open ? "#F7931A30" : "#1E1E2A"}`, borderRadius: 14, overflow: "hidden", transition: "border-color 0.15s" }}>
+                <button
+                  onClick={() => setOpenIndex(open ? null : i)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "18px 22px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: open ? "#F7931A" : "#F0F0F5" }}>{item.q}</span>
+                  <span style={{ color: open ? "#F7931A" : "#7070A0" }}><IconChevron open={open} /></span>
+                </button>
+                {open && (
+                  <div style={{ padding: "0 22px 20px", fontSize: 14, color: "#9090B0", lineHeight: 1.75 }}>
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -746,7 +844,7 @@ function CTASection() {
         <div style={{ position: "relative" }}>
           <SectionLabel>Get started</SectionLabel>
           <h2 style={{ fontSize: "clamp(30px, 5vw, 52px)", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 20px", color: "#F0F0F5" }}>
-            Start building on Stacks
+            Start building on Mezo
           </h2>
           <p style={{ fontSize: 17, color: "#7070A0", margin: "0 auto 40px", maxWidth: 480, lineHeight: 1.7 }}>
             Post a task, find work, or invest in the builders shaping the Bitcoin-secured ecosystem.
@@ -771,16 +869,35 @@ function CTASection() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 function Footer() {
-  const links = {
-    Protocol: ["How it works", "Task escrow", "Grant pool", "Wave rewards"],
-    Builders: ["Browse tasks", "Leaderboard", "Docs", "GitHub"],
-    Tokens: ["USDX", "STX staking", "Patron tiers", "Governance"],
+  const links: Record<string, { label: string; href: string }[]> = {
+    Protocol: [
+      { label: "How it works", href: "#how-it-works" },
+      { label: "Task escrow", href: "#how-it-works" },
+      { label: "Grant pool", href: "#features" },
+      { label: "Wave rewards", href: "#features" },
+    ],
+    Builders: [
+      { label: "Browse tasks", href: "/tasks" },
+      { label: "Leaderboard", href: "/leaderboard" },
+      { label: "Docs", href: "#" },
+      { label: "GitHub", href: "#" },
+    ],
+    Tokens: [
+      { label: "MUSD", href: "#tokens" },
+      { label: "MEZO staking", href: "#tokens" },
+      { label: "Patron tiers", href: "#tokens" },
+      { label: "Governance", href: "#tokens" },
+    ],
+    Legal: [
+      { label: "FAQ", href: "#faq" },
+      { label: "Terms & Conditions", href: "/terms" },
+    ],
   };
 
   return (
     <footer style={{ borderTop: "1px solid #1E1E2A", padding: "60px 24px 40px", background: "#0D0D12" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block sm:grid">
           {/* Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -789,14 +906,14 @@ function Footer() {
                   <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" />
                 </svg>
               </div>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "#F0F0F5" }}>Tasked</span>
+              <span style={{ fontWeight: 700, fontSize: 18, color: "#F0F0F5" }}>Taskify</span>
             </div>
             <p style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.7, maxWidth: 280, margin: "0 0 16px" }}>
-              The on-chain bounty board for Stacks builders. Trustless escrow, community grants, experience-matched work.
+              The on-chain bounty board for the Mezo community. Trustless escrow, community grants, Development and Community tasks alike.
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00D395" }} />
-              <span style={{ fontSize: 12, color: "#00D395", fontWeight: 600 }}>Stacks Testnet</span>
+              <span style={{ fontSize: 12, color: "#00D395", fontWeight: 600 }}>Mezo Testnet</span>
             </div>
           </div>
 
@@ -806,7 +923,7 @@ function Footer() {
               <div style={{ fontSize: 12, fontWeight: 700, color: "#F0F0F5", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>{group}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {items.map((item) => (
-                  <a key={item} href="#" style={{ fontSize: 13, color: "#7070A0", textDecoration: "none" }}>{item}</a>
+                  <a key={item.label} href={item.href} style={{ fontSize: 13, color: "#7070A0", textDecoration: "none" }}>{item.label}</a>
                 ))}
               </div>
             </div>
@@ -815,11 +932,11 @@ function Footer() {
 
         <div style={{ borderTop: "1px solid #1E1E2A", paddingTop: 28, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
           <div style={{ fontSize: 12, color: "#505070" }}>
-            © 2025 Tasked. Built on <span style={{ color: "#F7931A" }}>Stacks</span>, secured by Bitcoin.
+            © 2025 Taskify. Built on <span style={{ color: "#F7931A" }}>Mezo</span>, secured by Bitcoin.
           </div>
           <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "#505070", display: "flex", alignItems: "center", gap: 6 }}>
             <span>Contract:</span>
-            <span style={{ color: "#7070A0" }}>ST…TBD.tasked</span>
+            <span style={{ color: "#7070A0" }}>0x…TBD</span>
           </div>
         </div>
       </div>
@@ -840,6 +957,7 @@ export default function Home() {
       <RolesSection />
       <ProtocolSection />
       <TokensSection />
+      <FAQSection />
       <CTASection />
       <Footer />
     </div>

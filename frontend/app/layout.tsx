@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tasked — On-Chain Bounties for Stacks Builders",
+  title: "Taskify — On-Chain Bounties for the Mezo Community",
   description:
-    "Trustless task escrow, community-governed grant funding, and experience-matched bounties built on Stacks with Clarity.",
+    "Trustless task escrow, community-governed grant funding, and experience-matched or open-to-anyone bounties built on Mezo with Solidity.",
 };
 
 export default function RootLayout({

@@ -30,7 +30,7 @@ function TaskedLogo() {
           <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" />
         </svg>
       </div>
-      <span style={{ fontWeight: 700, fontSize: 20, color: "#F0F0F5", letterSpacing: "-0.02em" }}>Tasked</span>
+      <span style={{ fontWeight: 700, fontSize: 20, color: "#F0F0F5", letterSpacing: "-0.02em" }}>Taskify</span>
     </Link>
   );
 }
@@ -38,7 +38,7 @@ function TaskedLogo() {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { connected, isRegistered, username, role, address, stxBalance, connect, disconnect } = useWallet();
+  const { connected, isRegistered, username, role, address, mezoBalance, connect, disconnect } = useWallet();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -111,11 +111,11 @@ export default function Navbar() {
               </Link>
             </>
           ) : (
-            /* Registered: STX balance + profile avatar */
+            /* Registered: MEZO balance + profile avatar */
             <>
               <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
-                <span style={{ color: "#8B80FF" }}>{formatBalance(stxBalance)}</span>
-                <span style={{ color: "#50507080", marginLeft: 4 }}>STX</span>
+                <span style={{ color: "#8B80FF" }}>{formatBalance(mezoBalance)}</span>
+                <span style={{ color: "#50507080", marginLeft: 4 }}>MEZO</span>
               </div>
 
               <div ref={dropdownRef} style={{ position: "relative" }}>

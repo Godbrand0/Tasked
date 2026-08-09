@@ -26,10 +26,28 @@ export const TASK_STATUSES: Record<string, { label: string; color: string; bg: s
   GRANT_REJECTED: { label: "Grant Rejected", color: "#F87171", bg: "#EF444418" },
 };
 
-export const USDX_DECIMALS = 6;
+export const MUSD_DECIMALS = 18;
 
-export function formatUSDX(raw: number): string {
-  return (raw / 10 ** USDX_DECIMALS).toLocaleString(undefined, { maximumFractionDigits: 2 });
+// Official Mezo contract addresses (source: mezo.org/docs/users/resources/contracts-reference).
+// MEZO has no published testnet deployment — on testnet we deploy our own
+// MockMEZO (see contracts/script/Deploy.s.sol) and point NEXT_PUBLIC_MEZO_CONTRACT
+// at it; on mainnet the real MEZO address below applies.
+export const CONTRACT_ADDRESSES = {
+  testnet: {
+    musd: "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+    mezo: undefined as string | undefined,
+  },
+  mainnet: {
+    musd: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+    mezo: "0x7B7c000000000000000000000000000000000001",
+  },
+} as const;
+
+// Mock/demo data stores amounts as plain human-readable numbers (not raw
+// base units) since 18-decimal raw integers exceed JS's safe integer range.
+// Real on-chain reads should use viem's formatUnits(raw, MUSD_DECIMALS).
+export function formatMUSD(amount: number): string {
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 export function getTier(id: number) {

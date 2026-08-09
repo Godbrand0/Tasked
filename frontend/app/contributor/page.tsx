@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { MOCK_TASKS, MOCK_LEADERBOARD } from "@/lib/mock";
-import { formatUSDX, TIERS } from "@/lib/constants";
+import { formatMUSD, TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 
 const CONTRIBUTOR = MOCK_LEADERBOARD[0];
@@ -59,7 +59,7 @@ export default function ContributorPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
             { label: "Tasks Completed", value: String(connected && isRegistered ? tasksCompleted : CONTRIBUTOR.tasksCompleted), color: "#00D395", icon: "✓" },
-            { label: "Total Earned",    value: `${formatUSDX(connected && isRegistered ? totalEarned : CONTRIBUTOR.totalEarned)} USDX`, color: "#F7931A", icon: "💰" },
+            { label: "Total Earned",    value: `${formatMUSD(connected && isRegistered ? totalEarned : CONTRIBUTOR.totalEarned)} MUSD`, color: "#F7931A", icon: "💰" },
             { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: "🏅" },
             { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "#60A5FA", icon: "🎯" },
           ].map(({ label, value, color, icon }) => (
@@ -80,7 +80,7 @@ export default function ContributorPage() {
                 <div style={{ background: "#111116", border: "1px solid #F7931A30", borderRadius: 14, padding: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <StatusBadge status={activeTask.status} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#F7931A" }}>{formatUSDX(activeTask.amount)} USDX</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#F7931A" }}>{formatMUSD(activeTask.amount)} MUSD</span>
                   </div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 16px" }}>{activeTask.title}</h3>
                   <div style={{ display: "flex", gap: 10 }}>
@@ -146,7 +146,7 @@ export default function ContributorPage() {
                         onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#1E1E2A")}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#F0F0F5", marginBottom: 2 }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "#7070A0" }}>{formatUSDX(task.amount)} USDX</div>
+                          <div style={{ fontSize: 12, color: "#7070A0" }}>{formatMUSD(task.amount)} MUSD</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>
@@ -173,7 +173,7 @@ export default function ContributorPage() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "#7070A0" }}>Total Earned</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#F7931A" }}>{formatUSDX(CONTRIBUTOR.totalEarned)} USDX</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#F7931A" }}>{formatMUSD(CONTRIBUTOR.totalEarned)} MUSD</span>
                 </div>
               </div>
               <div style={{ height: 1, background: "#1E1E2A", margin: "16px 0" }} />
@@ -185,7 +185,7 @@ export default function ContributorPage() {
             {/* Update experience */}
             <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Update Experience</div>
-              <p style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "#F7931A", fontSize: 11 }}>update-experience</code> on-chain. 1-day cooldown after update.</p>
+              <p style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "#F7931A", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
               <select defaultValue={myTier}
                 style={{ width: "100%", background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#F0F0F5", outline: "none", cursor: "pointer", marginBottom: 10 }}>
                 {TIERS.map((t) => <option key={t.id} value={t.id}>{t.label} — {t.years}</option>)}

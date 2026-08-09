@@ -8,14 +8,15 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 
 type FundingType = "self" | "grant";
-type Currency = "USDX" | "STX";
+type Currency = "MUSD" | "MEZO";
+type TaskKind = "development" | "community";
 
 const TASK_TOPICS = [
   "DeFi / Protocol",
   "NFT / Marketplace",
   "Infrastructure / Tooling",
   "Frontend / UI",
-  "Smart Contracts / Clarity",
+  "Smart Contracts / Solidity",
   "Security / Audit",
   "Testing / QA",
   "Documentation",
@@ -29,8 +30,10 @@ export default function CreatePage() {
   const router = useRouter();
   const { connected, isRegistered, role } = useWallet();
 
+  const [taskKind, setTaskKind] = useState<TaskKind>("development");
   const [fundingType, setFundingType] = useState<FundingType>("self");
-  const [currency, setCurrency] = useState<Currency>("USDX");
+  const [currency, setCurrency] = useState<Currency>("MUSD");
+  const [maxWinners, setMaxWinners] = useState(5);
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState(TASK_TOPICS[0]);
   const [description, setDescription] = useState("");
@@ -53,7 +56,18 @@ export default function CreatePage() {
   const numAmount = parseFloat(amount) || 0;
   const feeAmt = numAmount * fee;
   const netAmt = numAmount - feeAmt;
-  const valid = title.trim().length > 0 && numAmount >= 1 && expMin <= expMax && (fundingType === "self" || grantJustification.trim().length > 20);
+  const perWinnerAmt = taskKind === "community" && maxWinners > 0 ? netAmt / maxWinners : netAmt;
+  const valid =
+    title.trim().length > 0 &&
+    numAmount >= 1 &&
+    (taskKind === "development"
+      ? expMin <= expMax && (fundingType === "self" || grantJustification.trim().length > 20)
+      : maxWinners >= 1 && maxWinners <= 20);
+
+  function handleTaskKindChange(kind: TaskKind) {
+    setTaskKind(kind);
+    if (kind === "community") setFundingType("self"); // grant-funded community tasks aren't supported yet
+  }
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -114,7 +128,7 @@ export default function CreatePage() {
           <div style={{ fontSize: 48, marginBottom: 20 }}>🔐</div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#F0F0F5", marginBottom: 12 }}>Connect your wallet</h1>
           <p style={{ fontSize: 15, color: "#7070A0", lineHeight: 1.7, marginBottom: 28 }}>
-            You need a connected Stacks wallet and a registered Tasked account to post a task.
+            You need a connected Ethereum wallet and a registered Taskify account to post a task.
           </p>
           <Link href="/register" style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
             Get Started →
@@ -145,14 +159,16 @@ export default function CreatePage() {
       <div style={{ minHeight: "100vh", background: "#0A0A0F" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>{fundingType === "self" ? "🔒" : "🗳️"}</div>
+          <div style={{ fontSize: 56, marginBottom: 20 }}>{taskKind === "community" ? "📣" : fundingType === "self" ? "🔒" : "🗳️"}</div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "#F0F0F5", marginBottom: 12 }}>
-            {fundingType === "self" ? "Task posted & escrow locked!" : "Grant application submitted!"}
+            {taskKind === "community" ? "Community task is live!" : fundingType === "self" ? "Task posted & escrow locked!" : "Grant application submitted!"}
           </h1>
           <p style={{ fontSize: 15, color: "#7070A0", lineHeight: 1.7, marginBottom: 32 }}>
-            {fundingType === "self"
-              ? `${numAmount.toLocaleString()} ${currency} is now locked in the Tasked contract. Your task is live in the bounty board.`
-              : "Your grant application enters a 3-day community voting period. Patrons will vote using their USDX + STX governance weight."}
+            {taskKind === "community"
+              ? `${numAmount.toLocaleString()} ${currency} is locked in escrow, open for anyone to join. Pick up to ${maxWinners} winners from the submissions whenever you're ready.`
+              : fundingType === "self"
+              ? `${numAmount.toLocaleString()} ${currency} is now locked in the Taskify contract. Your task is live in the bounty board.`
+              : "Your grant application enters a 3-day community voting period. Patrons will vote using their MUSD + MEZO governance weight."}
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <Link href="/tasks" style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>
@@ -180,26 +196,51 @@ export default function CreatePage() {
           <p style={{ fontSize: 15, color: "#7070A0", margin: 0 }}>Lock funds in escrow and match the right contributors on-chain.</p>
         </div>
 
-        {/* Funding type toggle */}
-        <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: 6, display: "flex", gap: 4, marginBottom: 28 }}>
-          {(["self", "grant"] as FundingType[]).map(type => (
-            <button key={type} onClick={() => setFundingType(type)}
-              style={{ flex: 1, background: fundingType === type ? "#F7931A" : "transparent", color: fundingType === type ? "#0A0A0F" : "#9090B0", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all 0.15s" }}>
-              {type === "self" ? "🔒 Self-Funded (3% fee)" : "🏛 Apply for Grant (5% fee)"}
+        {/* Task kind toggle */}
+        <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: 6, display: "flex", gap: 4, marginBottom: 12 }}>
+          {(["development", "community"] as TaskKind[]).map(kind => (
+            <button key={kind} onClick={() => handleTaskKindChange(kind)}
+              style={{ flex: 1, background: taskKind === kind ? "#5546FF" : "transparent", color: taskKind === kind ? "#F0F0F5" : "#9090B0", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all 0.15s" }}>
+              {kind === "development" ? "💻 Development" : "📣 Community"}
             </button>
           ))}
         </div>
+        <div style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6, marginBottom: 28 }}>
+          {taskKind === "development"
+            ? "One contributor applies, you assign them, they get paid on approval."
+            : "Anyone can join with proof of participation — you pick up to N winners and the payout splits evenly between them."}
+        </div>
 
-        {fundingType === "grant" && (
-          <div style={{ background: "#5546FF0D", border: "1px solid #5546FF30", borderRadius: 12, padding: "14px 16px", marginBottom: 28, fontSize: 13, color: "#8B80FF", lineHeight: 1.7 }}>
-            Grant tasks enter a <strong>3-day community voting period</strong>. Patrons vote using their USDX + STX stake weight. If approved, USDX from the patron pool funds the escrow automatically.
+        {/* Funding type toggle — grant-funded only supported for Development tasks */}
+        {taskKind === "development" && (
+          <>
+            <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: 6, display: "flex", gap: 4, marginBottom: 28 }}>
+              {(["self", "grant"] as FundingType[]).map(type => (
+                <button key={type} onClick={() => setFundingType(type)}
+                  style={{ flex: 1, background: fundingType === type ? "#F7931A" : "transparent", color: fundingType === type ? "#0A0A0F" : "#9090B0", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all 0.15s" }}>
+                  {type === "self" ? "🔒 Self-Funded (3% fee)" : "🏛 Apply for Grant (5% fee)"}
+                </button>
+              ))}
+            </div>
+
+            {fundingType === "grant" && (
+              <div style={{ background: "#5546FF0D", border: "1px solid #5546FF30", borderRadius: 12, padding: "14px 16px", marginBottom: 28, fontSize: 13, color: "#8B80FF", lineHeight: 1.7 }}>
+                Grant tasks enter a <strong>3-day community voting period</strong>. Patrons vote using their MUSD + MEZO stake weight. If approved, MUSD from the patron pool funds the escrow automatically.
+              </div>
+            )}
+          </>
+        )}
+
+        {taskKind === "community" && (
+          <div style={{ background: "#F7931A0A", border: "1px solid #F7931A20", borderRadius: 12, padding: "14px 16px", marginBottom: 28, fontSize: 13, color: "#9090B0", lineHeight: 1.7 }}>
+            Community tasks are self-funded only (3% fee) — grant-funded community tasks aren't supported yet.
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {/* Title */}
-          <Field label="Task Title" required>
-            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Build Stacks DeFi Analytics Dashboard" maxLength={200}
+          <Field label="Task Title" required hint="keep it small — one clear, bite-sized deliverable">
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Fix broken footer layout on mobile" maxLength={200}
               style={inputStyle}
               onFocus={e => (e.target.style.borderColor = "#F7931A50")}
               onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
@@ -215,9 +256,9 @@ export default function CreatePage() {
             </Field>
             <Field label="Payment Currency" required>
               <div style={{ display: "flex", background: "#111116", border: "1px solid #1E1E2A", borderRadius: 10, padding: 4, gap: 4 }}>
-                {(["USDX", "STX"] as Currency[]).map(c => (
+                {(["MUSD", "MEZO"] as Currency[]).map(c => (
                   <button key={c} onClick={() => setCurrency(c)}
-                    style={{ flex: 1, background: currency === c ? (c === "USDX" ? "#00D39520" : "#8B80FF20") : "transparent", color: currency === c ? (c === "USDX" ? "#00D395" : "#8B80FF") : "#7070A0", fontWeight: 700, fontSize: 13, padding: "8px 4px", borderRadius: 8, border: `1px solid ${currency === c ? (c === "USDX" ? "#00D39540" : "#8B80FF40") : "transparent"}`, cursor: "pointer" }}>
+                    style={{ flex: 1, background: currency === c ? (c === "MUSD" ? "#00D39520" : "#8B80FF20") : "transparent", color: currency === c ? (c === "MUSD" ? "#00D395" : "#8B80FF") : "#7070A0", fontWeight: 700, fontSize: 13, padding: "8px 4px", borderRadius: 8, border: `1px solid ${currency === c ? (c === "MUSD" ? "#00D39540" : "#8B80FF40") : "transparent"}`, cursor: "pointer" }}>
                     {c}
                   </button>
                 ))}
@@ -226,9 +267,9 @@ export default function CreatePage() {
           </div>
 
           {/* Description */}
-          <Field label="Description" required>
+          <Field label="Description" required hint="scope it to a few hours–a couple of days of work">
             <textarea value={description} onChange={e => setDescription(e.target.value)}
-              placeholder="Describe the task scope, deliverables, acceptance criteria, and any technical requirements..." rows={8}
+              placeholder="Describe the task scope, deliverables, acceptance criteria, and any technical requirements. Given the bounty size, keep this to a single well-defined fix or improvement — e.g. 'make the dashboard page responsive on mobile' — rather than an open-ended feature." rows={8}
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.7, minHeight: 160 }}
               onFocus={e => (e.target.style.borderColor = "#F7931A50")}
               onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
@@ -238,7 +279,7 @@ export default function CreatePage() {
           {fundingType === "grant" && (
             <Field label="Why should this be grant-funded?" required hint="Explain the public good, ecosystem value, and why this can't be self-funded. Patrons use this to vote.">
               <textarea value={grantJustification} onChange={e => setGrantJustification(e.target.value)}
-                placeholder="e.g. This open-source indexer would eliminate the need for every Stacks dApp to run its own node, saving the ecosystem $500–$2k/month per team..." rows={5}
+                placeholder="e.g. This open-source indexer would eliminate the need for every Mezo dApp to run its own node, saving the ecosystem $500–$2k/month per team..." rows={5}
                 style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.7 }}
                 onFocus={e => (e.target.style.borderColor = "#8B80FF50")}
                 onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
@@ -255,7 +296,7 @@ export default function CreatePage() {
                 style={{ ...inputStyle, paddingRight: 64 }}
                 onFocus={e => (e.target.style.borderColor = "#F7931A50")}
                 onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
-              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 13, fontWeight: 700, color: currency === "USDX" ? "#00D395" : "#8B80FF" }}>{currency}</span>
+              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 13, fontWeight: 700, color: currency === "MUSD" ? "#00D395" : "#8B80FF" }}>{currency}</span>
             </div>
             {numAmount >= 1 && (
               <div style={{ background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 10, padding: "14px 16px", marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -267,62 +308,81 @@ export default function CreatePage() {
             )}
           </Field>
 
-          {/* GitHub issue link */}
-          <Field label="GitHub Issue" hint="Paste a GitHub issue URL to auto-fill title and description">
-            <div style={{ position: "relative" }}>
-              <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width="16" height="16" viewBox="0 0 24 24" fill="#7070A0">
-                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
-              </svg>
-              <input
-                value={githubIssueUrl}
-                onChange={e => handleGithubIssueLink(e.target.value)}
-                placeholder="https://github.com/org/repo/issues/123"
-                style={{ ...inputStyle, paddingLeft: 38, paddingRight: githubIssueFetching ? 40 : 14 }}
-                onFocus={e => (e.target.style.borderColor = "#F7931A50")}
-                onBlur={e => (e.target.style.borderColor = githubIssueData ? "#00D39550" : "#1E1E2A")}
-              />
-              {githubIssueFetching && (
-                <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#7070A0" }}>…</div>
+          {/* GitHub issue link — development tasks only */}
+          {taskKind === "development" && (
+            <Field label="GitHub Issue" hint="Paste a GitHub issue URL to auto-fill title and description">
+              <div style={{ position: "relative" }}>
+                <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width="16" height="16" viewBox="0 0 24 24" fill="#7070A0">
+                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <input
+                  value={githubIssueUrl}
+                  onChange={e => handleGithubIssueLink(e.target.value)}
+                  placeholder="https://github.com/org/repo/issues/123"
+                  style={{ ...inputStyle, paddingLeft: 38, paddingRight: githubIssueFetching ? 40 : 14 }}
+                  onFocus={e => (e.target.style.borderColor = "#F7931A50")}
+                  onBlur={e => (e.target.style.borderColor = githubIssueData ? "#00D39550" : "#1E1E2A")}
+                />
+                {githubIssueFetching && (
+                  <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#7070A0" }}>…</div>
+                )}
+              </div>
+              {githubIssueData && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 13, color: "#00D395" }}>
+                  <span>✓ Linked to</span>
+                  <a href={githubIssueData.url} target="_blank" rel="noopener noreferrer"
+                    style={{ color: "#00D395", fontWeight: 600, textDecoration: "none" }}>
+                    {githubIssueData.repo}#{githubIssueData.number}
+                  </a>
+                  <span style={{ color: "#7070A0" }}>— title & description filled in</span>
+                </div>
               )}
-            </div>
-            {githubIssueData && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 13, color: "#00D395" }}>
-                <span>✓ Linked to</span>
-                <a href={githubIssueData.url} target="_blank" rel="noopener noreferrer"
-                  style={{ color: "#00D395", fontWeight: 600, textDecoration: "none" }}>
-                  {githubIssueData.repo}#{githubIssueData.number}
-                </a>
-                <span style={{ color: "#7070A0" }}>— title & description filled in</span>
-              </div>
-            )}
-            {githubIssueError && (
-              <div style={{ marginTop: 6, fontSize: 12, color: "#F87171" }}>{githubIssueError}</div>
-            )}
-          </Field>
+              {githubIssueError && (
+                <div style={{ marginTop: 6, fontSize: 12, color: "#F87171" }}>{githubIssueError}</div>
+              )}
+            </Field>
+          )}
 
-          {/* Experience range */}
-          <Field label="Experience Range" required>
-            <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 12, padding: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                {(["min", "max"] as const).map(bound => (
-                  <div key={bound}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#7070A0", marginBottom: 8 }}>{bound === "min" ? "Minimum tier" : "Maximum tier"}</div>
-                    <select value={bound === "min" ? expMin : expMax}
-                      onChange={e => bound === "min" ? setExpMin(Number(e.target.value)) : setExpMax(Number(e.target.value))}
-                      style={{ width: "100%", background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#F0F0F5", outline: "none", cursor: "pointer" }}>
-                      {TIERS.map(t => <option key={t.id} value={t.id} disabled={bound === "max" ? t.id < expMin : t.id > expMax}>{t.label} — {t.years}</option>)}
-                    </select>
-                  </div>
-                ))}
+          {/* Experience range — development only */}
+          {taskKind === "development" && (
+            <Field label="Experience Range" required>
+              <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 12, padding: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                  {(["min", "max"] as const).map(bound => (
+                    <div key={bound}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#7070A0", marginBottom: 8 }}>{bound === "min" ? "Minimum tier" : "Maximum tier"}</div>
+                      <select value={bound === "min" ? expMin : expMax}
+                        onChange={e => bound === "min" ? setExpMin(Number(e.target.value)) : setExpMax(Number(e.target.value))}
+                        style={{ width: "100%", background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#F0F0F5", outline: "none", cursor: "pointer" }}>
+                        {TIERS.map(t => <option key={t.id} value={t.id} disabled={bound === "max" ? t.id < expMin : t.id > expMax}>{t.label} — {t.years}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {TIERS.filter(t => t.id >= expMin && t.id <= expMax).map(t => (
+                    <span key={t.id} style={{ background: t.bg, color: t.color, border: `1px solid ${t.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{t.label}</span>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {TIERS.filter(t => t.id >= expMin && t.id <= expMax).map(t => (
-                  <span key={t.id} style={{ background: t.bg, color: t.color, border: `1px solid ${t.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{t.label}</span>
-                ))}
-              </div>
-            </div>
-            {expMin > expMax && <div style={{ fontSize: 12, color: "#F87171", marginTop: 6 }}>Minimum must be ≤ maximum</div>}
-          </Field>
+              {expMin > expMax && <div style={{ fontSize: 12, color: "#F87171", marginTop: 6 }}>Minimum must be ≤ maximum</div>}
+            </Field>
+          )}
+
+          {/* Number of winners — community only */}
+          {taskKind === "community" && (
+            <Field label="Number of Winners" required hint="Creator picks up to this many participants; payout splits evenly">
+              <input type="number" value={maxWinners} onChange={e => setMaxWinners(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} min={1} max={20}
+                style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#F7931A50")}
+                onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
+              {numAmount >= 1 && (
+                <div style={{ fontSize: 12, color: "#7070A0", marginTop: 8 }}>
+                  Each winner receives roughly <strong style={{ color: "#00D395" }}>{perWinnerAmt.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}</strong> if all {maxWinners} slots are paid.
+                </div>
+              )}
+            </Field>
+          )}
 
           {/* Deadline — self-funded only */}
           {fundingType === "self" && (
@@ -341,7 +401,7 @@ export default function CreatePage() {
 
           {/* Tags */}
           <Field label="Tags" hint="Comma separated — helps contributors search and filter">
-            <input value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. React, Clarity, TypeScript"
+            <input value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. React, Solidity, TypeScript"
               style={inputStyle}
               onFocus={e => (e.target.style.borderColor = "#F7931A50")}
               onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
@@ -387,14 +447,16 @@ export default function CreatePage() {
 
           {/* Submit info */}
           <div style={{ background: "#F7931A0A", border: "1px solid #F7931A20", borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#9090B0", lineHeight: 1.6 }}>
-            {fundingType === "self"
-              ? <>Your wallet will be prompted to transfer <strong style={{ color: "#F7931A" }}>{numAmount || "..."} {currency}</strong> into escrow via <code style={{ color: "#F7931A", fontSize: 11 }}>create-task</code>. A post-condition asserts the exact amount leaving your account.</>
-              : <>Clicking <strong style={{ color: "#F0F0F5" }}>Submit Grant Application</strong> calls <code style={{ color: "#F7931A", fontSize: 11 }}>apply-for-grant</code>. No {currency} leaves your wallet — community patrons vote on whether to fund from the grant pool.</>}
+            {taskKind === "community"
+              ? <>Your wallet will be prompted to transfer <strong style={{ color: "#F7931A" }}>{numAmount || "..."} {currency}</strong> into escrow via <code style={{ color: "#F7931A", fontSize: 11 }}>createCommunityTask</code>. Anyone can join with a proof link; you'll pick up to {maxWinners} winners later via <code style={{ color: "#F7931A", fontSize: 11 }}>selectWinners</code>, which pays everyone in one transaction.</>
+              : fundingType === "self"
+              ? <>Your wallet will be prompted to transfer <strong style={{ color: "#F7931A" }}>{numAmount || "..."} {currency}</strong> into escrow via <code style={{ color: "#F7931A", fontSize: 11 }}>createTask</code>. A post-condition asserts the exact amount leaving your account.</>
+              : <>Clicking <strong style={{ color: "#F0F0F5" }}>Submit Grant Application</strong> calls <code style={{ color: "#F7931A", fontSize: 11 }}>applyForGrant</code>. No {currency} leaves your wallet — community patrons vote on whether to fund from the grant pool.</>}
           </div>
 
           <button disabled={!valid || submitting} onClick={handleSubmit}
             style={{ background: valid ? "#F7931A" : "#1E1E2A", color: valid ? "#0A0A0F" : "#50507088", fontWeight: 700, fontSize: 16, padding: "16px", borderRadius: 12, border: "none", cursor: valid ? "pointer" : "not-allowed", transition: "all 0.15s", opacity: submitting ? 0.7 : 1 }}>
-            {submitting ? "Submitting on-chain…" : fundingType === "self" ? `Lock ${numAmount || "..."} ${currency} & Post Task →` : "Submit Grant Application →"}
+            {submitting ? "Submitting on-chain…" : taskKind === "community" ? `Lock ${numAmount || "..."} ${currency} & Open to Community →` : fundingType === "self" ? `Lock ${numAmount || "..."} ${currency} & Post Task →` : "Submit Grant Application →"}
           </button>
         </div>
       </div>

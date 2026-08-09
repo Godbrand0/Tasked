@@ -12,11 +12,11 @@ type Step = "wallet" | "role" | "details" | "confirm";
 
 const ROLE_OPTIONS: { id: UserRole; icon: string; title: string; subtitle: string; desc: string; color: string; bg: string }[] = [
   { id: "creator",     icon: "🧩", title: "Creator",     subtitle: "Fund the work",        color: "#F7931A", bg: "#F7931A18",
-    desc: "Post tasks, lock USDX in escrow, set experience requirements, and choose from matched applicants." },
+    desc: "Post tasks, lock MUSD in escrow, set experience requirements, and choose from matched applicants." },
   { id: "contributor", icon: "⚡", title: "Contributor", subtitle: "Get paid to build",    color: "#8B80FF", bg: "#5546FF18",
     desc: "Browse experience-matched bounties, apply on-chain, complete work, and build your on-chain reputation." },
   { id: "investor",    icon: "🏛", title: "Patron",      subtitle: "Shape what gets built", color: "#00D395", bg: "#00D39518",
-    desc: "Deposit USDX into the grant pool, stake STX for amplified governance weight, vote on grant applications." },
+    desc: "Deposit MUSD into the grant pool, stake MEZO for amplified governance weight, vote on grant applications." },
 ];
 
 function StepDot({ label, active, done }: { label: string; active: boolean; done: boolean }) {
@@ -50,6 +50,9 @@ function RegisterPageInner() {
   const [githubName, setGithubName] = useState("");
   const [githubAvatar, setGithubAvatar] = useState("");
   const [githubError, setGithubError] = useState("");
+  const [xHandleInput, setXHandleInput] = useState("");
+  const [xVerified, setXVerified] = useState(false);
+  const [xHandle, setXHandle] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // If already registered redirect to dashboard
@@ -97,11 +100,17 @@ function RegisterPageInner() {
     window.location.href = "/api/auth/github";
   }
 
+  function handleLinkX() {
+    if (!xHandleInput.trim()) return;
+    setXHandle(xHandleInput.trim().replace(/^@/, ""));
+    setXVerified(true);
+  }
+
   function handleRegister() {
     if (!role || !githubHandle) return;
     setSubmitting(true);
     setTimeout(() => {
-      registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle });
+      registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle, xVerified, xHandle });
       setSubmitting(false);
       router.push("/dashboard");
     }, 1500);
@@ -118,7 +127,7 @@ function RegisterPageInner() {
         <div style={{ width: 36, height: 36, background: "linear-gradient(135deg, #F7931A, #C4711A)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" /></svg>
         </div>
-        <span style={{ fontWeight: 700, fontSize: 22, color: "#F0F0F5" }}>Tasked</span>
+        <span style={{ fontWeight: 700, fontSize: 22, color: "#F0F0F5" }}>Taskify</span>
       </div>
 
       <div style={{ textAlign: "center", marginBottom: 36 }}>
@@ -126,7 +135,7 @@ function RegisterPageInner() {
           {step === "wallet" ? "Connect your wallet" : step === "role" ? "Choose your role" : step === "details" ? "Set up your profile" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "#7070A0", margin: 0 }}>
-          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "role" ? "Your role is stored on-chain and shapes your Tasked experience." : step === "details" ? "This information is stored on the Stacks blockchain." : "Review your details before calling register-user on-chain."}
+          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : step === "details" ? "This information is stored on the Mezo blockchain." : "Review your details before calling registerUser on-chain."}
         </p>
       </div>
 
@@ -149,14 +158,14 @@ function RegisterPageInner() {
             <div style={{ fontSize: 48, marginBottom: 20 }}>🔐</div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "#F0F0F5", margin: "0 0 12px" }}>No wallet connected</h2>
             <p style={{ fontSize: 14, color: "#7070A0", lineHeight: 1.7, margin: "0 0 24px" }}>
-              Connect your Stacks wallet to begin registration. Your wallet address becomes your permanent on-chain identity.
+              Connect your Ethereum wallet to begin registration. Your wallet address becomes your permanent on-chain identity.
             </p>
             <button onClick={connect} style={{ width: "100%", background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
               Connect Wallet →
             </button>
           </div>
           <div style={{ fontSize: 12, color: "#50507080", lineHeight: 1.6 }}>
-            Supports Leather, Xverse, Hiro, and other Stacks wallets. No email required.
+            Supports MetaMask, Rabby, and other Ethereum wallets via RainbowKit. No email required.
           </div>
         </div>
       )}
@@ -210,7 +219,7 @@ function RegisterPageInner() {
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", marginBottom: 6 }}>Connect GitHub</div>
                   <div style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6 }}>
-                    Your GitHub username becomes your Tasked identity. No manual entry needed.
+                    Your GitHub username becomes your Taskify identity. No manual entry needed.
                   </div>
                 </div>
                 {githubError && (
@@ -241,6 +250,50 @@ function RegisterPageInner() {
                   <div style={{ fontSize: 13, color: "#00D395" }}>@{githubHandle}</div>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#00D395", background: "#00D39518", border: "1px solid #00D39530", padding: "4px 10px", borderRadius: 6 }}>✓ Verified</div>
+              </div>
+            )}
+          </div>
+
+          {/* X (Twitter) — optional, unlocks Community task participation */}
+          <div style={{ background: "#111116", border: `1px solid ${xVerified ? "#00D39540" : "#1E1E2A"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
+            {!xVerified ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: "#1A1A22", border: "1px solid #2E2E3A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#9090B0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", marginBottom: 6 }}>Link X <span style={{ color: "#7070A0", fontWeight: 400 }}>(optional)</span></div>
+                  <div style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6 }}>
+                    Unlocks Community tasks (memes, bug write-ups, social bounties) — no code required. Skip this if you're only here for Development tasks.
+                  </div>
+                </div>
+                <div style={{ width: "100%", display: "flex", gap: 8 }}>
+                  <input value={xHandleInput} onChange={e => setXHandleInput(e.target.value)} placeholder="@yourhandle"
+                    style={{ flex: 1, background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#F0F0F5", outline: "none", boxSizing: "border-box" }}
+                    onFocus={e => (e.target.style.borderColor = "#F7931A50")}
+                    onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
+                  <button onClick={handleLinkX} disabled={!xHandleInput.trim()}
+                    style={{ background: xHandleInput.trim() ? "#F0F0F5" : "#1E1E2A", color: xHandleInput.trim() ? "#0A0A0F" : "#50507088", fontWeight: 700, fontSize: 13, padding: "10px 18px", borderRadius: 10, border: "none", cursor: xHandleInput.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
+                    Link X
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: "#50507080", lineHeight: 1.5 }}>
+                  Self-declared for now — the creator reviews your submission proof before any Community task payout.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #00D395, #00A87A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                  {xHandle.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#F0F0F5" }}>@{xHandle}</div>
+                  <div style={{ fontSize: 13, color: "#00D395" }}>Linked — Community tasks unlocked</div>
+                </div>
+                <button onClick={() => { setXVerified(false); setXHandle(""); setXHandleInput(""); }}
+                  style={{ background: "none", border: "1px solid #1E1E2A", color: "#7070A0", fontWeight: 600, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>
+                  Unlink
+                </button>
               </div>
             )}
           </div>
@@ -290,6 +343,7 @@ function RegisterPageInner() {
               { label: "GitHub Username", value: `@${githubHandle}` },
               { label: "Role", value: selectedRole.title },
               ...(role === "contributor" ? [{ label: "Experience", value: `${TIERS[experienceLevel].label} (Tier ${experienceLevel})` }] : []),
+              ...(xVerified ? [{ label: "X Account", value: `@${xHandle}` }] : []),
             ].map(({ label, value }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #1E1E2A" }}>
                 <span style={{ fontSize: 14, color: "#7070A0" }}>{label}</span>
@@ -299,14 +353,14 @@ function RegisterPageInner() {
           </div>
 
           <div style={{ background: "#F7931A0A", border: "1px solid #F7931A20", borderRadius: 12, padding: 16, marginBottom: 20, fontSize: 13, color: "#9090B0", lineHeight: 1.6 }}>
-            Clicking <strong style={{ color: "#F0F0F5" }}>Register on Stacks</strong> will call <code style={{ color: "#F7931A", fontSize: 11 }}>register-user</code> on the Tasked contract. Your wallet will prompt for approval.
+            Clicking <strong style={{ color: "#F0F0F5" }}>Register on Mezo</strong> will call <code style={{ color: "#F7931A", fontSize: 11 }}>registerUser</code> on the Taskify contract. Your wallet will prompt for approval.
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setStep("details")} style={{ flex: 1, background: "transparent", border: "1px solid #1E1E2A", color: "#9090B0", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button onClick={handleRegister} disabled={submitting}
               style={{ flex: 2, background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: "pointer", opacity: submitting ? 0.7 : 1 }}>
-              {submitting ? "Registering on-chain…" : "Register on Stacks →"}
+              {submitting ? "Registering on-chain…" : "Register on Mezo →"}
             </button>
           </div>
         </div>

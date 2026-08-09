@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import { MOCK_WALLET } from "@/lib/mock";
 import { TIERS } from "@/lib/constants";
+import { useWallet } from "@/lib/wallet-context";
 
 type Section = "profile" | "experience" | "notifications" | "wallet" | "danger";
 
@@ -17,7 +18,9 @@ const SECTIONS: { id: Section; label: string; icon: string }[] = [
 ];
 
 export default function SettingsPage() {
+  const { xVerified, xHandle, linkX, unlinkX } = useWallet();
   const [active, setActive] = useState<Section>("profile");
+  const [xHandleInput, setXHandleInput] = useState("");
   const [username, setUsername] = useState(MOCK_WALLET.username);
   const [bio, setBio] = useState("");
   const [expTier, setExpTier] = useState(MOCK_WALLET.experienceLevel);
@@ -77,7 +80,7 @@ export default function SettingsPage() {
                       style={{ width: "100%", background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "#F0F0F5", outline: "none", boxSizing: "border-box" }}
                       onFocus={(e) => (e.target.style.borderColor = "#F7931A50")}
                       onBlur={(e) => (e.target.style.borderColor = "#1E1E2A")} />
-                    <div style={{ fontSize: 11, color: "#7070A0", marginTop: 4 }}>Stored on-chain. Changes cost a small STX gas fee.</div>
+                    <div style={{ fontSize: 11, color: "#7070A0", marginTop: 4 }}>Stored on-chain. Changes cost a small MEZO gas fee.</div>
                   </div>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: "#9090B0", display: "block", marginBottom: 8 }}>Bio <span style={{ fontWeight: 400 }}>(optional)</span></label>
@@ -99,6 +102,34 @@ export default function SettingsPage() {
                     <button style={{ background: MOCK_WALLET.githubVerified ? "#1E1E2A" : "#00D39518", border: `1px solid ${MOCK_WALLET.githubVerified ? "#1E1E2A" : "#00D39530"}`, color: MOCK_WALLET.githubVerified ? "#7070A0" : "#00D395", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
                       {MOCK_WALLET.githubVerified ? "Disconnect" : "Connect"}
                     </button>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#9090B0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "#F0F0F5" }}>X <span style={{ fontWeight: 400, color: "#7070A0" }}>(unlocks Community tasks)</span></div>
+                        <div style={{ fontSize: 12, color: xVerified ? "#00D395" : "#7070A0" }}>
+                          {xVerified ? `@${xHandle}` : "Not connected"}
+                        </div>
+                      </div>
+                    </div>
+                    {xVerified ? (
+                      <button onClick={unlinkX} style={{ background: "#1E1E2A", border: "1px solid #1E1E2A", color: "#7070A0", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
+                        Disconnect
+                      </button>
+                    ) : (
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input value={xHandleInput} onChange={(e) => setXHandleInput(e.target.value)} placeholder="@yourhandle"
+                          style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#F0F0F5", outline: "none", width: 140 }}
+                          onFocus={(e) => (e.target.style.borderColor = "#F7931A50")}
+                          onBlur={(e) => (e.target.style.borderColor = "#1E1E2A")} />
+                        <button onClick={() => { if (xHandleInput.trim()) { linkX(xHandleInput.trim().replace(/^@/, "")); setXHandleInput(""); } }}
+                          disabled={!xHandleInput.trim()}
+                          style={{ background: xHandleInput.trim() ? "#00D39518" : "#1E1E2A", border: `1px solid ${xHandleInput.trim() ? "#00D39530" : "#1E1E2A"}`, color: xHandleInput.trim() ? "#00D395" : "#50507088", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: xHandleInput.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
+                          Connect
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -128,7 +159,7 @@ export default function SettingsPage() {
                 </div>
                 {expTier !== MOCK_WALLET.experienceLevel && (
                   <div style={{ background: "#F7931A0A", border: "1px solid #F7931A20", borderRadius: 10, padding: 14, fontSize: 13, color: "#9090B0", lineHeight: 1.6 }}>
-                    Changing from <strong style={{ color: "#F0F0F5" }}>{TIERS[MOCK_WALLET.experienceLevel].label}</strong> to <strong style={{ color: TIERS[expTier].color }}>{TIERS[expTier].label}</strong>. This calls <code style={{ color: "#F7931A", fontSize: 11 }}>update-experience</code> on-chain.
+                    Changing from <strong style={{ color: "#F0F0F5" }}>{TIERS[MOCK_WALLET.experienceLevel].label}</strong> to <strong style={{ color: TIERS[expTier].color }}>{TIERS[expTier].label}</strong>. This calls <code style={{ color: "#F7931A", fontSize: 11 }}>updateExperience</code> on-chain.
                   </div>
                 )}
               </div>
@@ -143,7 +174,7 @@ export default function SettingsPage() {
                   {[
                     { key: "taskAssigned",  label: "Task Assigned",    desc: "When a creator assigns you to a task" },
                     { key: "workSubmitted", label: "Work Submitted",   desc: "When a contributor submits work on your task" },
-                    { key: "fundsReleased", label: "Funds Released",   desc: "When USDX is released to your wallet" },
+                    { key: "fundsReleased", label: "Funds Released",   desc: "When MUSD is released to your wallet" },
                     { key: "grantVote",    label: "Grant Vote Opened", desc: "When a new grant application enters voting" },
                     { key: "waveReward",   label: "Wave Reward Ready", desc: "When a wave ends and your reward is claimable" },
                   ].map(({ key, label, desc }, i) => (
@@ -175,12 +206,12 @@ export default function SettingsPage() {
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#7070A0", marginBottom: 8 }}>Network</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00D395" }} />
-                      <div style={{ fontSize: 14, color: "#F0F0F5" }}>Stacks Testnet</div>
+                      <div style={{ fontSize: 14, color: "#F0F0F5" }}>Mezo Testnet</div>
                     </div>
                   </div>
                   <div style={{ background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#7070A0", marginBottom: 8 }}>Contract</div>
-                    <div style={{ fontSize: 13, color: "#7070A0", fontFamily: "var(--font-geist-mono)" }}>ST…TBD.tasked</div>
+                    <div style={{ fontSize: 13, color: "#7070A0", fontFamily: "var(--font-geist-mono)" }}>ST…TBD.taskify</div>
                   </div>
                   <button style={{ background: "#EF444418", border: "1px solid #EF444430", color: "#F87171", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, cursor: "pointer", marginTop: 4 }}>
                     Disconnect Wallet
@@ -197,7 +228,7 @@ export default function SettingsPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ background: "#EF44440A", border: "1px solid #EF444430", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "#F0F0F5", marginBottom: 6 }}>Cancel All Open Tasks</div>
-                    <div style={{ fontSize: 13, color: "#7070A0", marginBottom: 14 }}>Refunds escrowed USDX for all your open self-funded tasks. Cannot be undone.</div>
+                    <div style={{ fontSize: 13, color: "#7070A0", marginBottom: 14 }}>Refunds escrowed MUSD for all your open self-funded tasks. Cannot be undone.</div>
                     <button style={{ background: "#EF444418", border: "1px solid #EF444430", color: "#F87171", fontWeight: 700, fontSize: 13, padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}>
                       Cancel All Open Tasks
                     </button>

@@ -23,17 +23,20 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [tierFilter, setTierFilter] = useState<number | null>(null);
   const [fundingFilter, setFundingFilter] = useState<"all" | "self" | "grant">("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "development" | "community">("all");
 
   const filtered = MOCK_TASKS.filter(t => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.tags?.some(tag => tag.toLowerCase().includes(search.toLowerCase()))) return false;
     if (statusFilter !== "All" && !STATUS_MAP[statusFilter].includes(t.status)) return false;
-    if (tierFilter !== null && (t.experienceMin > tierFilter || t.experienceMax < tierFilter)) return false;
+    if (kindFilter !== "all" && t.kind !== kindFilter) return false;
+    if (tierFilter !== null && t.kind === "development" && (t.experienceMin > tierFilter || t.experienceMax < tierFilter)) return false;
     if (fundingFilter !== "all" && t.fundingType !== fundingFilter) return false;
     return true;
   });
 
   const isContributor = connected && isRegistered && role === "contributor";
   const isCreator = connected && isRegistered && role === "creator";
+  const canJoinCommunity = connected && isRegistered && role !== "creator";
 
   return (
     <div style={{ minHeight: "100vh", background: "#0A0A0F" }}>
@@ -74,8 +77,8 @@ export default function TasksPage() {
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             {role === "creator"
-              ? "As a creator you can browse tasks for inspiration, but only contributors can apply. "
-              : "Patrons can browse tasks to inform grant voting, but only contributors can apply. "}
+              ? "As a creator you can browse tasks for inspiration, but only contributors can apply to Development tasks. "
+              : "Patrons can browse tasks to inform grant voting, but only contributors can apply to Development tasks. Community tasks are open to any registered role, including you. "}
             <Link href="/tasks" style={{ color: "#F7931A", textDecoration: "none" }}>Learn more</Link>
           </div>
         </div>
@@ -104,7 +107,16 @@ export default function TasksPage() {
             ))}
           </FilterGroup>
 
-          {/* Experience */}
+          {/* Task type */}
+          <FilterGroup label="Task Type">
+            {(["all", "development", "community"] as const).map(k => (
+              <FilterBtn key={k} active={kindFilter === k} onClick={() => setKindFilter(k)}>
+                {k === "all" ? "All Tasks" : k === "development" ? "💻 Development" : "📣 Community"}
+              </FilterBtn>
+            ))}
+          </FilterGroup>
+
+          {/* Experience — development-only concept */}
           <FilterGroup label="Experience Level">
             <FilterBtn active={tierFilter === null} onClick={() => setTierFilter(null)}>All Levels</FilterBtn>
             {TIERS.map(tier => (
@@ -137,12 +149,12 @@ export default function TasksPage() {
               {filtered.map(task => (
                 <div key={task.id} style={{ position: "relative" }}>
                   <TaskCard task={task} />
-                  {/* Contributor apply badge on open tasks */}
-                  {isContributor && task.status === "OPEN" && (
+                  {/* Quick-action badge on open tasks — apply (dev, contributors only) or join (community, any role) */}
+                  {task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor)) && (
                     <div style={{ position: "absolute", bottom: 20, right: 20 }}>
                       <Link href={`/tasks/${task.id}`}
                         style={{ background: "#F7931A", color: "#0A0A0F", fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 6, textDecoration: "none", display: "inline-block" }}>
-                        Apply →
+                        {task.kind === "community" ? "Join →" : "Apply →"}
                       </Link>
                     </div>
                   )}

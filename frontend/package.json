@@ -8,13 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
-    "@stacks/blockchain-api-client": "^8.15.4",
-    "@stacks/connect": "^8.2.6",
-    "@stacks/network": "^7.3.1",
-    "@stacks/transactions": "^7.4.0",
+    "@rainbow-me/rainbowkit": "^2.2.11",
+    "@tanstack/react-query": "^5.101.4",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "viem": "~2.52.0",
+    "wagmi": "~2.19.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { MOCK_LEADERBOARD, MOCK_TASKS } from "@/lib/mock";
-import { formatUSDX, TIERS } from "@/lib/constants";
+import { formatMUSD, TIERS } from "@/lib/constants";
 
 export default function ProfilePage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = use(params);
@@ -39,7 +39,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 {[
                   { label: "Leaderboard Rank", value: `#${rank}`,                        color: "#F7931A" },
                   { label: "Tasks Completed",  value: String(user.tasksCompleted),        color: "#00D395" },
-                  { label: "Total Earned",     value: `${formatUSDX(user.totalEarned)} USDX`, color: "#F7931A" },
+                  { label: "Total Earned",     value: `${formatMUSD(user.totalEarned)} MUSD`, color: "#F7931A" },
                 ].map(({ label, value, color }) => (
                   <div key={label}>
                     <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 2 }}>{value}</div>
@@ -71,7 +71,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                         onMouseLeave={(e) => { const el = e.currentTarget.querySelector(".ptask") as HTMLElement | null; if (el) el.style.color = "#F0F0F5"; }}>
                         <div>
                           <div className="ptask" style={{ fontSize: 14, fontWeight: 600, color: "#F0F0F5", marginBottom: 3, transition: "color 0.15s" }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "#00D395", fontWeight: 600 }}>+{formatUSDX(task.amount * 0.97)} USDX</div>
+                          <div style={{ fontSize: 12, color: "#00D395", fontWeight: 600 }}>+{formatMUSD(task.amount * 0.97)} MUSD</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>
@@ -129,7 +129,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#7070A0" }}>Total Earned</span>
-                  <span style={{ color: "#F7931A", fontWeight: 700 }}>{formatUSDX(user.totalEarned)} USDX</span>
+                  <span style={{ color: "#F7931A", fontWeight: 700 }}>{formatMUSD(user.totalEarned)} MUSD</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#7070A0" }}>Tasks Completed</span>
@@ -138,7 +138,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#7070A0" }}>Avg per task</span>
                   <span style={{ color: "#F0F0F5", fontWeight: 600 }}>
-                    {user.tasksCompleted > 0 ? formatUSDX(user.totalEarned / user.tasksCompleted) : "—"} USDX
+                    {user.tasksCompleted > 0 ? formatMUSD(user.totalEarned / user.tasksCompleted) : "—"} MUSD
                   </span>
                 </div>
               </div>

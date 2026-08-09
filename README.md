@@ -1,8 +1,8 @@
-# Tasked
+# Taskify
 
 > Trustless bounty escrow, community-governed grants, and experience-matched work — built on Stacks with Clarity.
 
-Tasked is a fully on-chain bounty protocol that connects task creators, contributors, and investors through Clarity smart contracts on the Stacks blockchain (Bitcoin-secured). Every payment is enforced on-chain. Every contributor is GitHub-verified. No escrow agent, no payment processor, no central party.
+Taskify is a fully on-chain bounty protocol that connects task creators, contributors, and investors through Clarity smart contracts on the Stacks blockchain (Bitcoin-secured). Every payment is enforced on-chain. Every contributor is GitHub-verified. No escrow agent, no payment processor, no central party.
 
 **Live Demo:** _coming soon_
 **Contract (Stacks Testnet):** _TBD_
@@ -68,7 +68,7 @@ Contributors can update their tier at any time via `update-experience`, but a ~1
 ## Repository Structure
 
 ```
-Tasked/
+Taskify/
 ├── contract/                         # Clarinet project (Clarity smart contracts)
 │   ├── contracts/
 │   │   ├── tasked.clar               # Core protocol contract
@@ -299,8 +299,8 @@ The `token` field in each task stores a SIP-010 contract principal. Tasks can es
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/Godbrand0/Tasked.git
-cd Tasked
+git clone https://github.com/Godbrand0/Taskify.git
+cd Taskify
 cd frontend && pnpm install
 ```
 
@@ -390,7 +390,7 @@ FRONTEND_URL=http://localhost:3000
 
 | Contract | Address |
 |---|---|
-| Tasked | _TBD_ |
+| Taskify | _TBD_ |
 | USDX Token | _TBD_ |
 
 ---

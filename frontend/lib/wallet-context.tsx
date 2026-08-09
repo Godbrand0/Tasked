@@ -1,7 +1,27 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useAccount, useDisconnect, useReadContract } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { formatUnits } from "viem";
+import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
 import type { UserRole } from "@/lib/mock";
+
+const ERC20_BALANCE_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
+// Defaults to the real Mezo testnet MUSD address; override via env for
+// mainnet or a custom devnet deployment. MEZO has no testnet deployment, so
+// it's left unset unless NEXT_PUBLIC_MEZO_CONTRACT points at a MockMEZO.
+const MUSD_ADDRESS = (process.env.NEXT_PUBLIC_MUSD_CONTRACT ?? CONTRACT_ADDRESSES.testnet.musd) as `0x${string}`;
+const MEZO_ADDRESS = process.env.NEXT_PUBLIC_MEZO_CONTRACT as `0x${string}` | undefined;
 
 export interface WalletState {
   connected: boolean;
@@ -9,17 +29,19 @@ export interface WalletState {
   username: string;
   role: UserRole | null;
   isRegistered: boolean;
-  usdxBalance: number;
-  stxBalance: number;
+  musdBalance: number;
+  mezoBalance: number;
   githubVerified: boolean;
   githubHandle: string;
+  xVerified: boolean;
+  xHandle: string;
   experienceLevel: number;
   tasksCompleted: number;
   totalEarned: number;
 }
 
 interface WalletContextValue extends WalletState {
-  connect: () => Promise<void>;
+  connect: () => void;
   disconnect: () => void;
   register: (data: {
     username: string;
@@ -27,107 +49,99 @@ interface WalletContextValue extends WalletState {
     experienceLevel: number;
     githubVerified: boolean;
     githubHandle: string;
+    xVerified?: boolean;
+    xHandle?: string;
   }) => void;
+  linkX: (handle: string) => void;
+  unlinkX: () => void;
 }
 
 const WalletCtx = createContext<WalletContextValue | null>(null);
 
-const EMPTY: WalletState = {
-  connected: false,
-  address: "",
+interface Profile {
+  username: string;
+  role: UserRole | null;
+  isRegistered: boolean;
+  githubVerified: boolean;
+  githubHandle: string;
+  xVerified: boolean;
+  xHandle: string;
+  experienceLevel: number;
+  tasksCompleted: number;
+  totalEarned: number;
+}
+
+const EMPTY_PROFILE: Profile = {
   username: "",
   role: null,
   isRegistered: false,
-  usdxBalance: 0,
-  stxBalance: 0,
   githubVerified: false,
   githubHandle: "",
+  xVerified: false,
+  xHandle: "",
   experienceLevel: 0,
   tasksCompleted: 0,
   totalEarned: 0,
 };
 
-const STORAGE_KEY = "tasked:wallet";
+// Registration profile is app-level state today (in prod this reads from
+// registerUser/getUser on the Taskify contract). Persisted per-address so a
+// reconnect doesn't lose it.
+const STORAGE_PREFIX = "taskify:profile:";
 
-function persist(data: WalletState) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+function loadProfile(address: string): Profile {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + address);
+    return raw ? { ...EMPTY_PROFILE, ...JSON.parse(raw) } : EMPTY_PROFILE;
+  } catch {
+    return EMPTY_PROFILE;
+  }
 }
 
-async function fetchStxBalance(address: string): Promise<number> {
+function saveProfile(address: string, profile: Profile) {
   try {
-    const res = await fetch(
-      `https://api.hiro.so/extended/v1/address/${address}/balances`
-    );
-    if (!res.ok) return 0;
-    const data = await res.json();
-    return parseInt(data?.stx?.balance ?? "0", 10);
-  } catch {
-    return 0;
-  }
+    localStorage.setItem(STORAGE_PREFIX + address, JSON.stringify(profile));
+  } catch {}
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [wallet, setWallet] = useState<WalletState>(EMPTY);
+  const { address, isConnected } = useAccount();
+  const { disconnect: wagmiDisconnect } = useDisconnect();
+  const { openConnectModal } = useConnectModal();
+
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved: WalletState = JSON.parse(raw);
-        setWallet(saved);
-        // Refresh balance in background
-        if (saved.connected && saved.address) {
-          fetchStxBalance(saved.address).then(stxBalance => {
-            setWallet(w => {
-              const next = { ...w, stxBalance };
-              persist(next);
-              return next;
-            });
-          });
-        }
-      }
-    } catch {}
-  }, []);
+    setProfile(address ? loadProfile(address) : EMPTY_PROFILE);
+  }, [address]);
 
-  async function handleConnect() {
-    try {
-      const { connect } = await import("@stacks/connect");
-      const result = await connect({ forceWalletSelect: true });
+  const { data: musdRaw } = useReadContract({
+    address: MUSD_ADDRESS,
+    abi: ERC20_BALANCE_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address && MUSD_ADDRESS) },
+  });
 
-      // Find the STX address — wallets return both BTC and STX addresses
-      const stxEntry =
-        result.addresses.find(a => a.symbol === "STX") ??
-        result.addresses.find(a => /^S[PTM]/.test(a.address));
+  const { data: mezoRaw } = useReadContract({
+    address: MEZO_ADDRESS,
+    abi: ERC20_BALANCE_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address && MEZO_ADDRESS) },
+  });
 
-      if (!stxEntry) return;
+  const musdBalance = musdRaw !== undefined ? Number(formatUnits(musdRaw as bigint, MUSD_DECIMALS)) : 0;
+  const mezoBalance = mezoRaw !== undefined ? Number(formatUnits(mezoRaw as bigint, MUSD_DECIMALS)) : 0;
 
-      const address = stxEntry.address;
-      const stxBalance = await fetchStxBalance(address);
-
-      setWallet(prev => {
-        const next: WalletState = {
-          ...prev,
-          connected: true,
-          address,
-          stxBalance,
-          usdxBalance: 0,
-        };
-        persist(next);
-        return next;
-      });
-    } catch {
-      // User closed the wallet picker — do nothing
-    }
+  function handleConnect() {
+    openConnectModal?.();
   }
 
   function handleDisconnect() {
-    try {
-      import("@stacks/connect").then(({ disconnect }) => disconnect()).catch(() => {});
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-    setWallet(EMPTY);
+    wagmiDisconnect();
   }
 
   function register(data: {
@@ -136,21 +150,53 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     experienceLevel: number;
     githubVerified: boolean;
     githubHandle: string;
+    xVerified?: boolean;
+    xHandle?: string;
   }) {
-    setWallet(prev => {
-      const next: WalletState = { ...prev, ...data, isRegistered: true };
-      persist(next);
-      return next;
-    });
+    if (!address) return;
+    const next: Profile = {
+      ...data,
+      xVerified: data.xVerified ?? false,
+      xHandle: data.xHandle ?? "",
+      isRegistered: true,
+      tasksCompleted: 0,
+      totalEarned: 0,
+    };
+    setProfile(next);
+    saveProfile(address, next);
   }
 
-  return (
-    <WalletCtx.Provider
-      value={{ ...wallet, connect: handleConnect, disconnect: handleDisconnect, register }}
-    >
-      {children}
-    </WalletCtx.Provider>
-  );
+  // Independent of role and callable any time after registration — mirrors
+  // Taskify.sol's setXVerified, which gates Community task participation
+  // without requiring re-registration.
+  function linkX(handle: string) {
+    if (!address || !profile.isRegistered) return;
+    const next: Profile = { ...profile, xVerified: true, xHandle: handle };
+    setProfile(next);
+    saveProfile(address, next);
+  }
+
+  function unlinkX() {
+    if (!address || !profile.isRegistered) return;
+    const next: Profile = { ...profile, xVerified: false, xHandle: "" };
+    setProfile(next);
+    saveProfile(address, next);
+  }
+
+  const value: WalletContextValue = {
+    connected: isConnected,
+    address: address ?? "",
+    musdBalance,
+    mezoBalance,
+    ...profile,
+    connect: handleConnect,
+    disconnect: handleDisconnect,
+    register,
+    linkX,
+    unlinkX,
+  };
+
+  return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -166,6 +212,6 @@ export function formatAddress(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-export function formatBalance(micro: number) {
-  return (micro / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 });
+export function formatBalance(amount: number) {
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }

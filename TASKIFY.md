@@ -107,7 +107,7 @@ taskify/
 │   │   │   ├── creator/page.tsx                # Creator dashboard
 │   │   │   ├── create/page.tsx                 # Post new task / apply for grant
 │   │   │   ├── investor/page.tsx               # Patron deposit, STX stake, grant voting
-│   │   │   ├── leaderboard/page.tsx            # Top contributors by USDX earned
+│   │   │   ├── leaderboard/page.tsx            # Top creators by self-funded tasks posted
 │   │   │   ├── profile/[address]/page.tsx      # Public contributor profile
 │   │   │   └── api/                            # Next.js serverless API routes
 │   │   │       ├── auth/github/                # GitHub OAuth initiation
@@ -254,7 +254,7 @@ Experience level is load-bearing protocol logic — it gates `apply-for-task` at
 (define-constant GRANT-FUNDED-FEE-BPS u500)   ;; 5%
 (define-constant TREASURY-SHARE u60)           ;; 60% of fee
 (define-constant WAVE-POOL-SHARE u40)          ;; 40% of fee
-(define-constant WAVE-EPOCH-BLOCKS u1008)      ;; ~7 days at 10 min/block
+(define-constant WAVE-EPOCH-BLOCKS u4320)      ;; ~30 days at 10 min/block
 (define-constant GRANT-VOTING-BLOCKS u432)     ;; ~3 days
 (define-constant MIN-TASK-AMOUNT u1000000)     ;; 1 USDX (6 decimals)
 (define-constant MIN-STX-STAKE u1000000)       ;; 1 STX (6 decimals)
@@ -273,6 +273,8 @@ Experience level is load-bearing protocol logic — it gates `apply-for-task` at
 ```
 
 ### Patron Tier Thresholds
+
+Minimum entry deposit is **50 USDX**. Tier is determined by cumulative total deposited.
 
 | Tier | Minimum Cumulative USDX Deposited |
 |---|---|
@@ -315,9 +317,9 @@ Experience level is load-bearing protocol logic — it gates `apply-for-task` at
 - After deadline, anyone calls `mark-expired` — funds return to creator (self-funded) or patron pool (grant).
 
 #### Wave Rewards
-At every epoch boundary the contract owner calls `advance-wave`:
+At every monthly epoch boundary the contract owner calls `advance-wave`. Only self-funded tasks count toward wave credits — grant-funded tasks are excluded from the leaderboard:
 ```
-creator-share = (wave-pool × creator-task-count) / wave-total-tasks
+creator-share = (wave-pool × creator-self-funded-task-count) / wave-total-self-funded-tasks
 ```
 
 ---
@@ -352,7 +354,7 @@ creator-share = (wave-pool × creator-task-count) / wave-total-tasks
 #### On-Chain Reputation
 - Every completed task increments `tasks-completed` and `total-earned` on the contributor's on-chain profile.
 - Public profile at `/profile/[address]` shows stats, linked GitHub handle, and experience tier badge.
-- `/leaderboard` ranks contributors by total USDX earned.
+- `/leaderboard` ranks creators by number of self-funded tasks posted in the current monthly epoch.
 - Reputation is portable — it belongs to the principal, not the platform.
 
 ---
@@ -378,9 +380,9 @@ creator-share = (wave-pool × creator-task-count) / wave-total-tasks
 
 #### Voting Weight Formula
 ```
-voting-weight = total-usdx-deposited + (stx-staked × STX-VOTE-MULTIPLIER / 1e6)
+voting-weight = (total-usdx-deposited ÷ 10) + (stx-staked ÷ 100)
 ```
-With multiplier of 10: staking 1,000 STX adds 10,000 USDX-equivalent voting units.
+A patron depositing 100 USDX earns 10 vote units. A patron staking 1,000 STX earns 10 vote units. A grant passes when votes-for reaches 70% of total votes cast. Minimum patron deposit is 50 USDX.
 
 #### Voting on Grants
 1. Active grant applications appear under **Active Grant Votes**.
@@ -414,12 +416,15 @@ With multiplier of 10: staking 1,000 STX adds 10,000 USDX-equivalent voting unit
 | 500 | 500 USDX | 7,500 USDX | 4,500 USDX | 3,000 USDX |
 | 1,000 | 1,000 USDX | 30,000 USDX | 18,000 USDX | 12,000 USDX |
 
-### The Creator Wave Pool Flywheel
+### The Creator Leaderboard & Monthly Wave Pool
 
-1. Creators post tasks → fees accumulate in the wave pool
-2. At epoch end, active creators share the pool proportionally
-3. Creators who earned from the wave pool have capital to post more tasks
-4. More tasks → more fees → larger wave pool → stronger incentive
+At the end of each monthly epoch, 40% of all protocol fees collected from self-funded tasks are distributed proportionally to creators ranked on the leaderboard by task count. Only self-funded tasks earn leaderboard credits — grant-funded tasks are excluded, keeping the reward tied to creators who commit their own capital.
+
+1. Creators post self-funded tasks → 40% of fees accumulate in the wave pool
+2. Each task increments the creator's monthly leaderboard rank
+3. At month end, `advance-wave` snapshots the pool and rankings
+4. Creators claim their share proportional to their task count
+5. Wave earnings give creators capital to post more tasks — compounding the flywheel
 
 ---
 

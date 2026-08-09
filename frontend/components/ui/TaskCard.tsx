@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Task } from "@/lib/mock";
-import { formatUSDX } from "@/lib/constants";
+import { formatMUSD } from "@/lib/constants";
 import { Badge, TierRangeBadge, StatusBadge } from "./Badge";
 
 export default function TaskCard({ task }: { task: Task }) {
@@ -11,7 +11,10 @@ export default function TaskCard({ task }: { task: Task }) {
         onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#1E1E2A"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <StatusBadge status={task.status} />
-          {task.fundingType === "grant" && <Badge color="purple">Grant</Badge>}
+          <div style={{ display: "flex", gap: 6 }}>
+            {task.kind === "community" && <Badge color="blue">📣 Community</Badge>}
+            {task.fundingType === "grant" && <Badge color="purple">Grant</Badge>}
+          </div>
         </div>
 
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 8px", lineHeight: 1.4 }}>{task.title}</h3>
@@ -20,8 +23,10 @@ export default function TaskCard({ task }: { task: Task }) {
         </p>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <Badge color="orange">{formatUSDX(task.amount)} USDX</Badge>
-          <TierRangeBadge min={task.experienceMin} max={task.experienceMax} />
+          <Badge color="orange">{formatMUSD(task.amount)} MUSD</Badge>
+          {task.kind === "community"
+            ? <Badge color="gray">Up to {task.maxWinners ?? 1} winner{(task.maxWinners ?? 1) !== 1 ? "s" : ""}</Badge>
+            : <TierRangeBadge min={task.experienceMin} max={task.experienceMax} />}
           {task.tags?.slice(0, 2).map((tag) => <Badge key={tag} color="gray">{tag}</Badge>)}
         </div>
 
@@ -32,9 +37,11 @@ export default function TaskCard({ task }: { task: Task }) {
             </div>
             <span style={{ fontSize: 12, color: "#9090B0", fontWeight: 500 }}>{task.creatorUsername}</span>
           </div>
-          {task.applicantCount !== undefined && (
-            <span style={{ fontSize: 12, color: "#7070A0" }}>{task.applicantCount} applicant{task.applicantCount !== 1 ? "s" : ""}</span>
-          )}
+          {task.kind === "community"
+            ? <span style={{ fontSize: 12, color: "#7070A0" }}>{task.submissions?.length ?? 0} participant{(task.submissions?.length ?? 0) !== 1 ? "s" : ""}</span>
+            : task.applicantCount !== undefined && (
+              <span style={{ fontSize: 12, color: "#7070A0" }}>{task.applicantCount} applicant{task.applicantCount !== 1 ? "s" : ""}</span>
+            )}
         </div>
       </div>
     </Link>
