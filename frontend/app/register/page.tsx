@@ -44,7 +44,7 @@ function RegisterPageInner() {
 
   const [step, setStep] = useState<Step>(connected ? "role" : "wallet");
   const [role, setRole] = useState<UserRole | null>(null);
-  const [experienceLevel, setExperienceLevel] = useState(0);
+  const [experienceLevel, setExperienceLevel] = useState(-1); // -1 = not yet chosen; 0 ("Newcomer") is a valid, falsy tier so it can't double as "unset"
   const [githubVerified, setGithubVerified] = useState(false);
   const [githubHandle, setGithubHandle] = useState("");
   const [githubName, setGithubName] = useState("");
@@ -133,7 +133,7 @@ function RegisterPageInner() {
     setSubmitting(true);
     setRegisterError("");
     try {
-      await registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle, githubAvatar, xVerified, xHandle });
+      await registerWallet({ username: githubHandle, role, experienceLevel: Math.max(0, experienceLevel), githubVerified, githubHandle, githubAvatar, xVerified, xHandle });
       router.push("/dashboard");
     } catch (err) {
       setRegisterError(err instanceof Error ? err.message : "Registration failed. Please try again.");
@@ -350,9 +350,9 @@ function RegisterPageInner() {
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button onClick={() => setStep("role")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button
-              disabled={!githubVerified || (role === "contributor" && !experienceLevel)}
+              disabled={!githubVerified || (role === "contributor" && experienceLevel < 0)}
               onClick={() => setStep("confirm")}
-              style={{ flex: 2, background: (githubVerified && (role !== "contributor" || experienceLevel)) ? "var(--primary)" : "var(--border)", color: (githubVerified && (role !== "contributor" || experienceLevel)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (githubVerified && (role !== "contributor" || experienceLevel)) ? "pointer" : "not-allowed" }}>
+              style={{ flex: 2, background: (githubVerified && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (githubVerified && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (githubVerified && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
               Review →
             </button>
           </div>
