@@ -248,7 +248,7 @@ export default function CreatePage() {
           </Field>
 
           {/* Topic + Currency row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px]" style={{ gap: 16 }}>
             <Field label="Task Topic" required>
               <select value={topic} onChange={e => setTopic(e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
                 {TASK_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}

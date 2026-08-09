@@ -1,6 +1,7 @@
 allowBuilds:
   '@reown/appkit': set this to true or false
   bufferutil: set this to true or false
+  esbuild: true
   keccak: set this to true or false
   secp256k1: set this to true or false
   sharp: set this to true or false

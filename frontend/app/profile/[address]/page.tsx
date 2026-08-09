@@ -51,7 +51,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 28, alignItems: "start" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px]" style={{ gap: 28, alignItems: "start" }}>
           <div>
             {/* Completed tasks */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 24 }}>

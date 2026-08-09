@@ -84,7 +84,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px", display: "grid", gridTemplateColumns: "260px 1fr", gap: 32, alignItems: "start" }}>
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr]" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px", gap: 32, alignItems: "start" }}>
         {/* Sidebar filters */}
         <aside style={{ position: "sticky", top: 80 }}>
           {/* Search */}

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import { MOCK_WALLET } from "@/lib/mock";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
+
+const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: false, wave_reward_ready: true };
+type NotifKey = keyof typeof DEFAULT_NOTIFS;
 
 type Section = "profile" | "experience" | "notifications" | "wallet" | "danger";
 
@@ -18,7 +21,7 @@ const SECTIONS: { id: Section; label: string; icon: string }[] = [
 ];
 
 export default function SettingsPage() {
-  const { xVerified, xHandle, linkX, unlinkX } = useWallet();
+  const { address, xVerified, xHandle, linkX, unlinkX } = useWallet();
   const [active, setActive] = useState<Section>("profile");
   const [xHandleInput, setXHandleInput] = useState("");
   const [username, setUsername] = useState(MOCK_WALLET.username);
@@ -26,11 +29,44 @@ export default function SettingsPage() {
   const [expTier, setExpTier] = useState(MOCK_WALLET.experienceLevel);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [notifs, setNotifs] = useState({ taskAssigned: true, workSubmitted: true, fundsReleased: true, grantVote: false, waveReward: true });
+  const [loadError, setLoadError] = useState("");
+  const [notifs, setNotifs] = useState<typeof DEFAULT_NOTIFS>(DEFAULT_NOTIFS);
 
-  function handleSave() {
+  useEffect(() => {
+    if (!address) return;
+    fetch(`/api/profile?address=${address}`)
+      .then(res => res.json())
+      .then((data: { profile: { bio?: string; notification_prefs?: Partial<typeof DEFAULT_NOTIFS> } | null }) => {
+        if (!data.profile) return;
+        if (typeof data.profile.bio === "string") setBio(data.profile.bio);
+        if (data.profile.notification_prefs) setNotifs(n => ({ ...n, ...data.profile!.notification_prefs }));
+      })
+      .catch(() => setLoadError("Couldn't load saved settings."));
+  }, [address]);
+
+  async function handleSave() {
+    if (!address) return;
     setSaving(true);
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 1000);
+    try {
+      if (active === "profile") {
+        await fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, bio }),
+        });
+      } else if (active === "notifications") {
+        await fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, notification_prefs: notifs }),
+        });
+      }
+      // Experience tier updates go through updateExperience() on-chain, not Supabase — not wired here yet.
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -39,9 +75,10 @@ export default function SettingsPage() {
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Settings</h1>
-        <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 36px" }}>Manage your profile, experience tier, and notification preferences.</p>
+        <p style={{ fontSize: 14, color: "var(--text-dim)", margin: loadError ? "0 0 8px" : "0 0 36px" }}>Manage your profile, experience tier, and notification preferences.</p>
+        {loadError && <p style={{ fontSize: 13, color: "var(--danger)", margin: "0 0 28px" }}>{loadError}</p>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 28, alignItems: "start" }}>
+        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]" style={{ gap: 28, alignItems: "start" }}>
           {/* Nav */}
           <nav style={{ display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 80 }}>
             {SECTIONS.map((s) => (
@@ -172,20 +209,20 @@ export default function SettingsPage() {
                 <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 24px" }}>Choose which on-chain events trigger notifications.</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {[
-                    { key: "taskAssigned",  label: "Task Assigned",    desc: "When a creator assigns you to a task" },
-                    { key: "workSubmitted", label: "Work Submitted",   desc: "When a contributor submits work on your task" },
-                    { key: "fundsReleased", label: "Funds Released",   desc: "When MUSD is released to your wallet" },
-                    { key: "grantVote",    label: "Grant Vote Opened", desc: "When a new grant application enters voting" },
-                    { key: "waveReward",   label: "Wave Reward Ready", desc: "When a wave ends and your reward is claimable" },
+                    { key: "task_assigned" as NotifKey,     label: "Task Assigned",    desc: "When a creator assigns you to a task" },
+                    { key: "work_submitted" as NotifKey,    label: "Work Submitted",   desc: "When a contributor submits work on your task" },
+                    { key: "funds_released" as NotifKey,    label: "Funds Released",   desc: "When MUSD is released to your wallet" },
+                    { key: "grant_vote_opened" as NotifKey, label: "Grant Vote Opened", desc: "When a new grant application enters voting" },
+                    { key: "wave_reward_ready" as NotifKey, label: "Wave Reward Ready", desc: "When a wave ends and your reward is claimable" },
                   ].map(({ key, label, desc }, i) => (
                     <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{label}</div>
                         <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{desc}</div>
                       </div>
-                      <button onClick={() => setNotifs((n) => ({ ...n, [key]: !n[key as keyof typeof n] }))}
-                        style={{ width: 44, height: 24, borderRadius: 12, background: notifs[key as keyof typeof notifs] ? "var(--primary)" : "var(--border)", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: notifs[key as keyof typeof notifs] ? 23 : 3, transition: "left 0.2s" }} />
+                      <button onClick={() => setNotifs((n) => ({ ...n, [key]: !n[key] }))}
+                        style={{ width: 44, height: 24, borderRadius: 12, background: notifs[key] ? "var(--primary)" : "var(--border)", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: notifs[key] ? 23 : 3, transition: "left 0.2s" }} />
                       </button>
                     </div>
                   ))}

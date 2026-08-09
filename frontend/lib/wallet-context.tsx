@@ -144,6 +144,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     wagmiDisconnect();
   }
 
+  // Best-effort sync to the off-chain profiles table (bio, linked-handle
+  // display info — see supabase/schema.sql). Fire-and-forget: localStorage
+  // stays the source of truth for the app's own UI regardless of whether
+  // this succeeds, so a flaky network call never blocks registration.
+  function syncProfile(addr: string, fields: Record<string, unknown>) {
+    fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: addr, ...fields }),
+    }).catch(() => {});
+  }
+
   function register(data: {
     username: string;
     role: UserRole;
@@ -164,6 +176,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
     setProfile(next);
     saveProfile(address, next);
+    syncProfile(address, {
+      github_handle: data.githubHandle || null,
+      x_handle: data.xHandle || null,
+    });
   }
 
   // Independent of role and callable any time after registration — mirrors
@@ -174,6 +190,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const next: Profile = { ...profile, xVerified: true, xHandle: handle };
     setProfile(next);
     saveProfile(address, next);
+    syncProfile(address, { x_handle: handle });
   }
 
   function unlinkX() {
@@ -181,6 +198,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const next: Profile = { ...profile, xVerified: false, xHandle: "" };
     setProfile(next);
     saveProfile(address, next);
+    syncProfile(address, { x_handle: null });
   }
 
   const value: WalletContextValue = {

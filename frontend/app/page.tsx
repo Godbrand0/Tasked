@@ -142,9 +142,12 @@ const ROLE_DASHBOARD: Record<string, string> = {
   investor:    "/investor",
 };
 
+const LANDING_NAV_LINKS: [string, string][] = [["#how-it-works", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]];
+
 function LandingNavbar() {
   const router = useRouter();
   const { connected, isRegistered, connect, role, address } = useWallet();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const dashboardHref = role ? ROLE_DASHBOARD[role] : "/register";
 
@@ -161,19 +164,19 @@ function LandingNavbar() {
           <span style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="hidden sm:flex">
-          {[["#how-it-works", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]].map(([href, label]) => (
+        <div style={{ alignItems: "center", gap: 32 }} className="hidden sm:flex">
+          {LANDING_NAV_LINKS.map(([href, label]) => (
             <a key={label} href={href} className="taskify-nav-link" style={{ color: "var(--text-muted)", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>{label}</a>
           ))}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <ThemeToggle />
-          {/* Connect Wallet: shows abbreviated address when connected */}
+          {/* Connect Wallet: shows abbreviated address when connected — hidden on mobile, Launch App covers the same action */}
           <button
             onClick={() => { if (!connected) connect(); }}
-            className="landing-btn-outline"
-            style={{ display: "flex", alignItems: "center", gap: 8, color: connected ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: connected ? 600 : 500, padding: "8px 14px", background: connected ? "var(--surface)" : "transparent", border: "1px solid var(--border-strong)", borderRadius: 8, cursor: connected ? "default" : "pointer", transition: "all 0.15s" }}>
+            className="landing-btn-outline hidden sm:flex"
+            style={{ alignItems: "center", gap: 8, color: connected ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: connected ? 600 : 500, padding: "8px 14px", background: connected ? "var(--surface)" : "transparent", border: "1px solid var(--border-strong)", borderRadius: 8, cursor: connected ? "default" : "pointer", transition: "all 0.15s" }}>
             {connected && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />}
             <span style={{ fontFamily: connected ? "var(--font-geist-mono)" : "inherit", fontSize: connected ? 13 : 14 }}>
               {connected ? formatAddress(address) : "Connect Wallet"}
@@ -190,8 +193,41 @@ function LandingNavbar() {
             style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
             Launch App <IconArrow />
           </button>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(o => !o)}
+            className="flex sm:hidden"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
+            style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-muted)", cursor: "pointer", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+          >
+            {mobileMenuOpen ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileMenuOpen && (
+        <div className="flex sm:hidden" style={{ borderTop: "1px solid var(--border)", padding: "12px 24px 20px", flexDirection: "column", gap: 4, background: "var(--bg)" }}>
+          {LANDING_NAV_LINKS.map(([href, label]) => (
+            <a key={label} href={href} onClick={() => setMobileMenuOpen(false)}
+              style={{ padding: "10px 12px", borderRadius: 8, color: "var(--text-muted)", fontSize: 15, fontWeight: 500, textDecoration: "none" }}>
+              {label}
+            </a>
+          ))}
+          {connected && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 12px", fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)" }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />
+              {formatAddress(address)}
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
@@ -248,7 +284,7 @@ function Hero() {
       <div style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 800, height: 600, background: "radial-gradient(ellipse, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", top: 100, right: 100, width: 400, height: 400, background: "radial-gradient(ellipse, color-mix(in srgb, var(--secondary) 6%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="block sm:grid">
+      <div style={{ maxWidth: 1200, margin: "0 auto", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="block sm:grid">
         <div>
           <div style={{ marginBottom: 24 }}>
             <Badge color="orange">
@@ -397,7 +433,7 @@ function ExperienceSection() {
 
   return (
     <section style={{ padding: "96px 24px" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ maxWidth: 1200, margin: "0 auto", gap: 64, alignItems: "center" }}>
         {/* Left */}
         <div>
           <SectionLabel>Experience matching</SectionLabel>
@@ -578,7 +614,7 @@ function ProtocolSection() {
           </h2>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 32 }}>
           {/* Task lifecycle */}
           <Card>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Task Lifecycle (Development)</div>
@@ -659,7 +695,7 @@ function TokensSection() {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 24 }}>
           {/* MUSD */}
           <Card style={{ borderColor: "color-mix(in srgb, var(--success) 19%, transparent)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
@@ -899,7 +935,7 @@ function Footer() {
   return (
     <footer style={{ borderTop: "1px solid var(--border)", padding: "60px 24px 40px", background: "var(--bg-alt)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block sm:grid">
+        <div style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block sm:grid">
           {/* Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>

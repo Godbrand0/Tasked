@@ -32,9 +32,13 @@
 -- Conventions:
 --   - Addresses are stored lowercased (`address = lower(address)` check) —
 --     always lowercase before querying or inserting.
---   - Token amounts are raw base units (18 decimals for MUSD/MEZO), stored
---     as `numeric` to avoid float precision loss. Format for display with
---     the same helpers the frontend already uses (formatUnits).
+--   - Token amounts and vote weights are raw base units (18 decimals for
+--     MUSD/MEZO), stored as `text`, not `numeric` — PostgREST serializes
+--     `numeric` as a bare JSON number, and 18-decimal amounts routinely
+--     exceed Number.MAX_SAFE_INTEGER, so any standard JSON.parse (including
+--     inside supabase-js) silently corrupts them. `text` round-trips exactly;
+--     parse with BigInt(value) and format with the same helpers the
+--     frontend already uses (formatUnits).
 --   - All on-chain timestamps are `timestamptz`, converted from the
 --     contract's unix-seconds `block.timestamp`.
 -- ============================================================================
@@ -139,7 +143,7 @@ create table users_onchain (
   role                    user_role not null,
   experience_level        smallint not null default 0,
   tasks_completed         bigint not null default 0,
-  total_earned            numeric not null default 0, -- raw base units
+  total_earned            text not null default '0', -- raw base units, as text — see header note
   github_verified         boolean not null default false,
   x_verified              boolean not null default false,
   registered_at           timestamptz not null,
@@ -155,7 +159,7 @@ create table tasks (
   id                bigint primary key, -- on-chain taskId
   creator_address   text not null references users_onchain(address),
   title             text not null,
-  amount            numeric not null,   -- raw base units
+  amount            text not null,   -- raw base units, as text — see header note
   token_address     text not null,
   experience_min    smallint not null default 0,
   experience_max    smallint not null default 0,
@@ -202,8 +206,8 @@ create index community_submissions_task_idx on community_submissions(task_id);
 -- [on-chain cache] mirrors Taskify.sol's `patrons` mapping.
 create table patrons_onchain (
   address          text primary key references users_onchain(address),
-  total_deposited  numeric not null default 0,
-  mezo_staked      numeric not null default 0,
+  total_deposited  text not null default '0',
+  mezo_staked      text not null default '0',
   tier             smallint not null default 99,
   last_synced_at   timestamptz not null default now()
 );
@@ -211,8 +215,8 @@ create table patrons_onchain (
 -- [on-chain cache] mirrors `grantVotes` + aggregated GrantVoted events.
 create table grant_votes_onchain (
   task_id       bigint primary key references tasks(id),
-  votes_for     numeric not null default 0,
-  votes_against numeric not null default 0,
+  votes_for     text not null default '0',
+  votes_against text not null default '0',
   deadline      timestamptz not null,
   executed      boolean not null default false,
   approved      boolean -- null until GrantExecuted fires
@@ -223,7 +227,7 @@ create table grant_voters_onchain (
   task_id      bigint not null references grant_votes_onchain(task_id),
   voter_address text not null references users_onchain(address),
   support      boolean not null,
-  weight       numeric not null,
+  weight       text not null,
   voted_at     timestamptz not null,
   primary key (task_id, voter_address)
 );
@@ -231,7 +235,7 @@ create table grant_voters_onchain (
 -- [on-chain cache] mirrors waveSnapshots.
 create table wave_snapshots_onchain (
   wave_id      bigint primary key,
-  pool_amount  numeric not null,
+  pool_amount  text not null,
   total_tasks  integer not null,
   started_at   timestamptz not null,
   finished_at  timestamptz not null
@@ -241,7 +245,7 @@ create table wave_snapshots_onchain (
 create table wave_claims_onchain (
   wave_id         bigint not null references wave_snapshots_onchain(wave_id),
   creator_address text not null references users_onchain(address),
-  reward_amount   numeric not null,
+  reward_amount   text not null,
   claimed_at      timestamptz not null,
   tx_hash         text not null,
   primary key (wave_id, creator_address)

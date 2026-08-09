@@ -71,7 +71,7 @@ export default function ContributorPage() {
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 32, alignItems: "start" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px]" style={{ gap: 32, alignItems: "start" }}>
           <div>
             {/* Active task */}
             {activeTask && (

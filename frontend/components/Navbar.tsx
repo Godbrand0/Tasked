@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import NotificationBell from "@/components/ui/NotificationBell";
 
 const NAV_LINKS = [
   { href: "/tasks", label: "Browse Tasks" },
@@ -39,8 +40,9 @@ function TaskedLogo() {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { connected, isRegistered, username, role, address, mezoBalance, connect, disconnect } = useWallet();
+  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, connect, disconnect } = useWallet();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +54,10 @@ export default function Navbar() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const roleColor = role ? ROLE_COLOR[role] : "var(--text-muted)";
   const dashboardHref = role ? ROLE_DASHBOARD[role] : "/register";
@@ -68,7 +74,7 @@ export default function Navbar() {
         <TaskedLogo />
 
         {/* Desktop nav links */}
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="hidden sm:flex">
+        <div style={{ alignItems: "center", gap: 32 }} className="hidden sm:flex">
           {NAV_LINKS.map(({ href, label }) => (
             <Link key={href} href={href} className="nav-link"
               style={{ color: pathname === href ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === href ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
@@ -88,9 +94,9 @@ export default function Navbar() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <ThemeToggle />
           {!connected ? (
-            /* Not connected: connect + launch */
+            /* Not connected: connect + launch (Connect Wallet text button hidden on mobile — Launch App does the same thing) */
             <>
-              <button onClick={connect} className="nav-btn-outline"
+              <button onClick={connect} className="nav-btn-outline hidden sm:flex"
                 style={{ color: "var(--text-muted)", fontSize: 14, fontWeight: 500, padding: "8px 16px", background: "transparent", border: "1px solid var(--border-strong)", borderRadius: 8, cursor: "pointer", transition: "all 0.15s" }}>
                 Connect Wallet
               </button>
@@ -103,7 +109,7 @@ export default function Navbar() {
           ) : !isRegistered ? (
             /* Connected, not registered */
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
+              <div className="hidden sm:flex" style={{ alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
                 {formatAddress(address)}
               </div>
@@ -113,12 +119,17 @@ export default function Navbar() {
               </Link>
             </>
           ) : (
-            /* Registered: MEZO balance + profile avatar */
+            /* Registered: MUSD + MEZO balances (desktop only), notifications, profile avatar */
             <>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
+              <div className="hidden sm:flex" style={{ alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
+                <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
+                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
+                <span style={{ color: "var(--border-strong)" }}>·</span>
                 <span style={{ color: "var(--secondary-light)" }}>{formatBalance(mezoBalance)}</span>
-                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", marginLeft: 4 }}>MEZO</span>
+                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MEZO</span>
               </div>
+
+              <NotificationBell />
 
               <div ref={dropdownRef} style={{ position: "relative" }}>
                 <button
@@ -176,8 +187,70 @@ export default function Navbar() {
               </div>
             </>
           )}
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(o => !o)}
+            className="flex sm:hidden"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
+            style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-muted)", cursor: "pointer", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+          >
+            {mobileMenuOpen ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileMenuOpen && (
+        <div className="flex sm:hidden" style={{ borderTop: "1px solid var(--border)", padding: "12px 24px 20px", flexDirection: "column", gap: 4, background: "var(--bg)" }}>
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link key={href} href={href}
+              style={{ padding: "10px 12px", borderRadius: 8, color: pathname === href ? "var(--text)" : "var(--text-muted)", background: pathname === href ? "var(--surface)" : "transparent", fontSize: 15, fontWeight: pathname === href ? 600 : 500, textDecoration: "none" }}>
+              {label}
+            </Link>
+          ))}
+          {isRegistered && role === "creator" && (
+            <Link href="/create"
+              style={{ padding: "10px 12px", borderRadius: 8, color: pathname === "/create" ? "var(--primary)" : "var(--text-muted)", background: pathname === "/create" ? "var(--surface)" : "transparent", fontSize: 15, fontWeight: pathname === "/create" ? 600 : 500, textDecoration: "none" }}>
+              Post Task
+            </Link>
+          )}
+          {connected && !isRegistered && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "10px 12px" }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
+              {formatAddress(address)}
+            </div>
+          )}
+          {connected && isRegistered && (
+            <>
+              <div style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
+                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
+                <span style={{ color: "var(--border-strong)" }}>·</span>
+                <span style={{ color: "var(--secondary-light)" }}>{formatBalance(mezoBalance)}</span>
+                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MEZO</span>
+              </div>
+              <Link href={dashboardHref} style={{ padding: "10px 12px", borderRadius: 8, color: "var(--text-soft)", fontSize: 15, textDecoration: "none" }}>🎯 My Dashboard</Link>
+              <Link href="/settings" style={{ padding: "10px 12px", borderRadius: 8, color: "var(--text-soft)", fontSize: 15, textDecoration: "none" }}>⚙️ Settings</Link>
+              <button
+                onClick={() => { disconnect(); router.push("/"); }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, fontSize: 15, color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
+                Disconnect
+              </button>
+            </>
+          )}
+          {!connected && (
+            <button onClick={connect} style={{ marginTop: 8, padding: "10px 12px", borderRadius: 8, color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", fontSize: 15, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
+              Connect Wallet
+            </button>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

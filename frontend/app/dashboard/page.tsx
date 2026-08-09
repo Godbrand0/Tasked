@@ -55,10 +55,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, alignItems: "start" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]" style={{ gap: 32, alignItems: "start" }}>
           <div>
             {/* Overview stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 36 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14, marginBottom: 36 }}>
               {MOCK_ROLE === "creator" && [
                 { label: "Tasks Posted",   value: String(myTasks.length),               color: "var(--primary)" },
                 { label: "Active",         value: String(activeTasks.length),            color: "var(--blue)" },
@@ -109,7 +109,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Explore */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
               <Link href="/tasks" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 24 }}>🔍</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Browse Tasks</div>

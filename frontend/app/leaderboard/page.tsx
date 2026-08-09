@@ -58,8 +58,9 @@ export default function LeaderboardPage() {
 
         {/* Full table */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
           {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 120px 80px", gap: 0, padding: "12px 24px", borderBottom: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 120px 80px", gap: 0, padding: "12px 24px", borderBottom: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", minWidth: 600 }}>
             <span>#</span>
             <span>Creator</span>
             <span style={{ textAlign: "center" }}>Tasks Posted</span>
@@ -69,7 +70,7 @@ export default function LeaderboardPage() {
 
           {sorted.map((creator, i) => (
             <Link key={creator.address} href={`/profile/${creator.address}`} style={{ textDecoration: "none" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 120px 80px", gap: 0, padding: "16px 24px", borderBottom: i < sorted.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", transition: "background 0.15s" }}
+              <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 120px 80px", gap: 0, padding: "16px 24px", borderBottom: i < sorted.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", transition: "background 0.15s", minWidth: 600 }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = "var(--surface-2)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = "transparent")}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: i < 3 ? "var(--primary)" : "var(--text-dim)" }}>{i + 1}</div>
@@ -92,6 +93,7 @@ export default function LeaderboardPage() {
               </div>
             </Link>
           ))}
+          </div>
         </div>
 
         <div style={{ textAlign: "center", marginTop: 24, fontSize: 12, color: "var(--text-dim)" }}>

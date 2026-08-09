@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { Badge, TierRangeBadge, StatusBadge } from "@/components/ui/Badge";
@@ -10,32 +10,110 @@ import { formatMUSD, TIERS, TASK_STATUSES } from "@/lib/constants";
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
-import { useWallet } from "@/lib/wallet-context";
+
+const AVATAR_COLORS = ["#F7931A", "#5546FF", "#00D395", "#F87171", "#60A5FA", "#FFD700", "#8B80FF"];
+function colorForAddress(address: string): string {
+  let hash = 0;
+  for (let i = 0; i < address.length; i++) hash = (hash * 31 + address.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+interface LiveComment {
+  id: string;
+  author: string;
+  avatarColor: string;
+  body: string;
+  createdAt: number;
+  isCreator?: boolean;
+  replyTo?: string | null;
+}
+
+interface LiveSubmission {
+  address: string;
+  author: string;
+  avatarColor: string;
+  proofUrl: string;
+  createdAt: number;
+  isWinner: boolean;
+}
+
+import { useWallet, formatAddress } from "@/lib/wallet-context";
 
 const LIFECYCLE = ["GRANT_PENDING", "OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "FUNDS_RELEASED"];
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const task = MOCK_TASKS.find(t => t.id === Number(id));
-  const { role, connected, isRegistered, connect, xVerified, xHandle, linkX } = useWallet();
+  const { role, connected, isRegistered, connect, address, xVerified, xHandle, linkX } = useWallet();
 
   const [motivation, setMotivation] = useState("");
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [applyError, setApplyError] = useState("");
   const [comment, setComment] = useState("");
-  const [comments, setComments] = useState(task?.comments ?? []);
-  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [comments, setComments] = useState<LiveComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentError, setCommentError] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
 
+  useEffect(() => {
+    if (!task) return;
+    let cancelled = false;
+    setCommentsLoading(true);
+    fetch(`/api/comments?taskId=${task.id}`)
+      .then(res => res.json())
+      .then((data: { comments?: { id: string; author_address: string; body: string; reply_to: string | null; created_at: string }[] }) => {
+        if (cancelled || !data.comments) return;
+        setComments(data.comments.map(c => ({
+          id: c.id,
+          author: formatAddress(c.author_address),
+          avatarColor: colorForAddress(c.author_address),
+          body: c.body,
+          createdAt: Math.floor(new Date(c.created_at).getTime() / 1000),
+          isCreator: c.author_address.toLowerCase() === task.creator.toLowerCase(),
+          replyTo: c.reply_to,
+        })));
+      })
+      .catch(() => { if (!cancelled) setCommentError("Couldn't load comments."); })
+      .finally(() => { if (!cancelled) setCommentsLoading(false); });
+    return () => { cancelled = true; };
+  }, [task?.id]);
+
   // Community task state
-  const [submissions, setSubmissions] = useState(task?.submissions ?? []);
+  const [submissions, setSubmissions] = useState<LiveSubmission[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [proofUrl, setProofUrl] = useState("");
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [joinError, setJoinError] = useState("");
   const [xHandleDraft, setXHandleDraft] = useState("");
   const [selectedWinners, setSelectedWinners] = useState<Set<string>>(new Set());
   const [payingWinners, setPayingWinners] = useState(false);
   const [winnersPaid, setWinnersPaid] = useState(false);
+  const [payError, setPayError] = useState("");
+
+  useEffect(() => {
+    if (!task || task.kind !== "community") { setSubmissionsLoading(false); return; }
+    let cancelled = false;
+    setSubmissionsLoading(true);
+    fetch(`/api/submissions?taskId=${task.id}`)
+      .then(res => res.json())
+      .then((data: { submissions?: { participant_address: string; proof_url: string; joined_at: string; is_winner: boolean }[] }) => {
+        if (cancelled || !data.submissions) return;
+        setSubmissions(data.submissions.map(s => ({
+          address: s.participant_address,
+          author: formatAddress(s.participant_address),
+          avatarColor: colorForAddress(s.participant_address),
+          proofUrl: s.proof_url,
+          createdAt: Math.floor(new Date(s.joined_at).getTime() / 1000),
+          isWinner: s.is_winner,
+        })));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setSubmissionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [task?.id, task?.kind]);
 
   if (!task) {
     return (
@@ -67,41 +145,65 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const canApply = isContributor && task.status === "OPEN" && !applied;
   const maxWinners = task.maxWinners ?? 1;
 
-  function handleApply() {
-    if (!motivation.trim()) return;
+  async function handleApply() {
+    if (!motivation.trim() || !task || !address) return;
     setApplying(true);
-    setTimeout(() => {
-      setApplying(false);
+    setApplyError("");
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, address, motivation: motivation.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to submit application");
       setApplied(true);
-    }, 1600);
+    } catch (err) {
+      setApplyError(err instanceof Error ? err.message : "Failed to submit application");
+    } finally {
+      setApplying(false);
+    }
   }
 
-  function handleComment() {
+  async function postComment(body: string, replyTo: string | null) {
+    if (!task || !address) return;
+    setCommentError("");
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, address, body, replyTo }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to post comment");
+      const c = data.comment as { id: string; author_address: string; body: string; reply_to: string | null; created_at: string };
+      setComments(prev => [...prev, {
+        id: c.id,
+        author: formatAddress(c.author_address),
+        avatarColor: colorForAddress(c.author_address),
+        body: c.body,
+        createdAt: Math.floor(new Date(c.created_at).getTime() / 1000),
+        isCreator: c.author_address.toLowerCase() === task.creator.toLowerCase(),
+        replyTo: c.reply_to,
+      }]);
+      return true;
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Failed to post comment");
+      return false;
+    }
+  }
+
+  async function handleComment() {
     if (!comment.trim() || !connected) return;
-    const newComment = {
-      id: comments.length + 100,
-      author: "you",
-      avatarColor: "var(--primary)",
-      body: comment.trim(),
-      createdAt: Math.floor(Date.now() / 1000),
-    };
-    setComments(prev => [...prev, newComment]);
-    setComment("");
+    if (await postComment(comment.trim(), null)) setComment("");
   }
 
-  function handleReply(parentId: number) {
+  async function handleReply(parentId: string) {
     if (!replyBody.trim() || !connected) return;
-    const newReply = {
-      id: comments.length + 100,
-      author: "you",
-      avatarColor: "var(--primary)",
-      body: replyBody.trim(),
-      createdAt: Math.floor(Date.now() / 1000),
-      replyTo: parentId,
-    };
-    setComments(prev => [...prev, newReply]);
-    setReplyBody("");
-    setReplyingTo(null);
+    if (await postComment(replyBody.trim(), parentId)) {
+      setReplyBody("");
+      setReplyingTo(null);
+    }
   }
 
   function handleQuickLinkX() {
@@ -109,41 +211,67 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     linkX(xHandleDraft.trim().replace(/^@/, ""));
   }
 
-  function handleJoinCommunity() {
-    if (!proofUrl.trim()) return;
+  async function handleJoinCommunity() {
+    if (!proofUrl.trim() || !task || !address) return;
     setJoining(true);
-    setTimeout(() => {
+    setJoinError("");
+    try {
+      const res = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to join");
+      const s = data.submission as { participant_address: string; proof_url: string; joined_at: string; is_winner: boolean };
       setSubmissions(prev => [...prev, {
-        id: prev.length + 100,
-        author: "you",
-        avatarColor: "var(--primary)",
-        proofUrl: proofUrl.trim(),
-        createdAt: Math.floor(Date.now() / 1000),
+        address: s.participant_address,
+        author: formatAddress(s.participant_address),
+        avatarColor: colorForAddress(s.participant_address),
+        proofUrl: s.proof_url,
+        createdAt: Math.floor(new Date(s.joined_at).getTime() / 1000),
+        isWinner: s.is_winner,
       }]);
-      setJoining(false);
       setJoined(true);
-    }, 1200);
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : "Failed to join");
+    } finally {
+      setJoining(false);
+    }
   }
 
-  function toggleWinner(author: string) {
+  function toggleWinner(participantAddress: string) {
     setSelectedWinners(prev => {
       const next = new Set(prev);
-      if (next.has(author)) {
-        next.delete(author);
+      if (next.has(participantAddress)) {
+        next.delete(participantAddress);
       } else if (task && next.size < (task.maxWinners ?? 1)) {
-        next.add(author);
+        next.add(participantAddress);
       }
       return next;
     });
   }
 
-  function handlePayWinners() {
-    if (selectedWinners.size === 0) return;
+  async function handlePayWinners() {
+    if (selectedWinners.size === 0 || !task) return;
     setPayingWinners(true);
-    setTimeout(() => {
-      setPayingWinners(false);
+    setPayError("");
+    try {
+      const res = await fetch("/api/submissions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, winners: Array.from(selectedWinners) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to record winners");
+      const winnerSet = new Set((data.submissions as { participant_address: string }[]).map(s => s.participant_address));
+      setSubmissions(prev => prev.map(s => winnerSet.has(s.address) ? { ...s, isWinner: true } : s));
       setWinnersPaid(true);
-    }, 1600);
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : "Failed to record winners");
+    } finally {
+      setPayingWinners(false);
+    }
   }
 
   return (
@@ -206,7 +334,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* 2-column layout */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 32, alignItems: "start" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px]" style={{ gap: 32, alignItems: "start" }}>
           {/* ── Left: Main content ── */}
           <div>
             {/* Description */}
@@ -295,24 +423,26 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* Community: participants + winner selection */}
             {isCommunity ? (
-              <Section title={`${submissions.length} Participant${submissions.length !== 1 ? "s" : ""}`}>
+              <Section title={submissionsLoading ? "Participants" : `${submissions.length} Participant${submissions.length !== 1 ? "s" : ""}`}>
                 {winnersPaid && (
                   <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13, color: "var(--success)", fontWeight: 600, textAlign: "center" }}>
-                    ✓ {selectedWinners.size} winner{selectedWinners.size !== 1 ? "s" : ""} paid — escrow released and split evenly
+                    ✓ {selectedWinners.size} winner{selectedWinners.size !== 1 ? "s" : ""} recorded — escrow releases and splits evenly once this is live on-chain
                   </div>
                 )}
-                {submissions.length === 0 ? (
+                {submissionsLoading ? (
+                  <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>Loading participants…</div>
+                ) : submissions.length === 0 ? (
                   <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>No one has joined yet. Share this task to get participants.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     {submissions.map((s, i) => {
-                      const isSelected = selectedWinners.has(s.author);
+                      const isSelected = selectedWinners.has(s.address);
                       const canSelect = isCreator && task.status === "OPEN" && !winnersPaid;
                       return (
-                        <div key={s.id} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < submissions.length - 1 ? "1px solid var(--border)" : "none", alignItems: "flex-start" }}>
+                        <div key={s.address} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < submissions.length - 1 ? "1px solid var(--border)" : "none", alignItems: "flex-start" }}>
                           {canSelect && (
                             <button
-                              onClick={() => toggleWinner(s.author)}
+                              onClick={() => toggleWinner(s.address)}
                               disabled={!isSelected && selectedWinners.size >= maxWinners}
                               style={{ width: 22, height: 22, borderRadius: 6, marginTop: 6, border: `2px solid ${isSelected ? "var(--success)" : "var(--border-strong)"}`, background: isSelected ? "var(--success)" : "transparent", cursor: (!isSelected && selectedWinners.size >= maxWinners) ? "not-allowed" : "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--bg)", fontSize: 13, fontWeight: 800 }}>
                               {isSelected && "✓"}
@@ -325,7 +455,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{s.author}</span>
                               <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(s.createdAt)}</span>
-                              {winnersPaid && isSelected && (
+                              {s.isWinner && (
                                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>WINNER</span>
                               )}
                             </div>
@@ -348,10 +478,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                       disabled={selectedWinners.size === 0 || payingWinners}
                       onClick={handlePayWinners}
                       style={{ width: "100%", background: selectedWinners.size > 0 ? "var(--success)" : "var(--border)", color: selectedWinners.size > 0 ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: selectedWinners.size > 0 ? "pointer" : "not-allowed", opacity: payingWinners ? 0.7 : 1 }}>
-                      {payingWinners ? "Paying winners on-chain…" : `Pay ${selectedWinners.size || ""} Winner${selectedWinners.size !== 1 ? "s" : ""} →`}
+                      {payingWinners ? "Recording winners…" : `Pay ${selectedWinners.size || ""} Winner${selectedWinners.size !== 1 ? "s" : ""} →`}
                     </button>
+                    {payError && (
+                      <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{payError}</div>
+                    )}
                     <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                      Calls <code style={{ color: "var(--primary)", fontSize: 10 }}>selectWinners</code> — splits escrow evenly, pays everyone in one transaction.
+                      Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>selectWinners</code> — splits escrow evenly, pays everyone in one transaction.
                     </p>
                   </div>
                 )}
@@ -386,9 +519,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               </Section>
             ) : (
               /* Contributor + visitor: comment thread */
-              <Section title={`${comments.length} Comment${comments.length !== 1 ? "s" : ""}`}>
-                {comments.length === 0 && (
-                  <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>No comments yet — be the first.</div>
+              <Section title={commentsLoading ? "Comments" : `${comments.length} Comment${comments.length !== 1 ? "s" : ""}`}>
+                {commentsLoading ? (
+                  <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>Loading comments…</div>
+                ) : comments.length === 0 && (
+                  <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>No comments yet, be the first.</div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {comments.filter(c => !c.replyTo).map((c, i, topLevel) => {
@@ -493,6 +628,9 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                         style={{ background: comment.trim() ? "var(--secondary-light)" : "var(--border)", color: comment.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 13, padding: "8px 20px", borderRadius: 8, border: "none", cursor: comment.trim() ? "pointer" : "not-allowed" }}>
                         Comment
                       </button>
+                      {commentError && (
+                        <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{commentError}</div>
+                      )}
                     </div>
                   </div>
                 ) : !connected || !isRegistered ? (
@@ -592,10 +730,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                           disabled={!proofUrl.trim() || joining}
                           onClick={handleJoinCommunity}
                           style={{ width: "100%", background: proofUrl.trim() ? "var(--primary)" : "var(--border)", color: proofUrl.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: proofUrl.trim() ? "pointer" : "not-allowed", opacity: joining ? 0.7 : 1 }}>
-                          {joining ? "Submitting on-chain…" : "Join & Submit Proof →"}
+                          {joining ? "Submitting…" : "Join & Submit Proof →"}
                         </button>
+                        {joinError && (
+                          <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{joinError}</div>
+                        )}
                         <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                          Calls <code style={{ color: "var(--primary)", fontSize: 10 }}>joinCommunityTask</code> — no experience gate.
+                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>joinCommunityTask</code> — no experience gate.
                         </p>
                       </>
                     )}
@@ -652,10 +793,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                           disabled={!motivation.trim() || applying || slotsLeft === 0}
                           onClick={handleApply}
                           style={{ width: "100%", background: (motivation.trim() && slotsLeft > 0) ? "var(--primary)" : "var(--border)", color: (motivation.trim() && slotsLeft > 0) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: (motivation.trim() && slotsLeft > 0) ? "pointer" : "not-allowed", opacity: applying ? 0.7 : 1 }}>
-                          {applying ? "Submitting on-chain…" : slotsLeft === 0 ? "No slots remaining" : "Apply →"}
+                          {applying ? "Submitting…" : slotsLeft === 0 ? "No slots remaining" : "Apply →"}
                         </button>
+                        {applyError && (
+                          <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{applyError}</div>
+                        )}
                         <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                          Calls <code style={{ color: "var(--primary)", fontSize: 10 }}>applyForTask</code> — experience gate verified on-chain.
+                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>applyForTask</code> — experience gate verified on-chain.
                         </p>
                       </>
                     )}
