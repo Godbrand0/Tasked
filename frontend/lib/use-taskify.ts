@@ -3,7 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useConfig, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
-import { formatUnits, parseUnits } from "viem";
+import { decodeEventLog, formatUnits, parseUnits } from "viem";
+import type { TransactionReceipt } from "viem";
 import { ERC20_ABI, MUSD_ADDRESS, TASKIFY_ABI, TASKIFY_ADDRESS, statusToString } from "@/lib/taskify";
 import { MUSD_DECIMALS } from "@/lib/constants";
 import type { Task } from "@/lib/mock";
@@ -31,11 +32,31 @@ export function useTaskifyTx() {
       functionName,
       args,
     } as never);
-    await waitForTransactionReceipt(config, { hash });
-    return hash;
+    const receipt = await waitForTransactionReceipt(config, { hash });
+    return receipt;
   }
 
   return { send };
+}
+
+// Pulls the on-chain taskId out of a create/apply receipt by decoding the
+// relevant event (TaskCreated for createTask/createCommunityTask,
+// GrantApplied for applyForGrant) — the only reliable way to know the id,
+// since nextTaskId can't be trusted after the fact (other creators may have
+// posted tasks in between).
+export function extractTaskId(receipt: TransactionReceipt, eventName: "TaskCreated" | "GrantApplied" = "TaskCreated"): number | undefined {
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== TASKIFY_ADDRESS?.toLowerCase()) continue;
+    try {
+      const decoded = decodeEventLog({ abi: TASKIFY_ABI as never, data: log.data, topics: log.topics });
+      if (decoded.eventName === eventName) {
+        return Number((decoded.args as unknown as { taskId: bigint }).taskId);
+      }
+    } catch {
+      // not a matching log (or not decodable with this ABI) — skip
+    }
+  }
+  return undefined;
 }
 
 // Approves `spender` for `amountHuman` of `token` if the current allowance is

@@ -7,7 +7,6 @@ import {
   darkTheme,
 } from "@rainbow-me/rainbowkit";
 import {
-  injectedWallet,
   metaMaskWallet,
   rabbyWallet,
   rainbowWallet,
@@ -36,11 +35,19 @@ const mezoTestnet = defineChain({
 // Explicit wallet list (skipping RainbowKit's default Coinbase Wallet entry —
 // its connector pulls in @coinbase/cdp-sdk's x402 payment code, which drags
 // in a chain of optional packages we don't use and that break the build).
+//
+// Deliberately omits the generic `injectedWallet` ("Browser Wallet") entry:
+// it targets whatever `window.ethereum` happens to resolve to via a plain
+// EIP-1193 provider lookup, which breaks when multiple extensions (MetaMask,
+// Rabby, etc.) are installed and fight over that slot — one can end up
+// wrapping/shadowing another, producing a provider object real wallets'
+// EIP-6963-targeted connectors (used below) don't. Everyone with an
+// installed wallet is already covered by an explicit entry.
 const connectors = connectorsForWallets(
   [
     {
       groupName: "Recommended",
-      wallets: [metaMaskWallet, rabbyWallet, rainbowWallet, walletConnectWallet, injectedWallet],
+      wallets: [metaMaskWallet, rabbyWallet, rainbowWallet, walletConnectWallet],
     },
   ],
   {

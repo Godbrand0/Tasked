@@ -39,6 +39,9 @@ export interface WalletState {
   githubAvatar: string;
   xVerified: boolean;
   xHandle: string;
+  xAvatar: string;
+  /** githubAvatar if connected, else xAvatar — for UI spots that only show one avatar. */
+  avatarUrl: string;
   experienceLevel: number;
   tasksCompleted: number;
   totalEarned: number;
@@ -56,8 +59,9 @@ interface WalletContextValue extends WalletState {
     githubAvatar?: string;
     xVerified?: boolean;
     xHandle?: string;
+    xAvatar?: string;
   }) => Promise<void>;
-  linkX: (handle: string) => Promise<void>;
+  linkX: (handle: string, avatar?: string) => Promise<void>;
   unlinkX: () => Promise<void>;
 }
 
@@ -78,20 +82,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [githubHandle, setGithubHandle] = useState("");
   const [githubAvatar, setGithubAvatar] = useState("");
   const [xHandle, setXHandle] = useState("");
+  const [xAvatar, setXAvatar] = useState("");
 
   useEffect(() => {
     if (!address) {
       setGithubHandle("");
       setGithubAvatar("");
       setXHandle("");
+      setXAvatar("");
       return;
     }
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string } }) => {
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string } }) => {
         setGithubHandle(data.profile?.github_handle ?? "");
         setGithubAvatar(data.profile?.github_avatar_url ?? "");
         setXHandle(data.profile?.x_handle ?? "");
+        setXAvatar(data.profile?.x_avatar_url ?? "");
       })
       .catch(() => {});
   }, [address]);
@@ -147,6 +154,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     githubAvatar?: string;
     xVerified?: boolean;
     xHandle?: string;
+    xAvatar?: string;
   }) {
     if (!address) throw new Error("No wallet connected");
     await send("registerUser", [
@@ -159,10 +167,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setGithubHandle(data.githubHandle);
     setGithubAvatar(data.githubAvatar ?? "");
     setXHandle(data.xHandle ?? "");
+    setXAvatar(data.xAvatar ?? "");
     syncProfile(address, {
       github_handle: data.githubHandle || null,
       github_avatar_url: data.githubAvatar || null,
       x_handle: data.xHandle || null,
+      x_avatar_url: data.xAvatar || null,
     });
     await refetchUser();
   }
@@ -170,11 +180,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Independent of role and callable any time after registration — mirrors
   // Taskify.sol's setXVerified, which gates Community task participation
   // without requiring re-registration.
-  async function linkX(handle: string) {
+  async function linkX(handle: string, avatar?: string) {
     if (!address || !onchainUser.role) return;
     await send("setXVerified", [true]);
     setXHandle(handle);
-    syncProfile(address, { x_handle: handle });
+    setXAvatar(avatar ?? "");
+    syncProfile(address, { x_handle: handle, x_avatar_url: avatar || null });
     await refetchUser();
   }
 
@@ -182,7 +193,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!address || !onchainUser.role) return;
     await send("setXVerified", [false]);
     setXHandle("");
-    syncProfile(address, { x_handle: null });
+    setXAvatar("");
+    syncProfile(address, { x_handle: null, x_avatar_url: null });
     await refetchUser();
   }
 
@@ -199,6 +211,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     githubAvatar,
     xVerified: onchainUser.xVerified,
     xHandle,
+    xAvatar,
+    avatarUrl: githubAvatar || xAvatar,
     experienceLevel: onchainUser.experienceLevel,
     tasksCompleted: onchainUser.tasksCompleted,
     totalEarned: Number(formatUnits(onchainUser.totalEarned, MUSD_DECIMALS)),

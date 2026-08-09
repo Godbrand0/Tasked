@@ -2,6 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
@@ -70,13 +71,32 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { vote: grantVote, refetch: refetchGrantVote } = useGrantVote(taskId);
   const { applied: appliedOnchain, refetch: refetchApplied } = useTaskApplicantAppliedAt(taskId, address);
 
+  const [offchainContent, setOffchainContent] = useState<{ description: string; tags: string[]; github_repo_url: string | null; grant_justification: string | null; images: string[] } | null>(null);
+  useEffect(() => {
+    fetch(`/api/task-content?taskId=${taskId}`)
+      .then(res => res.json())
+      .then((data: { content?: typeof offchainContent }) => setOffchainContent(data.content ?? null))
+      .catch(() => {});
+  }, [taskId]);
+
+  const [creatorAvatar, setCreatorAvatar] = useState("");
+  useEffect(() => {
+    if (!onchainTask?.creator) return;
+    fetch(`/api/profile?address=${onchainTask.creator}`)
+      .then(res => res.json())
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string } }) =>
+        setCreatorAvatar(data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
+      )
+      .catch(() => {});
+  }, [onchainTask?.creator]);
+
   const task = onchainTask
     ? {
         id: taskId,
         creator: onchainTask.creator,
         creatorUsername: creatorUser.username || formatAddress(onchainTask.creator),
         title: onchainTask.title,
-        description: "",
+        description: offchainContent?.description ?? "",
         amount: Number(formatUnits(onchainTask.amount, MUSD_DECIMALS)),
         token: (onchainTask.token.toLowerCase() === MUSD_ADDRESS.toLowerCase() ? "MUSD" : "MEZO") as "MUSD" | "MEZO",
         experienceMin: onchainTask.experienceMin,
@@ -88,10 +108,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         assignee: onchainTask.assignee !== "0x0000000000000000000000000000000000000000" ? onchainTask.assignee : undefined,
         deadline: onchainTask.deadline,
         createdAt: onchainTask.createdAt,
-        tags: undefined as string[] | undefined,
-        images: undefined as string[] | undefined,
-        githubRepo: undefined as string | undefined,
-        grantJustification: undefined as string | undefined,
+        tags: offchainContent?.tags,
+        images: offchainContent?.images,
+        githubRepo: offchainContent?.github_repo_url ?? undefined,
+        grantJustification: offchainContent?.grant_justification ?? undefined,
       }
     : undefined;
 
@@ -384,12 +404,13 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
   useEffect(() => {
     const handle = searchParams.get("x_handle");
+    const avatar = searchParams.get("x_avatar");
     const error = searchParams.get("x_error");
     if (handle) {
       window.history.replaceState({}, "", `/tasks/${id}`);
       setXConnecting(true);
       setXConnectError("");
-      linkX(handle).catch((err) => {
+      linkX(handle, avatar ?? undefined).catch((err) => {
         setXConnectError(err instanceof Error ? err.message : "Failed to link X on-chain");
       }).finally(() => setXConnecting(false));
     }
@@ -494,8 +515,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           {/* Meta row */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", fontSize: 13, color: "var(--text-dim)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white" }}>
-                {task.creatorUsername.charAt(0).toUpperCase()}
+              <div style={{ width: 26, height: 26, borderRadius: "50%", overflow: "hidden", position: "relative", background: creatorAvatar ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white", flexShrink: 0 }}>
+                {creatorAvatar ? (
+                  <Image src={creatorAvatar} alt={task.creatorUsername} fill sizes="26px" style={{ objectFit: "cover" }} />
+                ) : (
+                  task.creatorUsername.charAt(0).toUpperCase()
+                )}
               </div>
               <span>Posted by <strong style={{ color: "var(--text)" }}>{task.creatorUsername}</strong></span>
             </div>
@@ -532,9 +557,15 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           <div>
             {/* Description */}
             <Section title="Description">
-              <div style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.85, whiteSpace: "pre-wrap" }}>
-                {task.description}
-              </div>
+              {task.description ? (
+                <div style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.85, whiteSpace: "pre-wrap" }}>
+                  {task.description}
+                </div>
+              ) : (
+                <div style={{ fontSize: 14, color: "var(--text-dim)", fontStyle: "italic" }}>
+                  No description was saved for this task.
+                </div>
+              )}
             </Section>
 
             {/* Images */}
@@ -1102,8 +1133,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             <SideCard>
               <SideCardTitle>Creator</SideCardTitle>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white" }}>
-                  {task.creatorUsername.charAt(0).toUpperCase()}
+                <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", position: "relative", background: creatorAvatar ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
+                  {creatorAvatar ? (
+                    <Image src={creatorAvatar} alt={task.creatorUsername} fill sizes="36px" style={{ objectFit: "cover" }} />
+                  ) : (
+                    task.creatorUsername.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{task.creatorUsername}</div>

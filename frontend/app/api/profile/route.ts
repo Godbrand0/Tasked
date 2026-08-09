@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 // Taskify.sol's registerUser/setXVerified; this table only ever holds the
 // content the contract deliberately doesn't store.
 
-const ALLOWED_FIELDS = ["bio", "github_handle", "github_display_name", "github_avatar_url", "x_handle", "notification_prefs"] as const;
+const ALLOWED_FIELDS = ["bio", "github_handle", "github_display_name", "github_avatar_url", "x_handle", "x_display_name", "x_avatar_url", "notification_prefs"] as const;
 
 export async function GET(req: NextRequest) {
   if (!supabaseAdmin) {

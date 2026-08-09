@@ -40,7 +40,7 @@ function TaskedLogo() {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, githubAvatar, connect, disconnect } = useWallet();
+  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, avatarUrl, connect, disconnect } = useWallet();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -138,12 +138,12 @@ export default function Navbar() {
                 <button
                   onClick={() => setDropdownOpen(o => !o)}
                   title={username}
-                  style={{ width: 38, height: 38, borderRadius: "50%", background: githubAvatar ? "var(--surface-2)" : `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`, border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "white", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", overflow: "hidden", position: "relative", padding: 0 }}
+                  style={{ width: 38, height: 38, borderRadius: "50%", background: avatarUrl ? "var(--surface-2)" : `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`, border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "white", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", overflow: "hidden", position: "relative", padding: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = roleColor)}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = `${roleColor}50`)}
                 >
-                  {githubAvatar ? (
-                    <Image src={githubAvatar} alt={username} fill sizes="38px" style={{ objectFit: "cover" }} />
+                  {avatarUrl ? (
+                    <Image src={avatarUrl} alt={username} fill sizes="38px" style={{ objectFit: "cover" }} />
                   ) : (
                     (username || "?").charAt(0).toUpperCase()
                   )}

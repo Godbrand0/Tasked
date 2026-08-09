@@ -12,7 +12,7 @@ import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function ContributorPage() {
-  const { username, experienceLevel, tasksCompleted, totalEarned, connected, isRegistered, githubAvatar } = useWallet();
+  const { username, experienceLevel, tasksCompleted, totalEarned, connected, isRegistered, avatarUrl } = useWallet();
   const { address } = useAccount();
   const { send } = useTaskifyTx();
   const [showAll, setShowAll] = useState(false);
@@ -72,9 +72,9 @@ export default function ContributorPage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", position: "relative", background: githubAvatar ? "var(--surface-2)" : "linear-gradient(135deg, var(--secondary), var(--secondary-light))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {githubAvatar ? (
-                <Image src={githubAvatar} alt={displayName} fill sizes="52px" style={{ objectFit: "cover" }} />
+            <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", position: "relative", background: avatarUrl ? "var(--surface-2)" : "linear-gradient(135deg, var(--secondary), var(--secondary-light))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white", flexShrink: 0 }}>
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt={displayName} fill sizes="52px" style={{ objectFit: "cover" }} />
               ) : (
                 displayName.charAt(0).toUpperCase()
               )}

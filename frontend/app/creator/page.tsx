@@ -21,7 +21,7 @@ import {
 } from "@/lib/use-taskify";
 
 export default function CreatorPage() {
-  const { username, githubVerified, githubAvatar } = useWallet();
+  const { username, githubVerified, avatarUrl } = useWallet();
   const { address } = useAccount();
   const { send } = useTaskifyTx();
   const displayAddress = address ?? "";
@@ -86,9 +86,9 @@ export default function CreatorPage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, overflow: "hidden", position: "relative", background: githubAvatar ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--primary-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {githubAvatar ? (
-                <Image src={githubAvatar} alt={displayUsername} fill sizes="52px" style={{ objectFit: "cover" }} />
+            <div style={{ width: 52, height: 52, borderRadius: 14, overflow: "hidden", position: "relative", background: avatarUrl ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--primary-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white", flexShrink: 0 }}>
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt={displayUsername} fill sizes="52px" style={{ objectFit: "cover" }} />
               ) : (
                 displayUsername.charAt(0).toUpperCase()
               )}

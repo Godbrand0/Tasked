@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS, tokenAddress } from "@/lib/taskify";
-import { toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
+import { extractTaskId, toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
 
 type FundingType = "self" | "grant";
 type Currency = "MUSD" | "MEZO";
@@ -126,16 +126,39 @@ export default function CreatePage() {
       if (!token || !TASKIFY_ADDRESS) throw new Error("Contract not configured");
       const deadlineTs = deadline ? Math.floor(new Date(deadline).getTime() / 1000) : 0;
 
+      let taskId: number | undefined;
+
       if (fundingType === "grant") {
-        await send("applyForGrant", [title, toRawMUSD(numAmount), expMin, expMax]);
+        const receipt = await send("applyForGrant", [title, toRawMUSD(numAmount), expMin, expMax]);
+        taskId = extractTaskId(receipt, "GrantApplied");
       } else {
         await ensureApproval(token, address, TASKIFY_ADDRESS, toRawMUSD(numAmount));
         if (taskKind === "community") {
-          await send("createCommunityTask", [title, toRawMUSD(numAmount), token, maxWinners, BigInt(deadlineTs)]);
+          const receipt = await send("createCommunityTask", [title, toRawMUSD(numAmount), token, maxWinners, BigInt(deadlineTs)]);
+          taskId = extractTaskId(receipt, "TaskCreated");
         } else {
-          await send("createTask", [title, toRawMUSD(numAmount), token, expMin, expMax, BigInt(deadlineTs)]);
+          const receipt = await send("createTask", [title, toRawMUSD(numAmount), token, expMin, expMax, BigInt(deadlineTs)]);
+          taskId = extractTaskId(receipt, "TaskCreated");
         }
       }
+
+      // Best-effort — the task is already live on-chain regardless of
+      // whether this off-chain write succeeds; a failure here just means
+      // the task shows no description until edited/retried.
+      if (taskId !== undefined && description.trim()) {
+        fetch("/api/task-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId,
+            description: description.trim(),
+            tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+            githubRepoUrl: githubIssueData?.url || null,
+            grantJustification: fundingType === "grant" ? grantJustification.trim() : null,
+          }),
+        }).catch(() => {});
+      }
+
       setSubmitted(true);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Transaction failed. Please try again.");

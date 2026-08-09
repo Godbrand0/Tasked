@@ -73,6 +73,8 @@ create table profiles (
   github_display_name  text,
   github_avatar_url    text,
   x_handle             text,
+  x_display_name       text,
+  x_avatar_url         text,
   notification_prefs   jsonb not null default jsonb_build_object(
     'task_assigned', true,
     'work_submitted', true,

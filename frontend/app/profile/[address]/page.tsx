@@ -13,12 +13,14 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const { address } = use(params);
   const { user, isLoading: userLoading } = useTaskifyUser(address);
   const { data: onchainTasks } = useAllTasks();
-  const [githubAvatar, setGithubAvatar] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   useEffect(() => {
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_avatar_url?: string } }) => setGithubAvatar(data.profile?.github_avatar_url ?? ""))
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string } }) =>
+        setAvatarUrl(data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
+      )
       .catch(() => {});
   }, [address]);
 
@@ -68,9 +70,9 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
           <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, background: `radial-gradient(ellipse, ${tier.color}10 0%, transparent 70%)`, pointerEvents: "none" }} />
           <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
             {/* Avatar */}
-            <div style={{ width: 80, height: 80, borderRadius: 20, overflow: "hidden", position: "relative", background: githubAvatar ? "var(--surface-2)" : `linear-gradient(135deg, ${tier.color}, var(--secondary))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {githubAvatar ? (
-                <Image src={githubAvatar} alt={displayName} fill sizes="80px" style={{ objectFit: "cover" }} />
+            <div style={{ width: 80, height: 80, borderRadius: 20, overflow: "hidden", position: "relative", background: avatarUrl ? "var(--surface-2)" : `linear-gradient(135deg, ${tier.color}, var(--secondary))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "white", flexShrink: 0 }}>
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt={displayName} fill sizes="80px" style={{ objectFit: "cover" }} />
               ) : (
                 displayName.charAt(0).toUpperCase()
               )}

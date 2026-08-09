@@ -58,12 +58,13 @@ function SettingsPageInner() {
   // on-chain with that real handle.
   useEffect(() => {
     const handle = searchParams.get("x_handle");
+    const avatar = searchParams.get("x_avatar");
     const error = searchParams.get("x_error");
     if (handle) {
       window.history.replaceState({}, "", "/settings");
       setXConnecting(true);
       setXError("");
-      linkX(handle).catch((err) => {
+      linkX(handle, avatar ?? undefined).catch((err) => {
         setXError(err instanceof Error ? err.message : "Failed to link X on-chain");
       }).finally(() => setXConnecting(false));
     }
