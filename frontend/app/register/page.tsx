@@ -161,7 +161,7 @@ function RegisterPageInner() {
           {step === "wallet" ? "Connect your wallet" : step === "role" ? "Choose your role" : step === "details" ? "Set up your profile" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>
-          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : step === "details" ? "This information is stored on the Mezo blockchain." : "Review your details before calling registerUser on-chain."}
+          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : step === "details" ? "This information is stored on the Mezo blockchain." : ""}
         </p>
       </div>
 
@@ -375,10 +375,6 @@ function RegisterPageInner() {
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{value}</span>
               </div>
             ))}
-          </div>
-
-          <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 12, padding: 16, marginBottom: 20, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-            Clicking <strong style={{ color: "var(--text)" }}>Register on Mezo</strong> will call <code style={{ color: "var(--primary)", fontSize: 11 }}>registerUser</code> on the Taskify contract. Your wallet will prompt for approval.
           </div>
 
           {registerError && (
