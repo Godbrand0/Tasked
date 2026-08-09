@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
@@ -27,10 +28,8 @@ const ROLE_DASHBOARD: Record<string, string> = {
 function TaskedLogo() {
   return (
     <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-      <div style={{ width: 32, height: 32, background: "linear-gradient(135deg, var(--primary), var(--primary-strong))", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" />
-        </svg>
+      <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", flexShrink: 0, position: "relative" }}>
+        <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
       </div>
       <span style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
     </Link>

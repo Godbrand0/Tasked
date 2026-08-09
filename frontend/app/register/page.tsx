@@ -50,9 +50,11 @@ function RegisterPageInner() {
   const [githubName, setGithubName] = useState("");
   const [githubAvatar, setGithubAvatar] = useState("");
   const [githubError, setGithubError] = useState("");
-  const [xHandleInput, setXHandleInput] = useState("");
   const [xVerified, setXVerified] = useState(false);
   const [xHandle, setXHandle] = useState("");
+  const [xName, setXName] = useState("");
+  const [xAvatar, setXAvatar] = useState("");
+  const [xError, setXError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
 
@@ -91,6 +93,26 @@ function RegisterPageInner() {
     }
   }, [searchParams]);
 
+  // Read X (Twitter) profile back from OAuth callback redirect
+  useEffect(() => {
+    const handle = searchParams.get("x_handle");
+    const name = searchParams.get("x_name");
+    const avatar = searchParams.get("x_avatar");
+    const error = searchParams.get("x_error");
+
+    if (handle) {
+      setXHandle(handle);
+      setXName(name ?? handle);
+      setXAvatar(avatar ?? "");
+      setXVerified(true);
+      window.history.replaceState({}, "", "/register");
+    }
+    if (error) {
+      setXError("X connection failed. Please try again.");
+      window.history.replaceState({}, "", "/register");
+    }
+  }, [searchParams]);
+
   const selectedRole = ROLE_OPTIONS.find(r => r.id === role);
   const STEPS: Step[] = ["wallet", "role", "details", "confirm"];
   const stepIdx = STEPS.indexOf(step);
@@ -101,10 +123,9 @@ function RegisterPageInner() {
     window.location.href = "/api/auth/github";
   }
 
-  function handleLinkX() {
-    if (!xHandleInput.trim()) return;
-    setXHandle(xHandleInput.trim().replace(/^@/, ""));
-    setXVerified(true);
+  function handleXConnect() {
+    setXError("");
+    window.location.href = "/api/auth/x?return_to=%2Fregister";
   }
 
   async function handleRegister() {
@@ -129,8 +150,8 @@ function RegisterPageInner() {
 
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
-        <div style={{ width: 36, height: 36, background: "linear-gradient(135deg, var(--primary), var(--primary-strong))", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" /></svg>
+        <div style={{ width: 36, height: 36, borderRadius: 10, overflow: "hidden", position: "relative", flexShrink: 0 }}>
+          <Image src="/logo.jpg" alt="Taskify" fill sizes="36px" style={{ objectFit: "cover" }} />
         </div>
         <span style={{ fontWeight: 700, fontSize: 22, color: "var(--text)" }}>Taskify</span>
       </div>
@@ -267,38 +288,37 @@ function RegisterPageInner() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Link X <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>(optional)</span></div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Connect X <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>(optional)</span></div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
                     Unlocks Community tasks (memes, bug write-ups, social bounties) — no code required. Skip this if you're only here for Development tasks.
                   </div>
                 </div>
-                <div style={{ width: "100%", display: "flex", gap: 8 }}>
-                  <input value={xHandleInput} onChange={e => setXHandleInput(e.target.value)} placeholder="@yourhandle"
-                    style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
-                    onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
-                    onBlur={e => (e.target.style.borderColor = "var(--border)")} />
-                  <button onClick={handleLinkX} disabled={!xHandleInput.trim()}
-                    style={{ background: xHandleInput.trim() ? "var(--text)" : "var(--border)", color: xHandleInput.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 13, padding: "10px 18px", borderRadius: 10, border: "none", cursor: xHandleInput.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
-                    Link X
-                  </button>
-                </div>
-                <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", lineHeight: 1.5 }}>
-                  Self-declared for now — the creator reviews your submission proof before any Community task payout.
-                </div>
+                {xError && (
+                  <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 8, padding: "8px 12px", width: "100%", textAlign: "center" }}>
+                    {xError}
+                  </div>
+                )}
+                <button
+                  onClick={handleXConnect}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  Continue with X
+                </button>
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                  {xHandle.charAt(0).toUpperCase()}
-                </div>
+                {xAvatar ? (
+                  <Image src={xAvatar} alt={xHandle} width={48} height={48} style={{ borderRadius: "50%", flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                    {xHandle.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>@{xHandle}</div>
-                  <div style={{ fontSize: 13, color: "var(--success)" }}>Linked — Community tasks unlocked</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{xName}</div>
+                  <div style={{ fontSize: 13, color: "var(--success)" }}>@{xHandle}</div>
                 </div>
-                <button onClick={() => { setXVerified(false); setXHandle(""); setXHandleInput(""); }}
-                  style={{ background: "none", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 12, padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>
-                  Unlink
-                </button>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", padding: "4px 10px", borderRadius: 6 }}>✓ Verified</div>
               </div>
             )}
           </div>

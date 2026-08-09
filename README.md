@@ -9,7 +9,7 @@ Two kinds of task live side by side on one board:
 - **Development tasks** — experience-tier gated, one contributor applies and is assigned, paid on approval. GitHub-verified.
 - **Community tasks** — open to any registered wallet (memes, bug write-ups, social bounties — no code required). Anyone joins with a proof-of-participation link; the creator picks up to *N* winners and the escrow splits evenly between them in one transaction. X-verified.
 
-**Live Demo:** _coming soon_
+**Live Demo:** [taskifybounties.vercel.app](https://taskifybounties.vercel.app/)
 **Contract (Mezo Testnet):** [`0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb`](https://explorer.test.mezo.org/address/0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb) — see [Contract Addresses](#contract-addresses)
 
 ---

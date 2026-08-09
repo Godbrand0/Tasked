@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { Badge, TierRangeBadge, StatusBadge } from "@/components/ui/Badge";
@@ -50,7 +51,16 @@ import { useWallet, formatAddress } from "@/lib/wallet-context";
 const LIFECYCLE = ["GRANT_PENDING", "OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "FUNDS_RELEASED"];
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense>
+      <TaskDetailPageInner params={params} />
+    </Suspense>
+  );
+}
+
+function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
   const taskId = Number(id);
   const { role, connected, isRegistered, connect, address, xVerified, xHandle, linkX } = useWallet();
   const { send } = useTaskifyTx();
@@ -160,7 +170,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
   const [joinError, setJoinError] = useState("");
-  const [xHandleDraft, setXHandleDraft] = useState("");
+  const [xConnecting, setXConnecting] = useState(false);
+  const [xConnectError, setXConnectError] = useState("");
   const [selectedWinners, setSelectedWinners] = useState<Set<string>>(new Set());
   const [payingWinners, setPayingWinners] = useState(false);
   const [winnersPaid, setWinnersPaid] = useState(false);
@@ -366,10 +377,28 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  function handleQuickLinkX() {
-    if (!xHandleDraft.trim()) return;
-    linkX(xHandleDraft.trim().replace(/^@/, ""));
+  function handleQuickXConnect() {
+    setXConnectError("");
+    window.location.href = `/api/auth/x?return_to=${encodeURIComponent(`/tasks/${id}`)}`;
   }
+
+  useEffect(() => {
+    const handle = searchParams.get("x_handle");
+    const error = searchParams.get("x_error");
+    if (handle) {
+      window.history.replaceState({}, "", `/tasks/${id}`);
+      setXConnecting(true);
+      setXConnectError("");
+      linkX(handle).catch((err) => {
+        setXConnectError(err instanceof Error ? err.message : "Failed to link X on-chain");
+      }).finally(() => setXConnecting(false));
+    }
+    if (error) {
+      window.history.replaceState({}, "", `/tasks/${id}`);
+      setXConnectError("X connection failed. Please try again.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, id]);
 
   async function handleJoinCommunity() {
     if (!proofUrl.trim() || !task || !address) return;
@@ -864,20 +893,16 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                   </SideCard>
                 ) : isCreator ? null : !xVerified ? (
                   <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
-                    <SideCardTitle color="var(--primary)">Link X to Join</SideCardTitle>
+                    <SideCardTitle color="var(--primary)">Connect X to Join</SideCardTitle>
                     <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
-                      Community tasks are gated to X-linked accounts. Self-declared for now — link it here to join.
+                      Community tasks are gated to X-verified accounts.
                     </p>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input value={xHandleDraft} onChange={e => setXHandleDraft(e.target.value)} placeholder="@yourhandle"
-                        style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
-                        onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
-                        onBlur={e => (e.target.style.borderColor = "var(--border)")} />
-                      <button onClick={handleQuickLinkX} disabled={!xHandleDraft.trim()}
-                        style={{ background: xHandleDraft.trim() ? "var(--text)" : "var(--border)", color: xHandleDraft.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: xHandleDraft.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
-                        Link
-                      </button>
-                    </div>
+                    <button onClick={handleQuickXConnect} disabled={xConnecting}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: xConnecting ? "not-allowed" : "pointer", opacity: xConnecting ? 0.7 : 1 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      {xConnecting ? "Connecting…" : "Continue with X"}
+                    </button>
+                    {xConnectError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{xConnectError}</div>}
                   </SideCard>
                 ) : (
                   <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>

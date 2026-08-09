@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import { TIERS } from "@/lib/constants";
@@ -23,13 +24,21 @@ const SECTIONS: { id: Section; label: string; icon: string }[] = [
 ];
 
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
   const { username: onchainUsername, role, githubVerified, githubHandle, experienceLevel, xVerified, xHandle, linkX, unlinkX } = useWallet();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const { send } = useTaskifyTx();
   const { data: onchainTasks } = useAllTasks();
+  const searchParams = useSearchParams();
   const [active, setActive] = useState<Section>("profile");
-  const [xHandleInput, setXHandleInput] = useState("");
   const [bio, setBio] = useState("");
   const [expTier, setExpTier] = useState(experienceLevel);
   const [saving, setSaving] = useState(false);
@@ -39,8 +48,36 @@ export default function SettingsPage() {
   const [notifs, setNotifs] = useState<typeof DEFAULT_NOTIFS>(DEFAULT_NOTIFS);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [xConnecting, setXConnecting] = useState(false);
+  const [xError, setXError] = useState("");
 
   useEffect(() => setExpTier(experienceLevel), [experienceLevel]);
+
+  // Completes the X OAuth flow: the callback route redirects back here with
+  // the verified handle in the query string, then we sign setXVerified(true)
+  // on-chain with that real handle.
+  useEffect(() => {
+    const handle = searchParams.get("x_handle");
+    const error = searchParams.get("x_error");
+    if (handle) {
+      window.history.replaceState({}, "", "/settings");
+      setXConnecting(true);
+      setXError("");
+      linkX(handle).catch((err) => {
+        setXError(err instanceof Error ? err.message : "Failed to link X on-chain");
+      }).finally(() => setXConnecting(false));
+    }
+    if (error) {
+      window.history.replaceState({}, "", "/settings");
+      setXError("X connection failed. Please try again.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  function handleXConnect() {
+    setXError("");
+    window.location.href = "/api/auth/x?return_to=%2Fsettings";
+  }
 
   const myOpenSelfFundedTasks = useMemo(
     () => (onchainTasks ?? []).filter(
@@ -179,7 +216,7 @@ export default function SettingsPage() {
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>X <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(unlocks Community tasks)</span></div>
                         <div style={{ fontSize: 12, color: xVerified ? "var(--success)" : "var(--text-dim)" }}>
-                          {xVerified ? `@${xHandle}` : "Not connected"}
+                          {xConnecting ? "Verifying…" : xVerified ? `@${xHandle}` : "Not connected"}
                         </div>
                       </div>
                     </div>
@@ -188,19 +225,13 @@ export default function SettingsPage() {
                         Disconnect
                       </button>
                     ) : (
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input value={xHandleInput} onChange={(e) => setXHandleInput(e.target.value)} placeholder="@yourhandle"
-                          style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "var(--text)", outline: "none", width: 140 }}
-                          onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
-                          onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
-                        <button onClick={() => { if (xHandleInput.trim()) { linkX(xHandleInput.trim().replace(/^@/, "")); setXHandleInput(""); } }}
-                          disabled={!xHandleInput.trim()}
-                          style={{ background: xHandleInput.trim() ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--border)", border: `1px solid ${xHandleInput.trim() ? "color-mix(in srgb, var(--success) 19%, transparent)" : "var(--border)"}`, color: xHandleInput.trim() ? "var(--success)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: xHandleInput.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
-                          Connect
-                        </button>
-                      </div>
+                      <button onClick={handleXConnect} disabled={xConnecting}
+                        style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: xConnecting ? "not-allowed" : "pointer", opacity: xConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
+                        {xConnecting ? "Connecting…" : "Continue with X"}
+                      </button>
                     )}
                   </div>
+                  {xError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{xError}</div>}
                 </div>
               </div>
             )}
