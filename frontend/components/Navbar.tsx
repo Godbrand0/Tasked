@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "@/components/ui/NotificationBell";
+import BackButton from "@/components/ui/BackButton";
 
 const NAV_LINKS = [
   { href: "/tasks", label: "Browse Tasks" },
@@ -39,7 +40,7 @@ function TaskedLogo() {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, connect, disconnect } = useWallet();
+  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, githubAvatar, connect, disconnect } = useWallet();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -70,7 +71,10 @@ export default function Navbar() {
         .wallet-dropdown-item:hover { background: var(--border) !important; }
       `}</style>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <TaskedLogo />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <BackButton />
+          <TaskedLogo />
+        </div>
 
         {/* Desktop nav links */}
         <div style={{ alignItems: "center", gap: 32 }} className="hidden sm:flex">
@@ -134,11 +138,15 @@ export default function Navbar() {
                 <button
                   onClick={() => setDropdownOpen(o => !o)}
                   title={username}
-                  style={{ width: 38, height: 38, borderRadius: "50%", background: `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`, border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "white", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s" }}
+                  style={{ width: 38, height: 38, borderRadius: "50%", background: githubAvatar ? "var(--surface-2)" : `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`, border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "white", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", overflow: "hidden", position: "relative", padding: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = roleColor)}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = `${roleColor}50`)}
                 >
-                  {(username || "?").charAt(0).toUpperCase()}
+                  {githubAvatar ? (
+                    <Image src={githubAvatar} alt={username} fill sizes="38px" style={{ objectFit: "cover" }} />
+                  ) : (
+                    (username || "?").charAt(0).toUpperCase()
+                  )}
                 </button>
 
                 {dropdownOpen && (

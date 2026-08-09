@@ -36,6 +36,7 @@ export interface WalletState {
   mezoBalance: number;
   githubVerified: boolean;
   githubHandle: string;
+  githubAvatar: string;
   xVerified: boolean;
   xHandle: string;
   experienceLevel: number;
@@ -52,6 +53,7 @@ interface WalletContextValue extends WalletState {
     experienceLevel: number;
     githubVerified: boolean;
     githubHandle: string;
+    githubAvatar?: string;
     xVerified?: boolean;
     xHandle?: string;
   }) => Promise<void>;
@@ -74,18 +76,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // in Supabase's profiles table — the contract only stores the username
   // string and a self-declared xVerified bool. Merged in below.
   const [githubHandle, setGithubHandle] = useState("");
+  const [githubAvatar, setGithubAvatar] = useState("");
   const [xHandle, setXHandle] = useState("");
 
   useEffect(() => {
     if (!address) {
       setGithubHandle("");
+      setGithubAvatar("");
       setXHandle("");
       return;
     }
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_handle?: string; x_handle?: string } }) => {
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string } }) => {
         setGithubHandle(data.profile?.github_handle ?? "");
+        setGithubAvatar(data.profile?.github_avatar_url ?? "");
         setXHandle(data.profile?.x_handle ?? "");
       })
       .catch(() => {});
@@ -139,6 +144,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     experienceLevel: number;
     githubVerified: boolean;
     githubHandle: string;
+    githubAvatar?: string;
     xVerified?: boolean;
     xHandle?: string;
   }) {
@@ -151,9 +157,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       data.xVerified ?? false,
     ]);
     setGithubHandle(data.githubHandle);
+    setGithubAvatar(data.githubAvatar ?? "");
     setXHandle(data.xHandle ?? "");
     syncProfile(address, {
       github_handle: data.githubHandle || null,
+      github_avatar_url: data.githubAvatar || null,
       x_handle: data.xHandle || null,
     });
     await refetchUser();
@@ -188,6 +196,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     isRegistered: onchainUser.role !== 0,
     githubVerified: onchainUser.githubVerified,
     githubHandle,
+    githubAvatar,
     xVerified: onchainUser.xVerified,
     xHandle,
     experienceLevel: onchainUser.experienceLevel,

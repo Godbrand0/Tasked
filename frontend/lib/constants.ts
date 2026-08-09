@@ -35,7 +35,8 @@ export const MUSD_DECIMALS = 18;
 export const CONTRACT_ADDRESSES = {
   testnet: {
     musd: "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
-    mezo: undefined as string | undefined,
+    // Same address as mainnet — MEZO turns out to be deployed there too.
+    mezo: "0x7B7c000000000000000000000000000000000001",
   },
   mainnet: {
     musd: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",

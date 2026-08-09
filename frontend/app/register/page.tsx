@@ -133,7 +133,7 @@ function RegisterPageInner() {
     setSubmitting(true);
     setRegisterError("");
     try {
-      await registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle, xVerified, xHandle });
+      await registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle, githubAvatar, xVerified, xHandle });
       router.push("/dashboard");
     } catch (err) {
       setRegisterError(err instanceof Error ? err.message : "Registration failed. Please try again.");

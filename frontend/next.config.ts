@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
+      { protocol: "https", hostname: "pbs.twimg.com" },
     ],
   },
   // RainbowKit's default wallet list statically references a Coinbase Wallet

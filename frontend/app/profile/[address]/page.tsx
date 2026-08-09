@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
@@ -12,6 +13,14 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const { address } = use(params);
   const { user, isLoading: userLoading } = useTaskifyUser(address);
   const { data: onchainTasks } = useAllTasks();
+  const [githubAvatar, setGithubAvatar] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/profile?address=${address}`)
+      .then((res) => res.json())
+      .then((data: { profile?: { github_avatar_url?: string } }) => setGithubAvatar(data.profile?.github_avatar_url ?? ""))
+      .catch(() => {});
+  }, [address]);
 
   const myTasks = useMemo(
     () => (onchainTasks ?? [])
@@ -59,8 +68,12 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
           <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, background: `radial-gradient(ellipse, ${tier.color}10 0%, transparent 70%)`, pointerEvents: "none" }} />
           <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
             {/* Avatar */}
-            <div style={{ width: 80, height: 80, borderRadius: 20, background: `linear-gradient(135deg, ${tier.color}, var(--secondary))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {displayName.charAt(0).toUpperCase()}
+            <div style={{ width: 80, height: 80, borderRadius: 20, overflow: "hidden", position: "relative", background: githubAvatar ? "var(--surface-2)" : `linear-gradient(135deg, ${tier.color}, var(--secondary))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "white", flexShrink: 0 }}>
+              {githubAvatar ? (
+                <Image src={githubAvatar} alt={displayName} fill sizes="80px" style={{ objectFit: "cover" }} />
+              ) : (
+                displayName.charAt(0).toUpperCase()
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
