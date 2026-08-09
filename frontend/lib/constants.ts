@@ -1,29 +1,29 @@
 export const TIERS = [
-  { id: 0, label: "Newcomer", years: "0 – 1 year",  color: "#7070A0", bg: "#FFFFFF0D" },
-  { id: 1, label: "Junior",   years: "1 – 2 years", color: "#60A5FA", bg: "#3B82F618" },
-  { id: 2, label: "Mid-level",years: "2 – 3 years", color: "#A78BFA", bg: "#7C3AED18" },
-  { id: 3, label: "Senior",   years: "3 – 5 years", color: "#F7931A", bg: "#F7931A18" },
-  { id: 4, label: "Expert",   years: "5+ years",    color: "#FFD700", bg: "#FFD70018" },
+  { id: 0, label: "Newcomer", years: "0 – 1 year",  color: "var(--text-dim)", bg: "var(--neutral-tint)" },
+  { id: 1, label: "Junior",   years: "1 – 2 years", color: "var(--blue)", bg: "color-mix(in srgb, var(--blue-strong) 9%, transparent)" },
+  { id: 2, label: "Mid-level",years: "2 – 3 years", color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)" },
+  { id: 3, label: "Senior",   years: "3 – 5 years", color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)" },
+  { id: 4, label: "Expert",   years: "5+ years",    color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 9%, transparent)" },
 ] as const;
 
 export const PATRON_TIERS = [
-  { id: 99, label: "None",    min: 0,          color: "#7070A0", bg: "#FFFFFF0D" },
+  { id: 99, label: "None",    min: 0,          color: "var(--text-dim)", bg: "var(--neutral-tint)" },
   { id: 0,  label: "Bronze",  min: 100,        color: "#CD7F32", bg: "#CD7F3218" },
   { id: 1,  label: "Silver",  min: 500,        color: "#C0C0C0", bg: "#C0C0C018" },
-  { id: 2,  label: "Gold",    min: 1000,       color: "#FFD700", bg: "#FFD70018" },
-  { id: 3,  label: "Diamond", min: 5000,       color: "#8B80FF", bg: "#5546FF18" },
+  { id: 2,  label: "Gold",    min: 1000,       color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 9%, transparent)" },
+  { id: 3,  label: "Diamond", min: 5000,       color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)" },
 ] as const;
 
 export const TASK_STATUSES: Record<string, { label: string; color: string; bg: string }> = {
-  GRANT_PENDING:  { label: "Grant Pending",  color: "#A78BFA", bg: "#7C3AED18" },
-  OPEN:           { label: "Open",           color: "#00D395", bg: "#00D39518" },
-  ASSIGNED:       { label: "Assigned",       color: "#60A5FA", bg: "#3B82F618" },
-  IN_PROGRESS:    { label: "In Progress",    color: "#F7931A", bg: "#F7931A18" },
-  SUBMITTED:      { label: "Submitted",      color: "#FFD700", bg: "#FFD70018" },
-  FUNDS_RELEASED: { label: "Completed",      color: "#00D395", bg: "#00D39518" },
-  CANCELLED:      { label: "Cancelled",      color: "#7070A0", bg: "#FFFFFF0D" },
-  EXPIRED:        { label: "Expired",        color: "#7070A0", bg: "#FFFFFF0D" },
-  GRANT_REJECTED: { label: "Grant Rejected", color: "#F87171", bg: "#EF444418" },
+  GRANT_PENDING:  { label: "Grant Pending",  color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)" },
+  OPEN:           { label: "Open",           color: "var(--success)", bg: "color-mix(in srgb, var(--success) 9%, transparent)" },
+  ASSIGNED:       { label: "Assigned",       color: "var(--blue)", bg: "color-mix(in srgb, var(--blue-strong) 9%, transparent)" },
+  IN_PROGRESS:    { label: "In Progress",    color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)" },
+  SUBMITTED:      { label: "Submitted",      color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 9%, transparent)" },
+  FUNDS_RELEASED: { label: "Completed",      color: "var(--success)", bg: "color-mix(in srgb, var(--success) 9%, transparent)" },
+  CANCELLED:      { label: "Cancelled",      color: "var(--text-dim)", bg: "var(--neutral-tint)" },
+  EXPIRED:        { label: "Expired",        color: "var(--text-dim)", bg: "var(--neutral-tint)" },
+  GRANT_REJECTED: { label: "Grant Rejected", color: "var(--danger)", bg: "color-mix(in srgb, var(--danger-strong) 9%, transparent)" },
 };
 
 export const MUSD_DECIMALS = 18;

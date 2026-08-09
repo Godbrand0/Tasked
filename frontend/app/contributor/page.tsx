@@ -31,26 +31,26 @@ export default function ContributorPage() {
   const displayedExtra = showAll ? outOfRangeTasks : [];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0F" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <Navbar />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px" }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #5546FF, #8B80FF)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white" }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, var(--secondary), var(--secondary-light))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white" }}>
               {CONTRIBUTOR.username.charAt(0).toUpperCase()}
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F0F0F5", margin: 0 }}>{displayName}</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>
                 {CONTRIBUTOR.githubVerified && <Badge color="green">GitHub Verified</Badge>}
                 <Badge color="purple">Contributor</Badge>
               </div>
               <TierBadge tier={CONTRIBUTOR.experienceLevel} />
             </div>
           </div>
-          <Link href="/tasks" style={{ background: "#5546FF18", border: "1px solid #5546FF30", color: "#8B80FF", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none" }}>
+          <Link href="/tasks" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none" }}>
             Browse All Tasks
           </Link>
         </div>
@@ -58,15 +58,15 @@ export default function ContributorPage() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "Tasks Completed", value: String(connected && isRegistered ? tasksCompleted : CONTRIBUTOR.tasksCompleted), color: "#00D395", icon: "✓" },
-            { label: "Total Earned",    value: `${formatMUSD(connected && isRegistered ? totalEarned : CONTRIBUTOR.totalEarned)} MUSD`, color: "#F7931A", icon: "💰" },
+            { label: "Tasks Completed", value: String(connected && isRegistered ? tasksCompleted : CONTRIBUTOR.tasksCompleted), color: "var(--success)", icon: "✓" },
+            { label: "Total Earned",    value: `${formatMUSD(connected && isRegistered ? totalEarned : CONTRIBUTOR.totalEarned)} MUSD`, color: "var(--primary)", icon: "💰" },
             { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: "🏅" },
-            { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "#60A5FA", icon: "🎯" },
+            { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "var(--blue)", icon: "🎯" },
           ].map(({ label, value, color, icon }) => (
-            <div key={label} style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: "20px 22px" }}>
+            <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
               <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
-              <div style={{ fontSize: 13, color: "#7070A0" }}>{label}</div>
+              <div style={{ fontSize: 13, color: "var(--text-dim)" }}>{label}</div>
             </div>
           ))}
         </div>
@@ -76,20 +76,20 @@ export default function ContributorPage() {
             {/* Active task */}
             {activeTask && (
               <div style={{ marginBottom: 36 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 16px" }}>Active Task</h2>
-                <div style={{ background: "#111116", border: "1px solid #F7931A30", borderRadius: 14, padding: 24 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 16px" }}>Active Task</h2>
+                <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 14, padding: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <StatusBadge status={activeTask.status} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#F7931A" }}>{formatMUSD(activeTask.amount)} MUSD</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(activeTask.amount)} MUSD</span>
                   </div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 16px" }}>{activeTask.title}</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 16px" }}>{activeTask.title}</h3>
                   <div style={{ display: "flex", gap: 10 }}>
                     {activeTask.status === "IN_PROGRESS" && (
-                      <button style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
+                      <button style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
                         Submit Work
                       </button>
                     )}
-                    <Link href={`/tasks/${activeTask.id}`} style={{ background: "#FFFFFF0D", border: "1px solid #1E1E2A", color: "#9090B0", fontWeight: 600, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
+                    <Link href={`/tasks/${activeTask.id}`} style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
                       View Task
                     </Link>
                   </div>
@@ -101,20 +101,20 @@ export default function ContributorPage() {
             <div style={{ marginBottom: 36 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 4px" }}>Matched for You</h2>
-                  <p style={{ fontSize: 12, color: "#7070A0", margin: 0 }}>Tasks within your {TIERS[myTier].label} experience tier</p>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>Matched for You</h2>
+                  <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>Tasks within your {TIERS[myTier].label} experience tier</p>
                 </div>
-                <span style={{ fontSize: 12, color: "#7070A0" }}>{matchedTasks.length} task{matchedTasks.length !== 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{matchedTasks.length} task{matchedTasks.length !== 1 ? "s" : ""}</span>
               </div>
               {matchedTasks.length > 0 ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
                   {matchedTasks.map((task) => <TaskCard key={task.id} task={task} />)}
                 </div>
               ) : (
-                <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: "40px 24px", textAlign: "center" }}>
+                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "40px 24px", textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 12 }}>🎯</div>
-                  <div style={{ fontSize: 15, color: "#9090B0", marginBottom: 8 }}>No matched tasks right now</div>
-                  <div style={{ fontSize: 13, color: "#7070A0" }}>Check back soon, or browse all tasks below</div>
+                  <div style={{ fontSize: 15, color: "var(--text-muted)", marginBottom: 8 }}>No matched tasks right now</div>
+                  <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Check back soon, or browse all tasks below</div>
                 </div>
               )}
             </div>
@@ -123,7 +123,7 @@ export default function ContributorPage() {
             {outOfRangeTasks.length > 0 && (
               <div style={{ marginBottom: 36 }}>
                 <button onClick={() => setShowAll(!showAll)}
-                  style={{ background: "transparent", border: "1px solid #1E1E2A", color: "#7070A0", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer", marginBottom: 16 }}>
+                  style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer", marginBottom: 16 }}>
                   {showAll ? "Hide" : "Show"} {outOfRangeTasks.length} tasks outside your tier
                 </button>
                 {showAll && (
@@ -137,16 +137,16 @@ export default function ContributorPage() {
             {/* Applied tasks */}
             {appliedTasks.length > 0 && (
               <div>
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F5", margin: "0 0 16px" }}>Applications</h2>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 16px" }}>Applications</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {appliedTasks.map((task) => (
                     <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#5546FF40")}
-                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#1E1E2A")}>
+                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--secondary) 25%, transparent)")}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#F0F0F5", marginBottom: 2 }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "#7070A0" }}>{formatMUSD(task.amount)} MUSD</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{task.title}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>
@@ -160,37 +160,37 @@ export default function ContributorPage() {
           {/* Sidebar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Reputation */}
-            <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>On-Chain Reputation</div>
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>On-Chain Reputation</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#7070A0" }}>Experience Tier</span>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Experience Tier</span>
                   <TierBadge tier={myTier} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#7070A0" }}>Tasks Completed</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#00D395" }}>{CONTRIBUTOR.tasksCompleted}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Tasks Completed</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>{CONTRIBUTOR.tasksCompleted}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#7070A0" }}>Total Earned</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#F7931A" }}>{formatMUSD(CONTRIBUTOR.totalEarned)} MUSD</span>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Total Earned</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(CONTRIBUTOR.totalEarned)} MUSD</span>
                 </div>
               </div>
-              <div style={{ height: 1, background: "#1E1E2A", margin: "16px 0" }} />
-              <Link href={`/profile/${CONTRIBUTOR.address}`} style={{ display: "block", textAlign: "center", color: "#8B80FF", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <div style={{ height: 1, background: "var(--border)", margin: "16px 0" }} />
+              <Link href={`/profile/${CONTRIBUTOR.address}`} style={{ display: "block", textAlign: "center", color: "var(--secondary-light)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
                 View public profile →
               </Link>
             </div>
 
             {/* Update experience */}
-            <div style={{ background: "#111116", border: "1px solid #1E1E2A", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#7070A0", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Update Experience</div>
-              <p style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "#F7931A", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Update Experience</div>
+              <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
               <select defaultValue={myTier}
-                style={{ width: "100%", background: "#18181F", border: "1px solid #1E1E2A", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#F0F0F5", outline: "none", cursor: "pointer", marginBottom: 10 }}>
+                style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", cursor: "pointer", marginBottom: 10 }}>
                 {TIERS.map((t) => <option key={t.id} value={t.id}>{t.label} — {t.years}</option>)}
               </select>
-              <button style={{ width: "100%", background: "#5546FF18", border: "1px solid #5546FF30", color: "#8B80FF", fontWeight: 700, fontSize: 14, padding: "10px", borderRadius: 10, cursor: "pointer" }}>
+              <button style={{ width: "100%", background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "10px", borderRadius: 10, cursor: "pointer" }}>
                 Update Tier
               </button>
             </div>

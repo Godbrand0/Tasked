@@ -1,11 +1,16 @@
 # Taskify
 
-> Trustless bounty escrow, community-governed grants, and experience-matched work — built on Stacks with Clarity.
+> Trustless bounty escrow, community-governed grants, and both experience-matched and open-to-anyone work — built on Mezo with Solidity.
 
-Taskify is a fully on-chain bounty protocol that connects task creators, contributors, and investors through Clarity smart contracts on the Stacks blockchain (Bitcoin-secured). Every payment is enforced on-chain. Every contributor is GitHub-verified. No escrow agent, no payment processor, no central party.
+Taskify is a fully on-chain bounty protocol on **Mezo** (a Bitcoin-secured EVM L2) that connects task creators, contributors, and investors through a single Solidity contract. Every payment is enforced on-chain. No escrow agent, no payment processor, no central party.
+
+Two kinds of task live side by side on one board:
+
+- **Development tasks** — experience-tier gated, one contributor applies and is assigned, paid on approval. GitHub-verified.
+- **Community tasks** — open to any registered wallet (memes, bug write-ups, social bounties — no code required). Anyone joins with a proof-of-participation link; the creator picks up to *N* winners and the escrow splits evenly between them in one transaction. X-verified.
 
 **Live Demo:** _coming soon_
-**Contract (Stacks Testnet):** _TBD_
+**Contract (Mezo Testnet):** _not yet deployed — see [Contract Addresses](#contract-addresses)_
 
 ---
 
@@ -15,7 +20,7 @@ Taskify is a fully on-chain bounty protocol that connects task creators, contrib
 2. [Experience Matching](#experience-matching)
 3. [Repository Structure](#repository-structure)
 4. [Smart Contract Reference](#smart-contract-reference)
-5. [User Roles](#user-roles)
+5. [User Roles & Identity](#user-roles--identity)
 6. [Financial Model](#financial-model)
 7. [Token Roles](#token-roles)
 8. [Tech Stack](#tech-stack)
@@ -28,30 +33,35 @@ Taskify is a fully on-chain bounty protocol that connects task creators, contrib
 
 ## How It Works
 
-### Self-Funded Tasks
+### Development Tasks (Self-Funded)
 
-1. A creator registers on-chain, then posts a task with a USDX reward and an experience range.
-2. USDX transfers into the contract at creation — the funds are locked in escrow immediately.
-3. Contributors whose experience level falls within the task's range can apply on-chain.
-4. The creator assigns one applicant; the assignee starts and then submits work.
-5. The creator calls `approve-and-release` — USDX transfers directly to the contributor's address. No intermediary, no delay.
+1. A creator registers on-chain, then posts a task with a MUSD reward and an experience range.
+2. MUSD transfers into the contract at creation via `createTask` — the funds are locked in escrow immediately.
+3. Contributors whose experience level falls within the task's range can `applyForTask` on-chain.
+4. The creator `assignTask`s one applicant; the assignee `startTask`s and then `submitTask`s.
+5. The creator calls `approveAndRelease` — MUSD transfers directly to the contributor's wallet. No intermediary, no delay.
 
-### Grant-Funded Tasks
+### Community Tasks (Self-Funded, Multi-Winner)
 
-1. A creator applies for a grant, specifying the amount and experience range needed.
-2. A 3-day on-chain voting window opens. Investors (patrons) vote for or against; weight is proportional to their USDX deposited plus staked STX.
-3. If approved, the USDX moves from the patron pool into escrow and the task becomes `OPEN`.
-4. From there the task follows the same lifecycle as a self-funded task.
+1. A creator posts a task via `createCommunityTask` with a MUSD reward and a max winner count (up to 20) instead of an experience range. MUSD locks in escrow the same way.
+2. Any registered wallet — any role, no experience tier required — can `joinCommunityTask` with a link proving participation (a post, a write-up, anything public).
+3. The creator reviews submissions off-chain and calls `selectWinners` with up to *N* addresses. The contract validates each one actually joined, splits the net escrow evenly between them (remainder from integer division goes to the last winner), and pays everyone in a single transaction.
+
+### Grant-Funded Tasks (Development only, for now)
+
+1. A creator applies for a grant via `applyForGrant`, specifying the amount and experience range needed.
+2. A 3-day on-chain voting window opens. Investors (patrons) vote for or against; weight is proportional to their MUSD deposited plus staked MEZO.
+3. If approved, MUSD moves from the patron pool into escrow and the task becomes `OPEN`, following the same lifecycle as a self-funded Development task.
 
 ### Wave Rewards
 
-Every ~7 days a fee distribution wave closes. 40% of all collected protocol fees are distributed proportionally to active creators based on the number of tasks they posted that wave. This creates a flywheel: more tasks → more fees → larger creator reward pool → incentive to post more tasks.
+Every ~30 days a fee distribution wave closes. 40% of all collected protocol fees from **self-funded** tasks (Development or Community) are distributed proportionally to active creators based on the number of tasks they posted that wave. Grant-funded tasks don't earn wave credit. This creates a flywheel: more tasks → more fees → larger creator reward pool → incentive to post more tasks.
 
 ---
 
 ## Experience Matching
 
-Experience levels are discrete integer tiers stored on-chain. When a creator posts a task they set a minimum and maximum tier. When a contributor registers they declare their own tier. The `apply-for-task` function enforces the gate at the contract level — applications outside the allowed range are rejected by the contract, not just filtered in the UI.
+Experience levels are discrete integer tiers stored on-chain. When a creator posts a **Development** task they set a minimum and maximum tier. When a contributor registers they declare their own tier. The `applyForTask` function enforces the gate at the contract level — applications outside the allowed range revert with `ExperienceMismatch()`, not just filtered in the UI.
 
 | Tier | Label | Approximate Experience |
 |---|---|---|
@@ -59,9 +69,11 @@ Experience levels are discrete integer tiers stored on-chain. When a creator pos
 | `1` | Junior | 1 – 2 years |
 | `2` | Mid-level | 2 – 3 years |
 | `3` | Senior | 3 – 5 years |
-| `4` | Staff / Expert | 5+ years |
+| `4` | Expert | 5+ years |
 
-Contributors can update their tier at any time via `update-experience`, but a ~1-day on-chain cooldown (`EXPERIENCE-UPDATE-COOLDOWN = 144 blocks`) applies after each update to prevent gaming active application windows.
+Contributors can update their tier at any time via `updateExperience`, but a 1-day cooldown (`EXPERIENCE_UPDATE_COOLDOWN`) applies after each update to prevent gaming active application windows.
+
+**Community tasks skip this gate entirely** — `experienceMin`/`experienceMax` are always `0` and `joinCommunityTask` doesn't check tier or role at all.
 
 ---
 
@@ -69,48 +81,59 @@ Contributors can update their tier at any time via `update-experience`, but a ~1
 
 ```
 Taskify/
-├── contract/                         # Clarinet project (Clarity smart contracts)
-│   ├── contracts/
-│   │   ├── tasked.clar               # Core protocol contract
-│   │   ├── usdx-token.clar           # SIP-010 USDX token contract
-│   │   └── sip-010-trait-ft.clar     # SIP-010 fungible token trait
-│   ├── tests/
-│   │   └── tasked.test.ts            # Clarinet unit tests (Vitest)
-│   ├── deployments/
-│   │   └── default.simnet-plan.yaml  # Simnet deployment plan
-│   ├── settings/
-│   │   └── Devnet.toml               # Local devnet config
-│   └── Clarinet.toml
+├── contracts/                        # Foundry project (Solidity) — current contract
+│   ├── src/
+│   │   ├── Taskify.sol               # Core protocol contract
+│   │   ├── MockMUSD.sol              # ERC-20 mock for local/testnet deploys
+│   │   └── MockMEZO.sol              # ERC-20 mock (MEZO has no testnet deployment)
+│   ├── test/
+│   │   └── Taskify.t.sol             # Foundry unit tests
+│   ├── script/
+│   │   └── Deploy.s.sol              # Deploys mocks (if unset) + Taskify
+│   ├── foundry.toml
+│   └── foundry.lock                  # Pins forge-std; run `forge install` to restore lib/
+│
+├── contract/                         # Legacy Clarinet project (Clarity) — superseded by contracts/
+│                                      # Kept for reference; not deployed, not maintained.
 │
 ├── frontend/                         # Next.js 16 app
 │   ├── app/
-│   │   ├── page.tsx                  # Landing page
-│   │   ├── register/page.tsx         # On-chain user registration
-│   │   ├── tasks/page.tsx            # Browse bounties (experience-filtered)
-│   │   ├── tasks/[id]/page.tsx       # Task detail + lifecycle actions
-│   │   ├── create/page.tsx           # Post a task or apply for a grant
+│   │   ├── page.tsx                  # Landing page (incl. FAQ)
+│   │   ├── register/page.tsx         # On-chain registration + GitHub/X linking
+│   │   ├── tasks/page.tsx            # Browse bounties (kind, status, experience filters)
+│   │   ├── tasks/[id]/page.tsx       # Task detail + lifecycle actions, per kind
+│   │   ├── create/page.tsx           # Post a Development or Community task, or apply for a grant
 │   │   ├── creator/page.tsx          # Creator dashboard
 │   │   ├── contributor/page.tsx      # Contributor dashboard
-│   │   ├── investor/page.tsx         # Patron deposit, STX stake, grant voting
-│   │   ├── leaderboard/page.tsx      # Top contributors by USDX earned
-│   │   ├── profile/[address]/page.tsx # Public contributor profile
+│   │   ├── investor/page.tsx         # Patron deposit, MEZO stake, grant voting
+│   │   ├── leaderboard/page.tsx      # Top creators by self-funded tasks posted this wave
+│   │   ├── profile/[address]/page.tsx # Public profile
 │   │   ├── dashboard/page.tsx        # General dashboard
-│   │   └── settings/page.tsx         # Account settings
+│   │   ├── settings/page.tsx         # Account settings, GitHub/X connect
+│   │   ├── terms/page.tsx            # Terms & Conditions
+│   │   └── api/auth/github/          # GitHub OAuth initiate + callback routes
 │   ├── components/
 │   │   ├── Navbar.tsx
 │   │   └── ui/
 │   │       ├── Badge.tsx
 │   │       └── TaskCard.tsx
 │   ├── lib/
-│   │   ├── constants.ts              # Contract addresses, enums, tier labels
-│   │   └── mock.ts                   # Mock data for UI development
-│   ├── public/
+│   │   ├── constants.ts              # Contract addresses, tiers, fee helpers
+│   │   ├── mock.ts                   # Mock data for UI development
+│   │   ├── wallet-context.tsx        # wagmi-backed wallet/profile state
+│   │   └── stubs/                    # Build-time stubs (see next.config.ts)
+│   ├── app/providers.tsx             # wagmi + RainbowKit + react-query setup
 │   ├── next.config.ts
 │   ├── package.json
 │   └── pnpm-lock.yaml
 │
-├── Tasked_Contract_Security_Audit.docx
-├── TASKED.md                         # Full protocol specification
+├── supabase/
+│   └── schema.sql                    # Off-chain content + on-chain indexed-cache schema
+│                                      # (see file header — not wired into the app yet)
+│
+├── Tasked_Contract_Security_Audit.docx  # Audit of the legacy Clarity contract — does NOT
+│                                         # cover contracts/Taskify.sol (unaudited, see below)
+├── TASKIFY.md                        # Full protocol specification
 └── README.md
 ```
 
@@ -118,116 +141,129 @@ Taskify/
 
 ## Smart Contract Reference
 
-All financial logic lives in `contract/contracts/tasked.clar`. There are no upgradeable proxies — the contract is the single source of truth.
+All financial logic lives in `contracts/src/Taskify.sol`. There are no upgradeable proxies — the contract is the single source of truth. Built with OpenZeppelin's `SafeERC20` and `ReentrancyGuard`.
 
 ### Protocol Constants
 
-```clarity
-SELF-FUNDED-FEE-BPS     = 300    (3%)
-GRANT-FUNDED-FEE-BPS    = 500    (5%)
-TREASURY-SHARE          = 60%    of each fee
-WAVE-POOL-SHARE         = 40%    of each fee
-WAVE-EPOCH-BLOCKS       = 1008   (~7 days at 10 min/block)
-GRANT-VOTING-BLOCKS     = 432    (~3 days)
-MIN-TASK-AMOUNT         = 1 USDX (u1000000, 6 decimals)
-MIN-STX-STAKE           = 1 STX  (u1000000, 6 decimals)
-STX-VOTE-MULTIPLIER     = 10
-EXPERIENCE-UPDATE-COOLDOWN = 144 blocks (~1 day)
+```solidity
+SELF_FUNDED_FEE_BPS        = 300       (3%)
+GRANT_FUNDED_FEE_BPS       = 500       (5%)
+TREASURY_SHARE             = 60        (% of each fee)
+WAVE_POOL_SHARE            = 40        (% of each fee)
+WAVE_EPOCH_DURATION        = 30 days
+GRANT_VOTING_DURATION      = 3 days
+EXPERIENCE_UPDATE_COOLDOWN = 1 days
+MIN_TASK_AMOUNT            = 1e18      (1 MUSD, 18 decimals)
+MIN_MEZO_STAKE             = 1e18      (1 MEZO)
+MIN_PATRON_DEPOSIT         = 50e18     (50 MUSD)
+MUSD_VOTE_DIVISOR          = 1e13      (100 MUSD deposited = 10 vote units)
+MEZO_VOTE_DIVISOR          = 1e14      (1,000 MEZO staked = 10 vote units)
+GRANT_PASS_THRESHOLD       = 70        (% of cast votes required to pass)
 ```
 
-### On-Chain Data Maps
+### On-Chain Storage
 
-| Map | Key | Purpose |
+| Mapping | Key | Purpose |
 |---|---|---|
-| `users` | `principal` | Username, role, experience tier, stats, GitHub verification |
-| `tasks` | `task-id` | Title, amount, token, experience range, status, assignee, deadline |
-| `task-applicants` | `task-id + principal` | Tracks who has applied to a task |
-| `patrons` | `principal` | USDX deposited, STX staked, patron tier |
-| `grant-votes` | `task-id` | Running vote tallies and deadline |
-| `grant-voters` | `task-id + principal` | Prevents double voting |
-| `wave-snapshots` | `wave-id` | Immutable snapshot of each completed wave |
-| `wave-creator-tasks` | `wave-id + principal` | Per-creator task count per wave |
-| `wave-claims` | `wave-id + principal` | Prevents double claiming wave rewards |
+| `users` | `address` | Username, role, experience tier, stats, GitHub/X verification |
+| `tasks` | `taskId` | Title, amount, token, kind, experience range/max winners, status, assignee, deadline |
+| `taskApplicantAppliedAt` | `taskId + address` | Tracks who applied (Development) or joined (Community), and when |
+| `taskSubmissions` | `taskId + address` | Community-task proof-of-participation link |
+| `patrons` | `address` | MUSD deposited, MEZO staked, patron tier |
+| `grantVotes` / `grantVoters` | `taskId` / `taskId + address` | Running vote tallies, deadline, double-vote prevention |
+| `waveSnapshots` / `waveCreatorTasks` / `waveClaims` | `waveId` (+ `address`) | Per-wave pool snapshot, per-creator task count, double-claim prevention |
 
 ### Public Functions
 
 #### User Module
 | Function | Who Can Call | Description |
 |---|---|---|
-| `register-user` | Anyone | Register with a username, role, and experience tier |
-| `update-experience` | Contributors | Update experience tier (subject to cooldown) |
+| `registerUser` | Anyone | Register with username, role, experience tier, GitHub/X verification flags |
+| `updateExperience` | Contributors | Update experience tier (subject to cooldown) |
+| `setXVerified` | Any registered user | Link/unlink X independently of role or registration — unlocks Community tasks |
 
-#### Task Escrow Module
+#### Development Task Module
 | Function | Who Can Call | Description |
 |---|---|---|
-| `create-task` | Creators | Post a bounty and lock USDX in escrow |
-| `apply-for-task` | Contributors | Apply (experience gate enforced on-chain) |
-| `assign-task` | Task creator | Assign an applicant |
-| `start-task` | Assigned contributor | Move status to `IN_PROGRESS` |
-| `submit-task` | Assigned contributor | Move status to `SUBMITTED` |
-| `approve-and-release` | Task creator | Release escrowed funds to contributor |
-| `cancel-task` | Task creator | Cancel an `OPEN` self-funded task and refund net escrow |
-| `mark-expired` | Anyone | Trigger expiry after deadline; refunds creator or grant pool |
+| `createTask` | Creators | Post a Development bounty and lock MUSD in escrow |
+| `applyForTask` | Contributors | Apply (experience gate enforced on-chain) |
+| `assignTask` | Task creator | Assign an applicant |
+| `startTask` / `submitTask` | Assigned contributor | Move status to `IN_PROGRESS` / `SUBMITTED` |
+| `approveAndRelease` | Task creator | Release escrowed funds to the assignee |
+
+#### Community Task Module
+| Function | Who Can Call | Description |
+|---|---|---|
+| `createCommunityTask` | Creators | Post a Community bounty (max winners, no experience gate), lock MUSD in escrow |
+| `joinCommunityTask` | Any registered user (not the creator) | Join with a proof-of-participation link |
+| `selectWinners` | Task creator | Pick up to N joined addresses; splits escrow evenly, pays all in one tx |
+
+#### Shared Task Lifecycle
+| Function | Who Can Call | Description |
+|---|---|---|
+| `cancelTask` | Task creator | Cancel an `OPEN` self-funded task and refund net escrow |
+| `markExpired` | Anyone | Trigger expiry after deadline; refunds creator or grant pool |
 
 #### Grant Pool Module
 | Function | Who Can Call | Description |
 |---|---|---|
-| `deposit-to-pool` | Investors | Permanently deposit USDX into the patron pool |
-| `stake-stx` | Investors | Stake STX to amplify governance voting weight |
-| `unstake-stx` | Investors | Withdraw staked STX at any time |
-| `apply-for-grant` | Creators | Submit a grant-funded task proposal |
-| `vote-on-grant` | Patrons | Cast a weighted vote for or against a grant |
-| `execute-grant` | Anyone | Execute the grant decision after voting closes |
+| `depositToPool` | Investors | Permanently deposit MUSD into the patron pool |
+| `stakeMezo` / `unstakeMezo` | Investors | Stake/unstake MEZO to amplify governance voting weight (no lockup) |
+| `applyForGrant` | Creators | Submit a grant-funded Development task proposal |
+| `voteOnGrant` | Patrons | Cast a weighted vote for or against a grant |
+| `executeGrant` | Anyone | Execute the grant decision after voting closes |
 
 #### Wave Rewards Module
 | Function | Who Can Call | Description |
 |---|---|---|
-| `advance-wave` | Contract owner | Close the current wave and snapshot it |
-| `claim-wave-reward` | Creators | Claim proportional share of the completed wave pool |
+| `advanceWave` | Contract owner | Close the current wave and snapshot it |
+| `claimWaveReward` | Creators | Claim proportional share of a completed wave pool |
 
 ### Task Lifecycle
 
 ```
-Grant-funded:   GRANT_PENDING → OPEN → ASSIGNED → IN_PROGRESS → SUBMITTED → FUNDS_RELEASED
-Self-funded:                    OPEN → ASSIGNED → IN_PROGRESS → SUBMITTED → FUNDS_RELEASED
-Dead ends:                      OPEN → CANCELLED
-                                Any active status → EXPIRED
-                         GRANT_PENDING → GRANT_REJECTED
+Development, grant-funded:   GRANT_PENDING → OPEN → ASSIGNED → IN_PROGRESS → SUBMITTED → FUNDS_RELEASED
+Development, self-funded:                    OPEN → ASSIGNED → IN_PROGRESS → SUBMITTED → FUNDS_RELEASED
+Community (always self-funded):              OPEN → FUNDS_RELEASED   (skips the assign/start/submit chain)
+Dead ends:                                   OPEN → CANCELLED
+                                              Any active status → EXPIRED
+                                       GRANT_PENDING → GRANT_REJECTED
 ```
-
-### Read-Only Functions
-
-`get-user`, `get-task`, `get-patron`, `get-grant-vote`, `get-task-applicant`, `get-grant-voter`, `get-wave-snapshot`, `get-wave-creator-tasks`, `get-wave-claim`, `get-treasury-address`, `get-next-task-id`, `get-current-wave`, `get-grant-pool-balance`
 
 ### Patron Tiers
 
-| Tier | Minimum Cumulative USDX Deposited |
+| Tier | Minimum Cumulative MUSD Deposited |
 |---|---|
-| Bronze | 100 USDX |
-| Silver | 500 USDX |
-| Gold | 1,000 USDX |
-| Diamond | 5,000 USDX |
+| Bronze | 100 MUSD |
+| Silver | 500 MUSD |
+| Gold | 1,000 MUSD |
+| Diamond | 5,000 MUSD |
 
 ### Voting Weight Formula
 
 ```
-voting-weight = total-usdx-deposited + (stx-staked × STX-VOTE-MULTIPLIER)
+votingWeight = (musdDeposited / 1e13) + (mezoStaked / 1e14)
 ```
 
-With a multiplier of 10, staking 1,000 STX adds 10,000 USDX-equivalent voting units.
+100 MUSD deposited ≈ 10 vote units; 1,000 MEZO staked ≈ 10 vote units.
 
 ---
 
-## User Roles
+## User Roles & Identity
+
+Task-kind eligibility is decoupled from `Role` — a Contributor who links X can pick up Community tasks on the same wallet without re-registering.
 
 ### Creator
-Posts self-funded tasks (locks USDX at creation) or applies for community-funded grants. Receives wave rewards proportional to tasks posted per epoch. No GitHub requirement.
+Posts Development tasks (locks MUSD, sets an experience range) or Community tasks (locks MUSD, sets a max winner count), or applies for community-funded grants. Receives wave rewards proportional to self-funded tasks posted per epoch.
 
 ### Contributor
-Finds work via the experience-matched task feed, applies on-chain, and earns USDX directly to their wallet when the creator approves. GitHub verification is required. On-chain reputation (tasks completed, total earned, tier) is portable across the ecosystem.
+Finds Development work via the experience-matched task feed, applies on-chain, and earns MUSD when the creator approves. GitHub verification is expected for this path. Can *also* join Community tasks if X-linked — same wallet, no re-registration.
 
 ### Investor (Patron)
-Deposits USDX permanently into the grant pool and stakes STX to amplify governance weight. Votes on grant proposals. Earns a patron tier based on cumulative deposits. Deposits are non-withdrawable — this is ecosystem patronage, not a loan.
+Deposits MUSD permanently into the grant pool and stakes MEZO to amplify governance weight. Votes on grant proposals. Earns a patron tier based on cumulative deposits. Deposits are non-withdrawable — this is ecosystem patronage, not a loan. MEZO stake has no lockup.
+
+### GitHub vs. X verification
+Both are self-declared booleans on `User` (`githubVerified`, `xVerified`) — the contract trusts whatever the frontend passes at registration (or later, for X, via `setXVerified`). GitHub verification is backed by real OAuth today (see `frontend/app/api/auth/github`); X verification is currently self-declared, a placeholder for real OAuth later.
 
 ---
 
@@ -235,40 +271,32 @@ Deposits USDX permanently into the grant pool and stakes STX to amplify governan
 
 ### Fee Collection
 
-| Task Type | Fee Rate | Example (10,000 USDX task) |
+| Task Type | Fee Rate | Example (10,000 MUSD task) |
 |---|---|---|
-| Self-Funded | 3% | 300 USDX collected at creation |
-| Grant-Funded | 5% | 500 USDX collected at `execute-grant` |
+| Self-Funded (Development or Community) | 3% | 300 MUSD collected at creation |
+| Grant-Funded (Development only) | 5% | 500 MUSD collected at `executeGrant` |
 
 ### Fee Distribution
 
 ```
 60% → Platform Treasury     (protocol revenue)
-40% → Wave Creator Pool     (returned to active creators every ~7 days)
+40% → Wave Creator Pool     (returned to active self-funded creators every ~30 days)
 ```
 
-For non-USDX token tasks, 100% of the fee goes to the treasury (wave pool only accumulates USDX).
-
-### Revenue Projections
-
-| Monthly Tasks | Avg Task Size | Total Fees | Treasury (60%) | Creator Pool (40%) |
-|---|---|---|---|---|
-| 100 | 500 USDX | 1,500 USDX | 900 USDX | 600 USDX |
-| 500 | 500 USDX | 7,500 USDX | 4,500 USDX | 3,000 USDX |
-| 1,000 | 1,000 USDX | 30,000 USDX | 18,000 USDX | 12,000 USDX |
+For non-MUSD token tasks, 100% of the fee goes to the treasury (wave pool only accumulates MUSD).
 
 ---
 
 ## Token Roles
 
-### USDX (Primary)
-USDX is a Bitcoin-backed stablecoin native to the Stacks ecosystem. It is the default unit for all financial operations — task escrow, grant pool deposits, wave rewards, and governance weight. Contributors receive a stable, predictable payout with no price exposure.
+### MUSD (Primary)
+MUSD is Mezo's native Bitcoin-backed stablecoin. It is the default unit for all financial operations — task escrow, grant pool deposits, wave rewards, and governance weight. Contributors receive a stable, predictable payout with no price exposure.
 
-### STX (Governance Amplifier)
-STX is the native Stacks chain token. Patrons stake STX to amplify their grant voting weight. Staked STX is always withdrawable with no lockup or slashing.
+### MEZO (Governance Amplifier)
+MEZO is Mezo's governance token. Patrons stake MEZO to amplify their grant voting weight. Staked MEZO is always withdrawable with no lockup or slashing.
 
 ### Multi-Token Tasks
-The `token` field in each task stores a SIP-010 contract principal. Tasks can escrow STX or any other SIP-010 token without a contract upgrade. For non-USDX tasks, wave pool tracking is disabled.
+The `token` field on each task stores an ERC-20 contract address. Tasks can escrow MEZO or any other ERC-20 without a contract upgrade. For non-MUSD tasks, wave pool tracking is disabled.
 
 ---
 
@@ -276,15 +304,15 @@ The `token` field in each task stores a SIP-010 contract principal. Tasks can es
 
 | Layer | Technology |
 |---|---|
-| Blockchain | Stacks (Bitcoin-secured L1.5) |
-| Smart Contract Language | Clarity |
-| Token Standard | SIP-010 fungible token |
-| Contract Tooling | Clarinet, Clarinet SDK |
-| Contract Testing | Vitest + vitest-environment-clarinet |
-| Frontend | Next.js 16, TypeScript, Tailwind CSS v4 |
-| Wallet Integration | @stacks/connect, @stacks/transactions |
-| Package Manager | pnpm |
-| Deployment | Vercel |
+| Blockchain | Mezo (Bitcoin-secured EVM L2) |
+| Smart Contract Language | Solidity ^0.8.24 |
+| Token Standard | ERC-20 (OpenZeppelin `SafeERC20`) |
+| Contract Tooling | Foundry (forge, via-ir + optimizer enabled — see [Security Model](#security-model)) |
+| Contract Testing | Forge (Solidity tests) |
+| Frontend | Next.js 16, TypeScript |
+| Wallet Integration | wagmi, viem, RainbowKit |
+| Off-chain data (planned) | Supabase / Postgres — see `supabase/schema.sql` |
+| Package Manager | pnpm (frontend), Foundry (contracts) |
 
 ---
 
@@ -294,21 +322,20 @@ The `token` field in each task stores a SIP-010 contract principal. Tasks can es
 
 - **Node.js** 20+
 - **pnpm** 9+
-- **Clarinet** — install via `brew install clarinet` or download from [Hiro](https://github.com/hirosystems/clarinet)
+- **Foundry** — install via `curl -L https://foundry.paradigm.xyz | bash && foundryup`
 
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/Godbrand0/Taskify.git
-cd Taskify
+git clone https://github.com/Godbrand0/Tasked.git
+cd Tasked
 cd frontend && pnpm install
 ```
 
 ### 2. Configure Environment
 
 ```bash
-cp frontend/.env.example frontend/.env.local
-# Fill in values — see Environment Variables section below
+cp frontend/.env.local.example frontend/.env.local   # or create it — see below
 ```
 
 ### 3. Run the Frontend Dev Server
@@ -320,37 +347,26 @@ pnpm dev
 
 App available at `http://localhost:3000`.
 
-### 4. Run Contract Tests
+### 4. Contracts — Install Dependencies, Build, Test
 
 ```bash
-cd contract
-npm test
+cd contracts
+forge install         # restores lib/forge-std, lib/openzeppelin-contracts (gitignored, pinned via foundry.lock)
+forge build --sizes   # optimizer must stay on — see Security Model
+forge test
+forge fmt --check
 ```
 
-### 5. Check Contract Syntax
+### 5. Deploy Contracts
 
 ```bash
-cd contract
-clarinet check
+cd contracts
+PRIVATE_KEY=0x... \
+MUSD_ADDRESS=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503 \
+  forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
 ```
 
-### 6. Local Devnet (Full Stack)
-
-Spins up a local Stacks node, Bitcoin node, and Stacks API:
-
-```bash
-cd contract
-clarinet integrate
-```
-
-### 7. Watch Mode (Contract Tests)
-
-Re-runs tests on every `.clar` or `.ts` change:
-
-```bash
-cd contract
-npm run test:watch
-```
+Omit `MUSD_ADDRESS`/`MEZO_ADDRESS` to have the script deploy `MockMUSD`/`MockMEZO` instead (MEZO has no official testnet deployment, so this is the default path there).
 
 ---
 
@@ -359,52 +375,58 @@ npm run test:watch
 Create `frontend/.env.local`:
 
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# GitHub OAuth
+# GitHub OAuth (registration identity)
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
-# JWT signing secret
-JWT_SECRET=
+# WalletConnect Cloud project ID — get one at https://cloud.walletconnect.com
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 
-# Stacks network ("testnet" | "mainnet")
-NEXT_PUBLIC_STACKS_NETWORK=testnet
+# Mezo network (defaults below already match testnet if unset)
+NEXT_PUBLIC_MEZO_CHAIN_ID=31611
+NEXT_PUBLIC_MEZO_RPC_URL=https://rpc.test.mezo.org
+NEXT_PUBLIC_MEZO_EXPLORER_URL=https://explorer.test.mezo.org
 
-# Contract addresses
-NEXT_PUBLIC_TASKED_CONTRACT=ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.tasked
-NEXT_PUBLIC_USDX_CONTRACT=ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdx-token
-
-# App base URL (used by GitHub OAuth callback)
-FRONTEND_URL=http://localhost:3000
+# Token contracts (MUSD defaults to the real testnet address if unset)
+NEXT_PUBLIC_MUSD_CONTRACT=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503
+NEXT_PUBLIC_MEZO_CONTRACT=   # set once you've deployed a MockMEZO (see Deploy.s.sol)
 ```
 
 ---
 
 ## Contract Addresses
 
-### Stacks Testnet
+### Mezo Testnet (chain id `31611`)
 
 | Contract | Address |
 |---|---|
-| Taskify | _TBD_ |
-| USDX Token | _TBD_ |
+| Taskify | _not yet deployed_ |
+| MUSD (official) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
+| MEZO | _no official testnet deployment — deploy `MockMEZO` per environment_ |
+
+### Mezo Mainnet (chain id `31612`)
+
+| Contract | Address |
+|---|---|
+| Taskify | _not yet deployed_ |
+| MUSD (official) | `0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186` |
+| MEZO (official) | `0x7B7c000000000000000000000000000000000001` |
+
+Sourced from [mezo.org/docs/users/resources/contracts-reference](https://mezo.org/docs/users/resources/contracts-reference/); verify before relying on them for anything beyond local development.
 
 ---
 
 ## Security Model
 
-Clarity's decidable execution model provides structural security guarantees that differ from Solidity:
+- **Reentrancy guard** — state-changing escrow functions (`createTask`, `createCommunityTask`, `approveAndRelease`, `cancelTask`, `markExpired`, `selectWinners`, `claimWaveReward`) are wrapped in OpenZeppelin's `ReentrancyGuard`.
+- **SafeERC20** — all token transfers use `safeTransfer`/`safeTransferFrom`, tolerating non-standard ERC-20 return-value behavior.
+- **Experience gating is on-chain** — `applyForTask` enforces the range at the contract level for Development tasks; a non-conforming call reverts with `ExperienceMismatch()`. Community tasks intentionally have no such gate.
+- **Task-kind isolation** — `applyForTask`/`assignTask` revert `TaskKindMismatch()` on a Community task and vice versa for `joinCommunityTask`/`selectWinners`, so the two lifecycles can't cross-contaminate shared storage.
+- **Double-claim / double-vote protection** — `grantVoters` and `waveClaims` mappings prevent double voting and double claiming.
+- **Owner-only controls** — `advanceWave` and `setTreasuryAddress` are restricted to `CONTRACT_OWNER` (the deployer). No other privileged operations exist.
+- **Deployment requires the optimizer enabled** (`optimizer = true`, `via_ir = true` in `foundry.toml`) — with it off, the contract's runtime bytecode exceeds the EIP-170 24,576-byte limit and cannot be deployed to any EVM chain. Always confirm with `forge build --sizes` before deploying.
 
-- **No re-entrancy by construction** — Clarity has no dynamic dispatch, so re-entrancy attacks cannot occur.
-- **Post-conditions** — Stacks wallets can assert the exact token amounts that will leave the signing account before broadcast. This replaces the ERC-20 `approve` + `transferFrom` pattern and prevents approval griefing.
-- **Experience gating is on-chain** — The `apply-for-task` function enforces the experience range at the contract level. It is not a UI suggestion; a non-conforming call is rejected with `ERR-EXPERIENCE-MISMATCH (u1010)`.
-- **Double-claim protection** — `grant-voters` and `wave-claims` maps prevent double voting and double claiming respectively.
-- **Owner-only controls** — `advance-wave` and `set-treasury-address` are restricted to `CONTRACT-OWNER` (the deployer). No other privileged operations exist.
+**`Tasked_Contract_Security_Audit.docx` covers the legacy Clarity contract in `contract/`, not `contracts/Taskify.sol`.** The current Solidity contract has a Foundry test suite (`forge coverage` to check current numbers) but has not been independently audited — treat accordingly before deploying with real funds.
 
-A security audit is included in `Tasked_Contract_Security_Audit.docx`.
-
-For the full protocol specification including architecture decision records and ecosystem impact analysis, see [TASKED.md](TASKED.md).
+For the full protocol specification including architecture decision records and ecosystem impact analysis, see [TASKIFY.md](TASKIFY.md).

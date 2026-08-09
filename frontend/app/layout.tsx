@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Taskify — On-Chain Bounties for the Mezo Community",
+  title: "Taskify: On-Chain Bounties for the Mezo Community",
   description:
-    "Trustless task escrow, community-governed grant funding, and experience-matched or open-to-anyone bounties built on Mezo with Solidity.",
+    "Trustless task escrow, community-governed grant funding, and experience-matched or open-to-anyone bounties built on Mezo.",
 };
 
 export default function RootLayout({
@@ -28,8 +29,16 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col"><Providers>{children}</Providers></body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>
+          <Providers>{children}</Providers>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

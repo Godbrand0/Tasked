@@ -39,28 +39,28 @@ export default function TasksPage() {
   const canJoinCommunity = connected && isRegistered && role !== "creator";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0F" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <Navbar />
 
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #1E1E2A", padding: "40px 24px 32px" }}>
+      <div style={{ borderBottom: "1px solid var(--border)", padding: "40px 24px 32px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, color: "#F0F0F5", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
-              <p style={{ fontSize: 15, color: "#7070A0", margin: 0 }}>
+              <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
+              <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>
                 {MOCK_TASKS.filter(t => t.status === "OPEN").length} open tasks · experience-matched on-chain
               </p>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               {/* Role badge / hint */}
               {connected && isRegistered && (
-                <div style={{ fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8, background: role === "contributor" ? "#5546FF18" : role === "creator" ? "#F7931A18" : "#00D39518", color: role === "contributor" ? "#8B80FF" : role === "creator" ? "#F7931A" : "#00D395", border: `1px solid ${role === "contributor" ? "#5546FF30" : role === "creator" ? "#F7931A30" : "#00D39530"}` }}>
+                <div style={{ fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8, background: role === "contributor" ? "color-mix(in srgb, var(--secondary) 9%, transparent)" : role === "creator" ? "color-mix(in srgb, var(--primary) 9%, transparent)" : "color-mix(in srgb, var(--success) 9%, transparent)", color: role === "contributor" ? "var(--secondary-light)" : role === "creator" ? "var(--primary)" : "var(--success)", border: `1px solid ${role === "contributor" ? "color-mix(in srgb, var(--secondary) 19%, transparent)" : role === "creator" ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "color-mix(in srgb, var(--success) 19%, transparent)"}` }}>
                   {role === "contributor" ? "You can apply" : role === "creator" ? "View only — post your own" : "Patron view"}
                 </div>
               )}
               {isCreator && (
-                <Link href="/create" style={{ background: "#F7931A", color: "#0A0A0F", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
+                <Link href="/create" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
                   + Post a Task
                 </Link>
               )}
@@ -71,15 +71,15 @@ export default function TasksPage() {
 
       {/* Role banner for non-contributors */}
       {connected && isRegistered && role !== "contributor" && (
-        <div style={{ borderBottom: "1px solid #1E1E2A", padding: "12px 24px", background: "#111116" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#9090B0" }}>
+        <div style={{ borderBottom: "1px solid var(--border)", padding: "12px 24px", background: "var(--surface)" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-muted)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             {role === "creator"
               ? "As a creator you can browse tasks for inspiration, but only contributors can apply to Development tasks. "
               : "Patrons can browse tasks to inform grant voting, but only contributors can apply to Development tasks. Community tasks are open to any registered role, including you. "}
-            <Link href="/tasks" style={{ color: "#F7931A", textDecoration: "none" }}>Learn more</Link>
+            <Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none" }}>Learn more</Link>
           </div>
         </div>
       )}
@@ -90,13 +90,13 @@ export default function TasksPage() {
           {/* Search */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ position: "relative" }}>
-              <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7070A0" strokeWidth="2">
+              <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks, tags…"
-                style={{ width: "100%", background: "#111116", border: "1px solid #1E1E2A", borderRadius: 10, padding: "10px 12px 10px 36px", fontSize: 14, color: "#F0F0F5", outline: "none", boxSizing: "border-box" }}
-                onFocus={e => (e.target.style.borderColor = "#F7931A50")}
-                onBlur={e => (e.target.style.borderColor = "#1E1E2A")} />
+                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px 10px 36px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+                onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
+                onBlur={e => (e.target.style.borderColor = "var(--border)")} />
             </div>
           </div>
 
@@ -139,9 +139,9 @@ export default function TasksPage() {
         {/* Task grid */}
         <main>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 0", color: "#7070A0" }}>
+            <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-dim)" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "#9090B0", marginBottom: 8 }}>No tasks match your filters</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>No tasks match your filters</div>
               <div style={{ fontSize: 14 }}>Try adjusting your search or filters</div>
             </div>
           ) : (
@@ -153,7 +153,7 @@ export default function TasksPage() {
                   {task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor)) && (
                     <div style={{ position: "absolute", bottom: 20, right: 20 }}>
                       <Link href={`/tasks/${task.id}`}
-                        style={{ background: "#F7931A", color: "#0A0A0F", fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 6, textDecoration: "none", display: "inline-block" }}>
+                        style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 6, textDecoration: "none", display: "inline-block" }}>
                         {task.kind === "community" ? "Join →" : "Apply →"}
                       </Link>
                     </div>
@@ -171,7 +171,7 @@ export default function TasksPage() {
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#7070A0", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{label}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>{children}</div>
     </div>
   );
@@ -180,7 +180,7 @@ function FilterGroup({ label, children }: { label: string; children: React.React
 function FilterBtn({ active, onClick, children, color, bg }: { active: boolean; onClick: () => void; children: React.ReactNode; color?: string; bg?: string }) {
   return (
     <button onClick={onClick}
-      style={{ background: active ? (bg ?? "#F7931A18") : "transparent", border: `1px solid ${active ? (color ?? "#F7931A") + "30" : "transparent"}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, color: active ? (color ?? "#F7931A") : "#9090B0", fontWeight: active ? 600 : 400, textAlign: "left", transition: "all 0.15s" }}>
+      style={{ background: active ? (bg ?? "color-mix(in srgb, var(--primary) 9%, transparent)") : "transparent", border: `1px solid ${active ? (color ?? "var(--primary)") + "30" : "transparent"}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, color: active ? (color ?? "var(--primary)") : "var(--text-muted)", fontWeight: active ? 600 : 400, textAlign: "left", transition: "all 0.15s" }}>
       {children}
     </button>
   );

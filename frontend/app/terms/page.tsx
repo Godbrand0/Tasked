@@ -80,27 +80,27 @@ const SECTIONS: { title: string; body: string[] }[] = [
 
 export default function TermsPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0F" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "56px 24px 96px" }}>
-        <Link href="/" style={{ color: "#7070A0", fontSize: 14, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 32 }}>
+        <Link href="/" style={{ color: "var(--text-dim)", fontSize: 14, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 32 }}>
           ← Back to Taskify
         </Link>
 
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: "#F0F0F5", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           Terms &amp; Conditions
         </h1>
-        <p style={{ fontSize: 13, color: "#7070A0", margin: "0 0 40px" }}>Effective {EFFECTIVE_DATE}</p>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 40px" }}>Effective {EFFECTIVE_DATE}</p>
 
-        <div style={{ background: "#111116", border: "1px solid #F7931A28", borderRadius: 14, padding: "18px 22px", marginBottom: 40, fontSize: 13, color: "#9090B0", lineHeight: 1.7 }}>
+        <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", borderRadius: 14, padding: "18px 22px", marginBottom: 40, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
           Taskify is a non-custodial, decentralized protocol. Nothing here is financial or legal advice, and no one can reverse a confirmed on-chain transaction on your behalf. Read this in full before connecting a wallet.
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
           {SECTIONS.map((section) => (
             <div key={section.title}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: "#F0F0F5", margin: "0 0 10px" }}>{section.title}</h2>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "0 0 10px" }}>{section.title}</h2>
               {section.body.map((p, i) => (
-                <p key={i} style={{ fontSize: 14, color: "#9090B0", lineHeight: 1.8, margin: i === 0 ? "0 0 10px" : "10px 0 0" }}>
+                <p key={i} style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.8, margin: i === 0 ? "0 0 10px" : "10px 0 0" }}>
                   {p}
                 </p>
               ))}
@@ -108,8 +108,8 @@ export default function TermsPage() {
           ))}
         </div>
 
-        <div style={{ borderTop: "1px solid #1E1E2A", marginTop: 48, paddingTop: 24 }}>
-          <Link href="/#faq" style={{ color: "#F7931A", fontSize: 13, textDecoration: "none" }}>Have questions? See the FAQ →</Link>
+        <div style={{ borderTop: "1px solid var(--border)", marginTop: 48, paddingTop: 24 }}>
+          <Link href="/#faq" style={{ color: "var(--primary)", fontSize: 13, textDecoration: "none" }}>Have questions? See the FAQ →</Link>
         </div>
       </div>
     </div>

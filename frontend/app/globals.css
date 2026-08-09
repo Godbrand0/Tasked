@@ -1,8 +1,83 @@
 @import "tailwindcss";
 
+/* ── Taskify design tokens ──────────────────────────────────────────────
+ * Light is the default brand identity (Mezo-Native — mirrors mezo.org's
+ * own light ground + red/magenta accent). Dark is an opt-in via the
+ * ThemeToggle, close to the app's original dark palette so existing users
+ * of dark mode see continuity, just with the new red primary.
+ * ------------------------------------------------------------------- */
+
 :root {
-  --background: #0A0A0F;
-  --foreground: #F0F0F5;
+  --bg: #FAFAF8;
+  --bg-alt: #F3F0E9;
+  --surface: #FFFFFF;
+  --surface-2: #F1EEE7;
+  --border: #E3DFD6;
+  --border-strong: #D2CDC0;
+
+  --text: #171717;
+  --text-muted: #55524B;
+  --text-dim: #6E6B62;
+  --text-soft: #403D37;
+  --text-faint: #8B877C;
+
+  --primary: #FF004D;
+  --primary-strong: #990070;
+  --on-primary: #FFFFFF;
+
+  --secondary: #5546FF;
+  --secondary-light: #6E4FE0;
+
+  --success: #16824F;
+  --success-strong: #0E6B3F;
+
+  --danger: #D6304B;
+  --danger-strong: #B8253E;
+
+  --blue: #2563EB;
+  --blue-strong: #1D4ED8;
+
+  --gold: #B8860B;
+
+  --neutral-tint: rgba(23, 23, 23, 0.05);
+
+  --background: var(--bg);
+  --foreground: var(--text);
+}
+
+[data-theme="dark"] {
+  --bg: #0A0A0F;
+  --bg-alt: #0D0D12;
+  --surface: #131313;
+  --surface-2: #1B1B1B;
+  --border: #262626;
+  --border-strong: #333333;
+
+  --text: #F2F1EE;
+  --text-muted: #A8A49A;
+  --text-dim: #8F8B81;
+  --text-soft: #C9C6BF;
+  --text-faint: #6B675F;
+
+  --primary: #FF004D;
+  --primary-strong: #FF5FA8;
+  --on-primary: #FFFFFF;
+
+  --secondary: #8B80FF;
+  --secondary-light: #A79CFF;
+
+  --success: #00D395;
+  --success-strong: #00A87A;
+
+  --danger: #F87171;
+  --danger-strong: #EF4444;
+
+  --blue: #60A5FA;
+  --blue-strong: #3B82F6;
+
+  --gold: #FFD700;
+
+  --neutral-tint: rgba(255, 255, 255, 0.05);
 }
 
 @theme inline {
@@ -10,20 +85,13 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-orange: #F7931A;
-  --color-orange-dark: #C4711A;
-  --color-purple: #5546FF;
-  --color-green: #00D395;
-  --color-surface: #111116;
-  --color-surface-2: #18181F;
-  --color-border: #1E1E2A;
-  --color-muted: #7070A0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 * {
@@ -31,6 +99,6 @@ body {
 }
 
 ::selection {
-  background: #F7931A33;
-  color: #F7931A;
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--primary);
 }

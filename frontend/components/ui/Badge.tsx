@@ -3,13 +3,13 @@ import { TIERS, PATRON_TIERS, TASK_STATUSES } from "@/lib/constants";
 type Color = "orange" | "purple" | "green" | "blue" | "gray" | "gold" | "red";
 
 const COLORS: Record<Color, { bg: string; text: string; border: string }> = {
-  orange: { bg: "#F7931A18", text: "#F7931A", border: "#F7931A30" },
-  purple: { bg: "#5546FF18", text: "#8B80FF", border: "#5546FF30" },
-  green:  { bg: "#00D39518", text: "#00D395", border: "#00D39530" },
-  blue:   { bg: "#3B82F618", text: "#60A5FA", border: "#3B82F630" },
-  gray:   { bg: "#FFFFFF0D", text: "#9090B0", border: "#FFFFFF18" },
-  gold:   { bg: "#FFD70018", text: "#FFD700", border: "#FFD70030" },
-  red:    { bg: "#EF444418", text: "#F87171", border: "#EF444430" },
+  orange: { bg: "color-mix(in srgb, var(--primary) 9%, transparent)", text: "var(--primary)", border: "color-mix(in srgb, var(--primary) 19%, transparent)" },
+  purple: { bg: "color-mix(in srgb, var(--secondary) 9%, transparent)", text: "var(--secondary-light)", border: "color-mix(in srgb, var(--secondary) 19%, transparent)" },
+  green:  { bg: "color-mix(in srgb, var(--success) 9%, transparent)", text: "var(--success)", border: "color-mix(in srgb, var(--success) 19%, transparent)" },
+  blue:   { bg: "color-mix(in srgb, var(--blue-strong) 9%, transparent)", text: "var(--blue)", border: "color-mix(in srgb, var(--blue-strong) 19%, transparent)" },
+  gray:   { bg: "var(--neutral-tint)", text: "var(--text-muted)", border: "var(--border)" },
+  gold:   { bg: "color-mix(in srgb, var(--gold) 9%, transparent)", text: "var(--gold)", border: "color-mix(in srgb, var(--gold) 19%, transparent)" },
+  red:    { bg: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", text: "var(--danger)", border: "color-mix(in srgb, var(--danger-strong) 19%, transparent)" },
 };
 
 export function Badge({ children, color = "gray" }: { children: React.ReactNode; color?: Color }) {
@@ -42,7 +42,7 @@ export function TierRangeBadge({ min, max }: { min: number; max: number }) {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const s = TASK_STATUSES[status] ?? { label: status, color: "#9090B0", bg: "#FFFFFF0D" };
+  const s = TASK_STATUSES[status] ?? { label: status, color: "var(--text-muted)", bg: "var(--neutral-tint)" };
   return (
     <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, display: "inline-block" }} />
