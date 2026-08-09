@@ -114,6 +114,7 @@ function RegisterPageInner() {
   }, [searchParams]);
 
   const selectedRole = ROLE_OPTIONS.find(r => r.id === role);
+  const hasIdentity = githubVerified || xVerified;
   const STEPS: Step[] = ["wallet", "role", "details", "confirm"];
   const stepIdx = STEPS.indexOf(step);
 
@@ -129,11 +130,12 @@ function RegisterPageInner() {
   }
 
   async function handleRegister() {
-    if (!role || !githubHandle) return;
+    const username = githubHandle || xHandle;
+    if (!role || !username) return;
     setSubmitting(true);
     setRegisterError("");
     try {
-      await registerWallet({ username: githubHandle, role, experienceLevel: Math.max(0, experienceLevel), githubVerified, githubHandle, githubAvatar, xVerified, xHandle });
+      await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), githubVerified, githubHandle, githubAvatar, xVerified, xHandle });
       router.push("/dashboard");
     } catch (err) {
       setRegisterError(err instanceof Error ? err.message : "Registration failed. Please try again.");
@@ -233,7 +235,7 @@ function RegisterPageInner() {
       {step === "details" && selectedRole && (
         <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* GitHub — required for all roles, provides username */}
+          {/* GitHub — connect this OR X below; at least one is required as your Taskify identity */}
           <div style={{ background: "var(--surface)", border: `1px solid ${githubVerified ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
             {!githubVerified ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16 }}>
@@ -243,9 +245,13 @@ function RegisterPageInner() {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Connect GitHub</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+                    Connect GitHub {!xVerified && <span style={{ color: "var(--danger)" }}>*</span>}
+                  </div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                    Your GitHub username becomes your Taskify identity. No manual entry needed.
+                    {xVerified
+                      ? "Optional — link GitHub too if you plan to apply for Development tasks."
+                      : "Required unless you connect X below instead. Your GitHub username becomes your Taskify identity — recommended for Development tasks."}
                   </div>
                 </div>
                 {githubError && (
@@ -280,7 +286,7 @@ function RegisterPageInner() {
             )}
           </div>
 
-          {/* X (Twitter) — optional, unlocks Community task participation */}
+          {/* X (Twitter) — connect this OR GitHub above; at least one is required as your Taskify identity */}
           <div style={{ background: "var(--surface)", border: `1px solid ${xVerified ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
             {!xVerified ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
@@ -288,9 +294,13 @@ function RegisterPageInner() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Connect X <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>(optional)</span></div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+                    Connect X {!githubVerified && <span style={{ color: "var(--danger)" }}>*</span>}
+                  </div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                    Unlocks Community tasks (memes, bug write-ups, social bounties) — no code required. Skip this if you're only here for Development tasks.
+                    {githubVerified
+                      ? "Optional — link X too if you want to join Community tasks (memes, bug write-ups, social bounties)."
+                      : "Required unless you connect GitHub above instead. Also unlocks Community tasks — no code required, great if you're not a developer."}
                   </div>
                 </div>
                 {xError && (
@@ -350,9 +360,9 @@ function RegisterPageInner() {
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button onClick={() => setStep("role")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button
-              disabled={!githubVerified || (role === "contributor" && experienceLevel < 0)}
+              disabled={!hasIdentity || (role === "contributor" && experienceLevel < 0)}
               onClick={() => setStep("confirm")}
-              style={{ flex: 2, background: (githubVerified && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (githubVerified && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (githubVerified && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
+              style={{ flex: 2, background: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
               Review →
             </button>
           </div>
@@ -365,7 +375,7 @@ function RegisterPageInner() {
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, marginBottom: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Registration Summary</div>
             {[
-              { label: "GitHub Username", value: `@${githubHandle}` },
+              ...(githubVerified ? [{ label: "GitHub Username", value: `@${githubHandle}` }] : []),
               { label: "Role", value: selectedRole.title },
               ...(role === "contributor" ? [{ label: "Experience", value: `${TIERS[experienceLevel].label} (Tier ${experienceLevel})` }] : []),
               ...(xVerified ? [{ label: "X Account", value: `@${xHandle}` }] : []),
