@@ -1,24 +1,81 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useAccount } from "wagmi";
+import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
-import { MOCK_TASKS, MOCK_WALLET, MOCK_WAVE } from "@/lib/mock";
-import { formatMUSD } from "@/lib/constants";
-import { useWallet } from "@/lib/wallet-context";
+import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
+import { useWallet, formatAddress } from "@/lib/wallet-context";
+import {
+  useAllTasks,
+  useCurrentWave,
+  useTaskifyTx,
+  useUsersBatch,
+  useWaveClaimed,
+  useWaveCreatorTasks,
+  mapOnChainTask,
+} from "@/lib/use-taskify";
 
 export default function CreatorPage() {
-  const { connected, isRegistered, role, username, address } = useWallet();
-  const displayAddress = address || MOCK_WALLET.address;
-  const displayUsername = username || MOCK_WALLET.username;
-  const myTasks = MOCK_TASKS.filter((t) => t.creator === displayAddress || t.creator === MOCK_WALLET.address);
+  const { username, githubVerified } = useWallet();
+  const { address } = useAccount();
+  const { send } = useTaskifyTx();
+  const displayAddress = address ?? "";
+  const displayUsername = username || formatAddress(displayAddress);
+
+  const { data: onchainTasks } = useAllTasks();
+  const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
+  const allTasks = useMemo(
+    () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
+    [onchainTasks, usersByAddress]
+  );
+
+  const myTasks = allTasks.filter((t) => address && t.creator.toLowerCase() === address.toLowerCase());
   const openTasks = myTasks.filter((t) => t.status === "OPEN");
   const activeTasks = myTasks.filter((t) => ["ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status));
   const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
   const totalEscrowed = myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status)).reduce((s, t) => s + t.amount, 0);
 
-  const waveShare = MOCK_WAVE.totalTasks > 0 ? Math.round((2 / MOCK_WAVE.totalTasks) * MOCK_WAVE.poolAmount) : 0;
+  const { wave } = useCurrentWave();
+  const { count: myWaveTasks } = useWaveCreatorTasks(wave.waveId, address);
+  const previousWaveId = wave.waveId > 1 ? wave.waveId - 1 : undefined;
+  const { count: myPrevWaveTasks } = useWaveCreatorTasks(previousWaveId, address);
+  const { claimed: prevWaveClaimed, refetch: refetchClaimed } = useWaveClaimed(previousWaveId, address);
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+  const [approvingTaskId, setApprovingTaskId] = useState<number | null>(null);
+
+  const poolAmountHuman = Number(formatUnits(wave.poolAmount, MUSD_DECIMALS));
+  const waveShare = wave.totalTasks > 0 ? Math.round((myWaveTasks / wave.totalTasks) * poolAmountHuman) : 0;
+  const canClaim = previousWaveId !== undefined && myPrevWaveTasks > 0 && !prevWaveClaimed;
+
+  async function handleClaimWave() {
+    if (previousWaveId === undefined) return;
+    setClaiming(true);
+    setClaimError("");
+    try {
+      await send("claimWaveReward", [BigInt(previousWaveId)]);
+      await refetchClaimed();
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "Claim failed");
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  async function handleApproveRelease(taskId: number) {
+    setApprovingTaskId(taskId);
+    try {
+      await send("approveAndRelease", [BigInt(taskId)]);
+    } catch {
+      // errors surfaced on the task detail page
+    } finally {
+      setApprovingTaskId(null);
+    }
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -34,7 +91,7 @@ export default function CreatorPage() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayUsername}</h1>
-                {MOCK_WALLET.githubVerified && <Badge color="green">GitHub Verified</Badge>}
+                {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                 <Badge color="orange">Creator</Badge>
               </div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{displayAddress.slice(0, 12)}…{displayAddress.slice(-6)}</div>
@@ -84,14 +141,17 @@ export default function CreatorPage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                           <StatusBadge status={task.status} />
                           {task.status === "SUBMITTED" && (
-                            <button style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: "pointer" }}>
-                              Approve & Release
+                            <button
+                              disabled={approvingTaskId === task.id}
+                              onClick={(e) => { e.preventDefault(); handleApproveRelease(task.id); }}
+                              style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: approvingTaskId === task.id ? "not-allowed" : "pointer", opacity: approvingTaskId === task.id ? 0.7 : 1 }}>
+                              {approvingTaskId === task.id ? "Confirming…" : "Approve & Release"}
                             </button>
                           )}
-                          {task.status === "OPEN" && task.applicantCount && task.applicantCount > 0 && (
-                            <button style={{ background: "color-mix(in srgb, var(--blue) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--blue) 19%, transparent)", color: "var(--blue)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: "pointer" }}>
-                              Review {task.applicantCount} Applicant{task.applicantCount !== 1 ? "s" : ""}
-                            </button>
+                          {task.status === "OPEN" && task.kind === "development" && (
+                            <span style={{ background: "color-mix(in srgb, var(--blue) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--blue) 19%, transparent)", color: "var(--blue)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>
+                              Review Applicants →
+                            </span>
                           )}
                         </div>
                       </div>
@@ -150,27 +210,28 @@ export default function CreatorPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Wave reward */}
             <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Wave #{MOCK_WAVE.waveId} Reward</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Wave #{wave.waveId} Reward</div>
               <div style={{ fontSize: 28, fontWeight: 800, color: "var(--primary)", marginBottom: 4 }}>{formatMUSD(waveShare)} MUSD</div>
-              <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>Estimated share from {formatMUSD(MOCK_WAVE.poolAmount)} MUSD pool</div>
+              <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>Estimated share from {formatMUSD(poolAmountHuman)} MUSD pool</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Your tasks this wave</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>2</span>
+                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{myWaveTasks}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Total tasks in wave</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{MOCK_WAVE.totalTasks}</span>
+                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{wave.totalTasks}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Wave pool</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{formatMUSD(MOCK_WAVE.poolAmount)} MUSD</span>
+                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
                 </div>
               </div>
-              <button style={{ width: "100%", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: "pointer" }}>
-                Claim Wave Reward
+              <button disabled={!canClaim || claiming} onClick={handleClaimWave} style={{ width: "100%", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: (canClaim && !claiming) ? "pointer" : "not-allowed", opacity: canClaim ? 1 : 0.5 }}>
+                {claiming ? "Confirming…" : prevWaveClaimed ? "Already Claimed" : canClaim ? "Claim Previous Wave Reward" : "No Reward to Claim Yet"}
               </button>
-              <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>Wave advances every ~7 days</div>
+              {claimError && <div style={{ fontSize: 11, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{claimError}</div>}
+              <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>Wave advances when the owner calls advanceWave (~30 days)</div>
             </div>
 
             {/* Quick actions */}
@@ -183,7 +244,7 @@ export default function CreatorPage() {
                 <Link href="/create?type=grant" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                   <span>🏛</span> Apply for grant
                 </Link>
-                <Link href={`/profile/${MOCK_WALLET.address}`} style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                <Link href={`/profile/${displayAddress}`} style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                   <span>👤</span> View public profile
                 </Link>
               </div>

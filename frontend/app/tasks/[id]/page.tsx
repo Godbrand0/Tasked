@@ -2,10 +2,18 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { Badge, TierRangeBadge, StatusBadge } from "@/components/ui/Badge";
-import { MOCK_TASKS, MOCK_GRANT_VOTES } from "@/lib/mock";
-import { formatMUSD, TIERS, TASK_STATUSES } from "@/lib/constants";
+import { formatMUSD, TIERS, TASK_STATUSES, MUSD_DECIMALS } from "@/lib/constants";
+import { MUSD_ADDRESS, statusToString } from "@/lib/taskify";
+import {
+  useGrantVote,
+  useTaskApplicantAppliedAt,
+  useTaskifyTask,
+  useTaskifyTx,
+  useTaskifyUser,
+} from "@/lib/use-taskify";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -43,13 +51,45 @@ const LIFECYCLE = ["GRANT_PENDING", "OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTE
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const task = MOCK_TASKS.find(t => t.id === Number(id));
+  const taskId = Number(id);
   const { role, connected, isRegistered, connect, address, xVerified, xHandle, linkX } = useWallet();
+  const { send } = useTaskifyTx();
+
+  const { task: onchainTask, isLoading: taskLoading, refetch: refetchTask } = useTaskifyTask(taskId);
+  const { user: creatorUser } = useTaskifyUser(onchainTask?.creator);
+  const { vote: grantVote, refetch: refetchGrantVote } = useGrantVote(taskId);
+  const { applied: appliedOnchain, refetch: refetchApplied } = useTaskApplicantAppliedAt(taskId, address);
+
+  const task = onchainTask
+    ? {
+        id: taskId,
+        creator: onchainTask.creator,
+        creatorUsername: creatorUser.username || formatAddress(onchainTask.creator),
+        title: onchainTask.title,
+        description: "",
+        amount: Number(formatUnits(onchainTask.amount, MUSD_DECIMALS)),
+        token: (onchainTask.token.toLowerCase() === MUSD_ADDRESS.toLowerCase() ? "MUSD" : "MEZO") as "MUSD" | "MEZO",
+        experienceMin: onchainTask.experienceMin,
+        experienceMax: onchainTask.experienceMax,
+        status: statusToString(onchainTask.status),
+        fundingType: (onchainTask.fundingType === 1 ? "grant" : "self") as "self" | "grant",
+        kind: (onchainTask.kind === 1 ? "community" : "development") as "development" | "community",
+        maxWinners: onchainTask.maxWinners || undefined,
+        assignee: onchainTask.assignee !== "0x0000000000000000000000000000000000000000" ? onchainTask.assignee : undefined,
+        deadline: onchainTask.deadline,
+        createdAt: onchainTask.createdAt,
+        tags: undefined as string[] | undefined,
+        images: undefined as string[] | undefined,
+        githubRepo: undefined as string | undefined,
+        grantJustification: undefined as string | undefined,
+      }
+    : undefined;
 
   const [motivation, setMotivation] = useState("");
   const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
   const [applyError, setApplyError] = useState("");
+  const [txBusy, setTxBusy] = useState(false);
+  const [txError, setTxError] = useState("");
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<LiveComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -79,6 +119,39 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       .finally(() => { if (!cancelled) setCommentsLoading(false); });
     return () => { cancelled = true; };
   }, [task?.id]);
+
+  // Development-task applications (off-chain motivation text keyed to the
+  // on-chain applyForTask event — see app/api/applications/route.ts).
+  interface LiveApplication { id: string; address: string; author: string; avatarColor: string; motivation: string; createdAt: number }
+  const [applications, setApplications] = useState<LiveApplication[]>([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(true);
+
+  function loadApplications() {
+    if (!task) return Promise.resolve();
+    return fetch(`/api/applications?taskId=${task.id}`)
+      .then(res => res.json())
+      .then((data: { applications?: { id: string; applicant_address: string; motivation: string; created_at: string }[] }) => {
+        if (!data.applications) return;
+        setApplications(data.applications.map(a => ({
+          id: a.id,
+          address: a.applicant_address,
+          author: formatAddress(a.applicant_address),
+          avatarColor: colorForAddress(a.applicant_address),
+          motivation: a.motivation,
+          createdAt: Math.floor(new Date(a.created_at).getTime() / 1000),
+        })));
+      })
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    if (!task || task.kind !== "development") { setApplicationsLoading(false); return; }
+    let cancelled = false;
+    setApplicationsLoading(true);
+    loadApplications().finally(() => { if (!cancelled) setApplicationsLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id, task?.kind]);
 
   // Community task state
   const [submissions, setSubmissions] = useState<LiveSubmission[]>([]);
@@ -120,29 +193,29 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ maxWidth: 600, margin: "100px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Task not found</h1>
-          <Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none" }}>← Back to tasks</Link>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>{taskLoading ? "⏳" : "🔍"}</div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>{taskLoading ? "Loading task…" : "Task not found"}</h1>
+          {!taskLoading && <Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none" }}>← Back to tasks</Link>}
         </div>
       </div>
     );
   }
 
-  const grantVote = MOCK_GRANT_VOTES[task.id];
   const statusInfo = TASK_STATUSES[task.status] ?? { label: task.status, color: "var(--text-muted)" };
   const fee = task.fundingType === "self" ? task.amount * 0.03 : task.amount * 0.05;
   const netAmount = task.amount - fee;
   const minTier = TIERS.find(t => t.id === task.experienceMin)!;
   const maxTier = TIERS.find(t => t.id === task.experienceMax)!;
   const lifecycleIdx = LIFECYCLE.indexOf(task.status);
-  const slotsUsed = task.applicantCount ?? 0;
+  const slotsUsed = applications.length;
   const slotsMax = 5; // hard cap at 5 per task
   const slotsLeft = Math.max(0, slotsMax - slotsUsed);
 
   const isContributor = role === "contributor";
   const isCreator = role === "creator";
+  const isAssignee = Boolean(address && task.assignee && address.toLowerCase() === task.assignee.toLowerCase());
+  const isTaskCreator = Boolean(address && address.toLowerCase() === task.creator.toLowerCase());
   const isCommunity = task.kind === "community";
-  const canApply = isContributor && task.status === "OPEN" && !applied;
   const maxWinners = task.maxWinners ?? 1;
 
   async function handleApply() {
@@ -150,6 +223,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     setApplying(true);
     setApplyError("");
     try {
+      await send("applyForTask", [BigInt(task.id)]);
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,11 +231,97 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to submit application");
-      setApplied(true);
+      await refetchApplied();
+      await loadApplications();
     } catch (err) {
       setApplyError(err instanceof Error ? err.message : "Failed to submit application");
     } finally {
       setApplying(false);
+    }
+  }
+
+  async function handleAssign(applicant: string) {
+    if (!task) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("assignTask", [BigInt(task.id), applicant as `0x${string}`]);
+      await refetchTask();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to assign task");
+    } finally {
+      setTxBusy(false);
+    }
+  }
+
+  async function handleStartTask() {
+    if (!task) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("startTask", [BigInt(task.id)]);
+      await refetchTask();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to start task");
+    } finally {
+      setTxBusy(false);
+    }
+  }
+
+  async function handleSubmitTask() {
+    if (!task) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("submitTask", [BigInt(task.id)]);
+      await refetchTask();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to submit task");
+    } finally {
+      setTxBusy(false);
+    }
+  }
+
+  async function handleApproveRelease() {
+    if (!task) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("approveAndRelease", [BigInt(task.id)]);
+      await refetchTask();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to release funds");
+    } finally {
+      setTxBusy(false);
+    }
+  }
+
+  async function handleCancelTask() {
+    if (!task) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("cancelTask", [BigInt(task.id)]);
+      await refetchTask();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to cancel task");
+    } finally {
+      setTxBusy(false);
+    }
+  }
+
+  async function handleExecuteGrant() {
+    if (!task) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("executeGrant", [BigInt(task.id)]);
+      await refetchTask();
+      await refetchGrantVote();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to execute grant");
+    } finally {
+      setTxBusy(false);
     }
   }
 
@@ -216,6 +376,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     setJoining(true);
     setJoinError("");
     try {
+      await send("joinCommunityTask", [BigInt(task.id), proofUrl.trim()]);
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -257,16 +418,19 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     setPayingWinners(true);
     setPayError("");
     try {
+      const winners = Array.from(selectedWinners) as `0x${string}`[];
+      await send("selectWinners", [BigInt(task.id), winners]);
       const res = await fetch("/api/submissions", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, winners: Array.from(selectedWinners) }),
+        body: JSON.stringify({ taskId: task.id, winners }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to record winners");
       const winnerSet = new Set((data.submissions as { participant_address: string }[]).map(s => s.participant_address));
       setSubmissions(prev => prev.map(s => winnerSet.has(s.address) ? { ...s, isWinner: true } : s));
       setWinnersPaid(true);
+      await refetchTask();
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "Failed to record winners");
     } finally {
@@ -372,26 +536,30 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             )}
 
             {/* Grant vote (inline) */}
-            {grantVote && task.status === "GRANT_PENDING" && (
-              <Section title="Community Grant Vote">
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-                    <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {formatMUSD(grantVote.votesFor)} MUSD-eq</span>
-                    <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {formatMUSD(grantVote.votesAgainst)} MUSD-eq</span>
+            {grantVote && task.status === "GRANT_PENDING" && (() => {
+              const total = grantVote.votesFor + grantVote.votesAgainst;
+              const supportPct = total > BigInt(0) ? Number((grantVote.votesFor * BigInt(1000)) / total) / 10 : 0;
+              return (
+                <Section title="Community Grant Vote">
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
+                      <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {grantVote.votesFor.toString()} vote units</span>
+                      <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {grantVote.votesAgainst.toString()} vote units</span>
+                    </div>
+                    <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: "linear-gradient(90deg, var(--success), color-mix(in srgb, var(--success) 44%, transparent))", width: `${Math.min(100, supportPct)}%`, borderRadius: 4 }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
+                      <span>{supportPct.toFixed(1)}% support</span>
+                      <span>70% required to pass</span>
+                    </div>
                   </div>
-                  <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
-                    <div style={{ height: "100%", background: "linear-gradient(90deg, var(--success), color-mix(in srgb, var(--success) 44%, transparent))", width: `${Math.min(100, (grantVote.votesFor / (grantVote.votesFor + grantVote.votesAgainst)) * 100)}%`, borderRadius: 4 }} />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
-                    <span>{((grantVote.votesFor / (grantVote.votesFor + grantVote.votesAgainst)) * 100).toFixed(1)}% support</span>
-                    <span>Threshold: {formatMUSD(grantVote.threshold)} MUSD-eq needed</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "0 0 4px", lineHeight: 1.6 }}>
-                  Voting deadline: {formatTimestamp(grantVote.deadline)}. Only Patrons with MUSD deposited or MEZO staked can vote.
-                </p>
-              </Section>
-            )}
+                  <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "0 0 4px", lineHeight: 1.6 }}>
+                    Voting deadline: {formatTimestamp(grantVote.deadline)}. Only Patrons with MUSD deposited or MEZO staked can vote.
+                  </p>
+                </Section>
+              );
+            })()}
 
             {/* Task Lifecycle — community tasks skip the assign/start/submit chain */}
             {isCommunity ? (
@@ -490,27 +658,35 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                 )}
               </Section>
             ) : isCreator ? (
-              <Section title={`${comments.length} Application${comments.length !== 1 ? "s" : ""}`}>
-                {comments.length === 0 ? (
+              <Section title={applicationsLoading ? "Applications" : `${applications.length} Application${applications.length !== 1 ? "s" : ""}`}>
+                {txError && (
+                  <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 12 }}>{txError}</div>
+                )}
+                {applicationsLoading ? (
+                  <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>Loading applications…</div>
+                ) : applications.length === 0 ? (
                   <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>No applications yet. Share this task to get visibility.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column" }}>
-                    {comments.map((c, i) => (
-                      <div key={c.id} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < comments.length - 1 ? "1px solid var(--border)" : "none" }}>
-                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: c.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                          {c.author.charAt(0).toUpperCase()}
+                    {applications.map((a, i) => (
+                      <div key={a.id} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < applications.length - 1 ? "1px solid var(--border)" : "none" }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: a.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
+                          {a.author.charAt(0).toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{c.author}</span>
-                            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(c.createdAt)}</span>
-                            {task.status === "OPEN" && (
-                              <button style={{ marginLeft: "auto", background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "4px 14px", borderRadius: 6, cursor: "pointer" }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{a.author}</span>
+                            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(a.createdAt)}</span>
+                            {task.status === "OPEN" && isTaskCreator && (
+                              <button
+                                disabled={txBusy}
+                                onClick={() => handleAssign(a.address)}
+                                style={{ marginLeft: "auto", background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "4px 14px", borderRadius: 6, cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.6 : 1 }}>
                                 Assign →
                               </button>
                             )}
                           </div>
-                          <div style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.7 }}>{c.body}</div>
+                          <div style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.7 }}>{a.motivation}</div>
                         </div>
                       </div>
                     ))}
@@ -771,7 +947,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                     <div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
                       <div style={{ height: "100%", background: slotsLeft > 0 ? "var(--success)" : "var(--danger)", width: `${(slotsUsed / slotsMax) * 100}%`, borderRadius: 4 }} />
                     </div>
-                    {applied ? (
+                    {appliedOnchain ? (
                       <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 16, textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
                         ✓ Application submitted on-chain
                       </div>
@@ -814,16 +990,57 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               </>
             )}
 
+            {/* Assignee — start / submit work */}
+            {isAssignee && task.status === "ASSIGNED" && (
+              <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
+                <SideCardTitle color="var(--primary)">You're Assigned</SideCardTitle>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
+                  Mark this task as started once you begin work.
+                </p>
+                <button disabled={txBusy} onClick={handleStartTask} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                  {txBusy ? "Confirming…" : "Start Work →"}
+                </button>
+                {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
+              </SideCard>
+            )}
+            {isAssignee && task.status === "IN_PROGRESS" && (
+              <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
+                <SideCardTitle color="var(--primary)">In Progress</SideCardTitle>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
+                  Submit your work for the creator to review once it's ready.
+                </p>
+                <button disabled={txBusy} onClick={handleSubmitTask} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                  {txBusy ? "Confirming…" : "Submit Work →"}
+                </button>
+                {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
+              </SideCard>
+            )}
+
             {/* Submitted — creator approve */}
-            {task.status === "SUBMITTED" && isCreator && (
+            {task.status === "SUBMITTED" && isTaskCreator && (
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>
                 <SideCardTitle color="var(--success)">Work Submitted</SideCardTitle>
                 <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
                   The contributor has marked their work as complete. Review and approve to release funds.
                 </p>
-                <button style={{ width: "100%", background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
-                  Approve & Release Funds →
+                <button disabled={txBusy} onClick={handleApproveRelease} style={{ width: "100%", background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                  {txBusy ? "Confirming…" : "Approve & Release Funds →"}
                 </button>
+                {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
+              </SideCard>
+            )}
+
+            {/* Creator — cancel an open, self-funded task */}
+            {task.status === "OPEN" && isTaskCreator && task.fundingType === "self" && (
+              <SideCard>
+                <SideCardTitle>Manage Task</SideCardTitle>
+                <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
+                  Cancel to refund the remaining escrow (minus the protocol fee) back to your wallet.
+                </p>
+                <button disabled={txBusy} onClick={handleCancelTask} style={{ width: "100%", background: "transparent", border: "1px solid var(--danger)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                  {txBusy ? "Confirming…" : "Cancel Task"}
+                </button>
+                {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
               </SideCard>
             )}
 
@@ -831,14 +1048,28 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             {task.status === "GRANT_PENDING" && (
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)" }}>
                 <SideCardTitle color="var(--secondary-light)">Grant Pending</SideCardTitle>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, margin: 0 }}>
-                  This task is awaiting community grant approval. Voting ends {grantVote?.deadline ? formatTimestamp(grantVote.deadline) : "soon"}.
-                  {grantVote && grantVote.votesFor >= grantVote.threshold && !grantVote.executed && (
-                    <span style={{ display: "block", marginTop: 10, color: "var(--success)", fontWeight: 600 }}>
-                      ✓ Threshold reached — anyone can execute!
-                    </span>
-                  )}
-                </p>
+                {grantVote && (() => {
+                  const total = grantVote.votesFor + grantVote.votesAgainst;
+                  const supportPct = total > BigInt(0) ? Number((grantVote.votesFor * BigInt(1000)) / total) / 10 : 0;
+                  const votingClosed = Math.floor(Date.now() / 1000) >= grantVote.deadline;
+                  const passed = total > BigInt(0) && supportPct >= 70;
+                  return (
+                    <>
+                      <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, margin: "0 0 12px" }}>
+                        Voting {votingClosed ? "ended" : "ends"} {formatTimestamp(grantVote.deadline)}. {total > BigInt(0) ? `${supportPct.toFixed(1)}% support (70% required).` : "No votes cast yet."}
+                      </p>
+                      {votingClosed && !grantVote.executed && (
+                        <button disabled={txBusy} onClick={handleExecuteGrant} style={{ width: "100%", background: passed ? "var(--success)" : "var(--danger)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                          {txBusy ? "Confirming…" : passed ? "Execute — Approve Grant →" : "Execute — Reject Grant →"}
+                        </button>
+                      )}
+                      {grantVote.executed && (
+                        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Vote executed.</div>
+                      )}
+                      {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
+                    </>
+                  );
+                })()}
               </SideCard>
             )}
 

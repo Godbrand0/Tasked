@@ -54,6 +54,7 @@ function RegisterPageInner() {
   const [xVerified, setXVerified] = useState(false);
   const [xHandle, setXHandle] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [registerError, setRegisterError] = useState("");
 
   // If already registered redirect to dashboard
   useEffect(() => {
@@ -106,14 +107,18 @@ function RegisterPageInner() {
     setXVerified(true);
   }
 
-  function handleRegister() {
+  async function handleRegister() {
     if (!role || !githubHandle) return;
     setSubmitting(true);
-    setTimeout(() => {
-      registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle, xVerified, xHandle });
-      setSubmitting(false);
+    setRegisterError("");
+    try {
+      await registerWallet({ username: githubHandle, role, experienceLevel, githubVerified, githubHandle, xVerified, xHandle });
       router.push("/dashboard");
-    }, 1500);
+    } catch (err) {
+      setRegisterError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -355,6 +360,12 @@ function RegisterPageInner() {
           <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 12, padding: 16, marginBottom: 20, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
             Clicking <strong style={{ color: "var(--text)" }}>Register on Mezo</strong> will call <code style={{ color: "var(--primary)", fontSize: 11 }}>registerUser</code> on the Taskify contract. Your wallet will prompt for approval.
           </div>
+
+          {registerError && (
+            <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+              {registerError}
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setStep("details")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>

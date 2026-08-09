@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
+import { TASKIFY_ADDRESS, tokenAddress } from "@/lib/taskify";
+import { toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
 
 type FundingType = "self" | "grant";
 type Currency = "MUSD" | "MEZO";
@@ -29,6 +32,9 @@ interface ImagePreview { name: string; url: string; size: number }
 export default function CreatePage() {
   const router = useRouter();
   const { connected, isRegistered, role } = useWallet();
+  const { address } = useAccount();
+  const { ensureApproval } = useApproveIfNeeded();
+  const { send } = useTaskifyTx();
 
   const [taskKind, setTaskKind] = useState<TaskKind>("development");
   const [fundingType, setFundingType] = useState<FundingType>("self");
@@ -50,6 +56,7 @@ export default function CreatePage() {
   const [images, setImages] = useState<ImagePreview[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fee = fundingType === "self" ? 0.03 : 0.05;
@@ -110,13 +117,31 @@ export default function CreatePage() {
     }
   }
 
-  function handleSubmit() {
-    if (!valid) return;
+  async function handleSubmit() {
+    if (!valid || !address) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    setSubmitError("");
+    try {
+      const token = tokenAddress(currency);
+      if (!token || !TASKIFY_ADDRESS) throw new Error("Contract not configured");
+      const deadlineTs = deadline ? Math.floor(new Date(deadline).getTime() / 1000) : 0;
+
+      if (fundingType === "grant") {
+        await send("applyForGrant", [title, toRawMUSD(numAmount), expMin, expMax]);
+      } else {
+        await ensureApproval(token, address, TASKIFY_ADDRESS, toRawMUSD(numAmount));
+        if (taskKind === "community") {
+          await send("createCommunityTask", [title, toRawMUSD(numAmount), token, maxWinners, BigInt(deadlineTs)]);
+        } else {
+          await send("createTask", [title, toRawMUSD(numAmount), token, expMin, expMax, BigInt(deadlineTs)]);
+        }
+      }
       setSubmitted(true);
-    }, 2000);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Transaction failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Gate: must be connected + registered as creator
@@ -453,6 +478,12 @@ export default function CreatePage() {
               ? <>Your wallet will be prompted to transfer <strong style={{ color: "var(--primary)" }}>{numAmount || "..."} {currency}</strong> into escrow via <code style={{ color: "var(--primary)", fontSize: 11 }}>createTask</code>. A post-condition asserts the exact amount leaving your account.</>
               : <>Clicking <strong style={{ color: "var(--text)" }}>Submit Grant Application</strong> calls <code style={{ color: "var(--primary)", fontSize: 11 }}>applyForGrant</code>. No {currency} leaves your wallet — community patrons vote on whether to fund from the grant pool.</>}
           </div>
+
+          {submitError && (
+            <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 10, padding: "10px 14px" }}>
+              {submitError}
+            </div>
+          )}
 
           <button disabled={!valid || submitting} onClick={handleSubmit}
             style={{ background: valid ? "var(--primary)" : "var(--border)", color: valid ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 16, padding: "16px", borderRadius: 12, border: "none", cursor: valid ? "pointer" : "not-allowed", transition: "all 0.15s", opacity: submitting ? 0.7 : 1 }}>

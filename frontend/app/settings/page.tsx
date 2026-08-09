@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAccount, useDisconnect } from "wagmi";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
-import { MOCK_WALLET } from "@/lib/mock";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
+import { TASKIFY_ADDRESS } from "@/lib/taskify";
+import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
 
 const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: false, wave_reward_ready: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
@@ -21,16 +23,45 @@ const SECTIONS: { id: Section; label: string; icon: string }[] = [
 ];
 
 export default function SettingsPage() {
-  const { address, xVerified, xHandle, linkX, unlinkX } = useWallet();
+  const { username: onchainUsername, role, githubVerified, githubHandle, experienceLevel, xVerified, xHandle, linkX, unlinkX } = useWallet();
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { send } = useTaskifyTx();
+  const { data: onchainTasks } = useAllTasks();
   const [active, setActive] = useState<Section>("profile");
   const [xHandleInput, setXHandleInput] = useState("");
-  const [username, setUsername] = useState(MOCK_WALLET.username);
   const [bio, setBio] = useState("");
-  const [expTier, setExpTier] = useState(MOCK_WALLET.experienceLevel);
+  const [expTier, setExpTier] = useState(experienceLevel);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [notifs, setNotifs] = useState<typeof DEFAULT_NOTIFS>(DEFAULT_NOTIFS);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+
+  useEffect(() => setExpTier(experienceLevel), [experienceLevel]);
+
+  const myOpenSelfFundedTasks = useMemo(
+    () => (onchainTasks ?? []).filter(
+      t => address && t.creator.toLowerCase() === address.toLowerCase() && t.status === 1 && t.fundingType === 0
+    ),
+    [onchainTasks, address]
+  );
+
+  async function handleCancelAll() {
+    setCancelling(true);
+    setCancelError("");
+    try {
+      for (const t of myOpenSelfFundedTasks) {
+        await send("cancelTask", [BigInt(t.id)]);
+      }
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Failed to cancel one or more tasks");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   useEffect(() => {
     if (!address) return;
@@ -47,6 +78,7 @@ export default function SettingsPage() {
   async function handleSave() {
     if (!address) return;
     setSaving(true);
+    setSaveError("");
     try {
       if (active === "profile") {
         await fetch("/api/profile", {
@@ -60,10 +92,13 @@ export default function SettingsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address, notification_prefs: notifs }),
         });
+      } else if (active === "experience" && expTier !== experienceLevel) {
+        await send("updateExperience", [expTier]);
       }
-      // Experience tier updates go through updateExperience() on-chain, not Supabase — not wired here yet.
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save — check the 1-day cooldown on experience updates.");
     } finally {
       setSaving(false);
     }
@@ -98,26 +133,24 @@ export default function SettingsPage() {
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 24px" }}>Profile</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28 }}>
                   <div style={{ width: 60, height: 60, borderRadius: 16, background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "white" }}>
-                    {MOCK_WALLET.username.charAt(0).toUpperCase()}
+                    {(onchainUsername || (address ?? "")).charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{MOCK_WALLET.username}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{onchainUsername || address}</div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <Badge color={MOCK_WALLET.role === "creator" ? "orange" : MOCK_WALLET.role === "contributor" ? "purple" : "green"}>
-                        {MOCK_WALLET.role.charAt(0).toUpperCase() + MOCK_WALLET.role.slice(1)}
+                      <Badge color={role === "creator" ? "orange" : role === "contributor" ? "purple" : "green"}>
+                        {role ? role.charAt(0).toUpperCase() + role.slice(1) : "Unregistered"}
                       </Badge>
-                      {MOCK_WALLET.githubVerified && <Badge color="green">GitHub Verified</Badge>}
+                      {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                     </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>Username</label>
-                    <input value={username} onChange={(e) => setUsername(e.target.value)} maxLength={50}
-                      style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
-                      onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
-                      onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
-                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>Stored on-chain. Changes cost a small MEZO gas fee.</div>
+                    <input value={onchainUsername} disabled
+                      style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text-dim)", outline: "none", boxSizing: "border-box", cursor: "not-allowed" }} />
+                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>Set once at registration — Taskify.sol has no update function for it.</div>
                   </div>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>Bio <span style={{ fontWeight: 400 }}>(optional)</span></label>
@@ -131,13 +164,13 @@ export default function SettingsPage() {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>GitHub</div>
-                        <div style={{ fontSize: 12, color: MOCK_WALLET.githubVerified ? "var(--success)" : "var(--text-dim)" }}>
-                          {MOCK_WALLET.githubVerified ? `@${MOCK_WALLET.githubHandle ?? MOCK_WALLET.username}` : "Not connected"}
+                        <div style={{ fontSize: 12, color: githubVerified ? "var(--success)" : "var(--text-dim)" }}>
+                          {githubVerified ? `@${githubHandle || onchainUsername}` : "Not connected"}
                         </div>
                       </div>
                     </div>
-                    <button style={{ background: MOCK_WALLET.githubVerified ? "var(--border)" : "color-mix(in srgb, var(--success) 9%, transparent)", border: `1px solid ${MOCK_WALLET.githubVerified ? "var(--border)" : "color-mix(in srgb, var(--success) 19%, transparent)"}`, color: MOCK_WALLET.githubVerified ? "var(--text-dim)" : "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
-                      {MOCK_WALLET.githubVerified ? "Disconnect" : "Connect"}
+                    <button style={{ background: githubVerified ? "var(--border)" : "color-mix(in srgb, var(--success) 9%, transparent)", border: `1px solid ${githubVerified ? "var(--border)" : "color-mix(in srgb, var(--success) 19%, transparent)"}`, color: githubVerified ? "var(--text-dim)" : "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "not-allowed" }} disabled title="GitHub is linked during registration">
+                      {githubVerified ? "Connected" : "Not connected"}
                     </button>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
@@ -194,9 +227,9 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-                {expTier !== MOCK_WALLET.experienceLevel && (
+                {expTier !== experienceLevel && (
                   <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 10, padding: 14, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-                    Changing from <strong style={{ color: "var(--text)" }}>{TIERS[MOCK_WALLET.experienceLevel].label}</strong> to <strong style={{ color: TIERS[expTier].color }}>{TIERS[expTier].label}</strong>. This calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain.
+                    Changing from <strong style={{ color: "var(--text)" }}>{TIERS[experienceLevel].label}</strong> to <strong style={{ color: TIERS[expTier].color }}>{TIERS[expTier].label}</strong>. This calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain.
                   </div>
                 )}
               </div>
@@ -237,7 +270,7 @@ export default function SettingsPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 8 }}>Connected Address</div>
-                    <div style={{ fontSize: 14, color: "var(--text)", fontFamily: "var(--font-geist-mono)", wordBreak: "break-all" }}>{MOCK_WALLET.address}</div>
+                    <div style={{ fontSize: 14, color: "var(--text)", fontFamily: "var(--font-geist-mono)", wordBreak: "break-all" }}>{address}</div>
                   </div>
                   <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 8 }}>Network</div>
@@ -248,9 +281,9 @@ export default function SettingsPage() {
                   </div>
                   <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 8 }}>Contract</div>
-                    <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>ST…TBD.taskify</div>
+                    <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", wordBreak: "break-all" }}>{TASKIFY_ADDRESS ?? "not configured"}</div>
                   </div>
-                  <button style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, cursor: "pointer", marginTop: 4 }}>
+                  <button onClick={() => disconnect()} style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, cursor: "pointer", marginTop: 4 }}>
                     Disconnect Wallet
                   </button>
                 </div>
@@ -265,10 +298,11 @@ export default function SettingsPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ background: "color-mix(in srgb, var(--danger-strong) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Cancel All Open Tasks</div>
-                    <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14 }}>Refunds escrowed MUSD for all your open self-funded tasks. Cannot be undone.</div>
-                    <button style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}>
-                      Cancel All Open Tasks
+                    <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14 }}>Refunds escrowed MUSD for all {myOpenSelfFundedTasks.length} of your open self-funded tasks. Cannot be undone.</div>
+                    <button disabled={cancelling || myOpenSelfFundedTasks.length === 0} onClick={handleCancelAll} style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px 20px", borderRadius: 8, cursor: (cancelling || myOpenSelfFundedTasks.length === 0) ? "not-allowed" : "pointer", opacity: (cancelling || myOpenSelfFundedTasks.length === 0) ? 0.6 : 1 }}>
+                      {cancelling ? "Cancelling…" : `Cancel ${myOpenSelfFundedTasks.length || "All"} Open Task${myOpenSelfFundedTasks.length !== 1 ? "s" : ""}`}
                     </button>
+                    {cancelError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 10 }}>{cancelError}</div>}
                   </div>
                 </div>
               </div>
@@ -276,8 +310,9 @@ export default function SettingsPage() {
 
             {/* Save button */}
             {(active === "profile" || active === "experience" || active === "notifications") && (
-              <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={handleSave} style={{ background: saved ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--primary)", border: saved ? "1px solid color-mix(in srgb, var(--success) 19%, transparent)" : "none", color: saved ? "var(--success)" : "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 28px", borderRadius: 10, cursor: "pointer", transition: "all 0.2s", opacity: saving ? 0.7 : 1 }}>
+              <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                {saveError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{saveError}</div>}
+                <button onClick={handleSave} disabled={saving} style={{ background: saved ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--primary)", border: saved ? "1px solid color-mix(in srgb, var(--success) 19%, transparent)" : "none", color: saved ? "var(--success)" : "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 28px", borderRadius: 10, cursor: saving ? "not-allowed" : "pointer", transition: "all 0.2s", opacity: saving ? 0.7 : 1 }}>
                   {saving ? "Saving…" : saved ? "✓ Saved" : active === "experience" ? "Update Experience On-Chain" : "Save Changes"}
                 </button>
               </div>

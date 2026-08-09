@@ -1,25 +1,40 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
+import { useAccount } from "wagmi";
+import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
-import { Badge, TierBadge, StatusBadge, PatronTierBadge } from "@/components/ui/Badge";
-import { MOCK_WALLET, MOCK_TASKS, MOCK_WAVE } from "@/lib/mock";
-import { formatMUSD, TIERS } from "@/lib/constants";
-
-// Simulated role — in production derived from on-chain user profile
-const MOCK_ROLE = MOCK_WALLET.role;
+import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
+import { formatMUSD, TIERS, MUSD_DECIMALS } from "@/lib/constants";
+import { useWallet, formatAddress } from "@/lib/wallet-context";
+import { useAllTasks, useCurrentWave, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function DashboardPage() {
-  const myTasks = MOCK_TASKS.filter((t) =>
-    MOCK_ROLE === "creator" ? t.creator === MOCK_WALLET.address : t.assignee === MOCK_WALLET.address
+  const { address } = useAccount();
+  const { username, role, experienceLevel, tasksCompleted, totalEarned, githubVerified } = useWallet();
+  const displayUsername = username || formatAddress(address ?? "");
+
+  const { data: onchainTasks } = useAllTasks();
+  const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
+  const allTasks = useMemo(
+    () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
+    [onchainTasks, usersByAddress]
+  );
+
+  const myTasks = allTasks.filter((t) =>
+    role === "creator" ? (address && t.creator.toLowerCase() === address.toLowerCase()) : (address && t.assignee?.toLowerCase() === address.toLowerCase())
   );
   const activeTasks = myTasks.filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "GRANT_PENDING"].includes(t.status));
-  const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
-  const totalEscrowed = MOCK_ROLE === "creator"
+  const totalEscrowed = role === "creator"
     ? myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status)).reduce((s, t) => s + t.amount, 0)
     : 0;
 
-  const tier = TIERS[MOCK_WALLET.experienceLevel];
+  const { wave } = useCurrentWave();
+  const poolAmountHuman = Number(formatUnits(wave.poolAmount, MUSD_DECIMALS));
+
+  const tier = TIERS[experienceLevel] ?? TIERS[0];
+  const displayRole = role ?? "creator";
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -32,23 +47,23 @@ export default function DashboardPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 6 }}>Welcome back</div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{MOCK_WALLET.username}</h1>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{displayUsername}</h1>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Badge color={MOCK_ROLE === "creator" ? "orange" : MOCK_ROLE === "contributor" ? "purple" : "green"}>
-                  {MOCK_ROLE.charAt(0).toUpperCase() + MOCK_ROLE.slice(1)}
+                <Badge color={displayRole === "creator" ? "orange" : displayRole === "contributor" ? "purple" : "green"}>
+                  {displayRole.charAt(0).toUpperCase() + displayRole.slice(1)}
                 </Badge>
-                {MOCK_WALLET.githubVerified && <Badge color="green">GitHub Verified</Badge>}
-                {MOCK_ROLE === "contributor" && <TierBadge tier={MOCK_WALLET.experienceLevel} />}
+                {githubVerified && <Badge color="green">GitHub Verified</Badge>}
+                {displayRole === "contributor" && <TierBadge tier={experienceLevel} />}
               </div>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              {MOCK_ROLE === "creator" && (
+              {displayRole === "creator" && (
                 <Link href="/creator" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Creator Dashboard</Link>
               )}
-              {MOCK_ROLE === "contributor" && (
+              {displayRole === "contributor" && (
                 <Link href="/contributor" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Contributor Dashboard</Link>
               )}
-              {MOCK_ROLE === "investor" && (
+              {displayRole === "investor" && (
                 <Link href="/investor" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Patron Dashboard</Link>
               )}
             </div>
@@ -59,7 +74,7 @@ export default function DashboardPage() {
           <div>
             {/* Overview stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14, marginBottom: 36 }}>
-              {MOCK_ROLE === "creator" && [
+              {displayRole === "creator" && [
                 { label: "Tasks Posted",   value: String(myTasks.length),               color: "var(--primary)" },
                 { label: "Active",         value: String(activeTasks.length),            color: "var(--blue)" },
                 { label: "MUSD Escrowed", value: `${formatMUSD(totalEscrowed)}`,         color: "var(--success)" },
@@ -69,9 +84,9 @@ export default function DashboardPage() {
                   <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
                 </div>
               ))}
-              {MOCK_ROLE === "contributor" && [
-                { label: "Tasks Done",    value: String(MOCK_WALLET.tasksCompleted),              color: "var(--success)" },
-                { label: "Total Earned",  value: `${formatMUSD(MOCK_WALLET.totalEarned)} MUSD`,   color: "var(--primary)" },
+              {displayRole === "contributor" && [
+                { label: "Tasks Done",    value: String(tasksCompleted),              color: "var(--success)" },
+                { label: "Total Earned",  value: `${formatMUSD(totalEarned)} MUSD`,   color: "var(--primary)" },
                 { label: "Experience",    value: tier.label,                                       color: tier.color },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
@@ -85,7 +100,7 @@ export default function DashboardPage() {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>Recent Tasks</h2>
-                <Link href={MOCK_ROLE === "creator" ? "/creator" : "/contributor"} style={{ fontSize: 13, color: "var(--primary)", textDecoration: "none" }}>View all →</Link>
+                <Link href={displayRole === "creator" ? "/creator" : "/contributor"} style={{ fontSize: 13, color: "var(--primary)", textDecoration: "none" }}>View all →</Link>
               </div>
               {myTasks.slice(0, 5).length === 0 ? (
                 <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-dim)", fontSize: 14 }}>No tasks yet</div>
@@ -129,15 +144,15 @@ export default function DashboardPage() {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
                 <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "white" }}>
-                  {MOCK_WALLET.username.charAt(0).toUpperCase()}
+                  {displayUsername.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{MOCK_WALLET.username}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{MOCK_WALLET.address.slice(0, 10)}…</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{displayUsername}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{(address ?? "").slice(0, 10)}…</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <Link href={`/profile/${MOCK_WALLET.address}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                <Link href={`/profile/${address ?? ""}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                   <span>Public Profile</span><span style={{ color: "var(--primary)" }}>→</span>
                 </Link>
                 <Link href="/settings" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0" }}>
@@ -148,18 +163,18 @@ export default function DashboardPage() {
 
             {/* Wave info */}
             <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>Wave #{MOCK_WAVE.waveId}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>Wave #{wave.waveId}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Pool</span>
-                  <span style={{ color: "var(--primary)", fontWeight: 600 }}>{formatMUSD(MOCK_WAVE.poolAmount)} MUSD</span>
+                  <span style={{ color: "var(--primary)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Tasks this wave</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{MOCK_WAVE.totalTasks}</span>
+                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{wave.totalTasks}</span>
                 </div>
               </div>
-              {MOCK_ROLE === "creator" && (
+              {displayRole === "creator" && (
                 <Link href="/creator" style={{ display: "block", textAlign: "center", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, textDecoration: "none" }}>
                   Claim Reward
                 </Link>

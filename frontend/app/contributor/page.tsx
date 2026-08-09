@@ -1,34 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useAccount } from "wagmi";
 import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
-import { MOCK_TASKS, MOCK_LEADERBOARD } from "@/lib/mock";
 import { formatMUSD, TIERS } from "@/lib/constants";
-import { useWallet } from "@/lib/wallet-context";
-
-const CONTRIBUTOR = MOCK_LEADERBOARD[0];
-const APPLIED_IDS = [1, 3];
-const ACTIVE_ID = 3;
+import { useWallet, formatAddress } from "@/lib/wallet-context";
+import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function ContributorPage() {
   const { username, experienceLevel, tasksCompleted, totalEarned, connected, isRegistered } = useWallet();
+  const { address } = useAccount();
+  const { send } = useTaskifyTx();
   const [showAll, setShowAll] = useState(false);
-  const displayName = (connected && isRegistered && username) ? username : CONTRIBUTOR.username;
-  const myTier = (connected && isRegistered) ? experienceLevel : CONTRIBUTOR.experienceLevel;
+  const [tierChoice, setTierChoice] = useState(experienceLevel);
+  const [updatingTier, setUpdatingTier] = useState(false);
+  const [tierError, setTierError] = useState("");
+  const [submittingActive, setSubmittingActive] = useState(false);
+  const displayName = (connected && isRegistered && username) ? username : formatAddress(address ?? "");
+  const myTier = (connected && isRegistered) ? experienceLevel : 0;
 
-  const matchedTasks = MOCK_TASKS.filter(
-    (t) => t.status === "OPEN" && t.experienceMin <= myTier && t.experienceMax >= myTier
+  const { data: onchainTasks } = useAllTasks();
+  const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
+  const allTasks = useMemo(
+    () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
+    [onchainTasks, usersByAddress]
   );
-  const outOfRangeTasks = MOCK_TASKS.filter(
-    (t) => t.status === "OPEN" && !(t.experienceMin <= myTier && t.experienceMax >= myTier)
-  );
-  const appliedTasks = MOCK_TASKS.filter((t) => APPLIED_IDS.includes(t.id));
-  const activeTask = MOCK_TASKS.find((t) => t.id === ACTIVE_ID);
+
+  const openDevTasks = allTasks.filter(t => t.status === "OPEN" && t.kind === "development");
+  const matchedTasks = openDevTasks.filter((t) => t.experienceMin <= myTier && t.experienceMax >= myTier);
+  const outOfRangeTasks = openDevTasks.filter((t) => !(t.experienceMin <= myTier && t.experienceMax >= myTier));
+
+  const { data: appliedIds } = useAppliedTaskIds(openDevTasks.map(t => t.id), address);
+  const appliedTasks = allTasks.filter((t) => appliedIds?.includes(t.id));
+  const activeTask = allTasks.find((t) => t.assignee && address && t.assignee.toLowerCase() === address.toLowerCase() && ["ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status));
 
   const displayedExtra = showAll ? outOfRangeTasks : [];
+
+  async function handleUpdateTier() {
+    setUpdatingTier(true);
+    setTierError("");
+    try {
+      await send("updateExperience", [tierChoice]);
+    } catch (err) {
+      setTierError(err instanceof Error ? err.message : "Failed to update tier — check the 1-day cooldown.");
+    } finally {
+      setUpdatingTier(false);
+    }
+  }
+
+  async function handleSubmitActive() {
+    if (!activeTask) return;
+    setSubmittingActive(true);
+    try {
+      await send("submitTask", [BigInt(activeTask.id)]);
+    } catch {
+      // surfaced via task detail page on next visit
+    } finally {
+      setSubmittingActive(false);
+    }
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -39,15 +72,14 @@ export default function ContributorPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, var(--secondary), var(--secondary-light))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white" }}>
-              {CONTRIBUTOR.username.charAt(0).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>
-                {CONTRIBUTOR.githubVerified && <Badge color="green">GitHub Verified</Badge>}
                 <Badge color="purple">Contributor</Badge>
               </div>
-              <TierBadge tier={CONTRIBUTOR.experienceLevel} />
+              <TierBadge tier={myTier} />
             </div>
           </div>
           <Link href="/tasks" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none" }}>
@@ -58,8 +90,8 @@ export default function ContributorPage() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "Tasks Completed", value: String(connected && isRegistered ? tasksCompleted : CONTRIBUTOR.tasksCompleted), color: "var(--success)", icon: "✓" },
-            { label: "Total Earned",    value: `${formatMUSD(connected && isRegistered ? totalEarned : CONTRIBUTOR.totalEarned)} MUSD`, color: "var(--primary)", icon: "💰" },
+            { label: "Tasks Completed", value: String(tasksCompleted), color: "var(--success)", icon: "✓" },
+            { label: "Total Earned",    value: `${formatMUSD(totalEarned)} MUSD`, color: "var(--primary)", icon: "💰" },
             { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: "🏅" },
             { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "var(--blue)", icon: "🎯" },
           ].map(({ label, value, color, icon }) => (
@@ -85,8 +117,8 @@ export default function ContributorPage() {
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 16px" }}>{activeTask.title}</h3>
                   <div style={{ display: "flex", gap: 10 }}>
                     {activeTask.status === "IN_PROGRESS" && (
-                      <button style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
-                        Submit Work
+                      <button disabled={submittingActive} onClick={handleSubmitActive} style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, border: "none", cursor: submittingActive ? "not-allowed" : "pointer", opacity: submittingActive ? 0.7 : 1 }}>
+                        {submittingActive ? "Confirming…" : "Submit Work"}
                       </button>
                     )}
                     <Link href={`/tasks/${activeTask.id}`} style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
@@ -169,30 +201,33 @@ export default function ContributorPage() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Tasks Completed</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>{CONTRIBUTOR.tasksCompleted}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>{tasksCompleted}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Total Earned</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(CONTRIBUTOR.totalEarned)} MUSD</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(totalEarned)} MUSD</span>
                 </div>
               </div>
               <div style={{ height: 1, background: "var(--border)", margin: "16px 0" }} />
-              <Link href={`/profile/${CONTRIBUTOR.address}`} style={{ display: "block", textAlign: "center", color: "var(--secondary-light)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-                View public profile →
-              </Link>
+              {address && (
+                <Link href={`/profile/${address}`} style={{ display: "block", textAlign: "center", color: "var(--secondary-light)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                  View public profile →
+                </Link>
+              )}
             </div>
 
             {/* Update experience */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Update Experience</div>
               <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
-              <select defaultValue={myTier}
+              <select value={tierChoice} onChange={e => setTierChoice(Number(e.target.value))}
                 style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", cursor: "pointer", marginBottom: 10 }}>
                 {TIERS.map((t) => <option key={t.id} value={t.id}>{t.label} — {t.years}</option>)}
               </select>
-              <button style={{ width: "100%", background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "10px", borderRadius: 10, cursor: "pointer" }}>
-                Update Tier
+              <button disabled={updatingTier} onClick={handleUpdateTier} style={{ width: "100%", background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "10px", borderRadius: 10, cursor: updatingTier ? "not-allowed" : "pointer", opacity: updatingTier ? 0.7 : 1 }}>
+                {updatingTier ? "Confirming…" : "Update Tier"}
               </button>
+              {tierError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{tierError}</div>}
             </div>
           </div>
         </div>

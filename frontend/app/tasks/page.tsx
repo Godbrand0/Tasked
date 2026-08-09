@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
-import { MOCK_TASKS } from "@/lib/mock";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
+import { useAllTasks, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 const STATUS_FILTERS = ["All", "Open", "In Progress", "Submitted", "Completed"];
 const STATUS_MAP: Record<string, string[]> = {
@@ -25,7 +25,14 @@ export default function TasksPage() {
   const [fundingFilter, setFundingFilter] = useState<"all" | "self" | "grant">("all");
   const [kindFilter, setKindFilter] = useState<"all" | "development" | "community">("all");
 
-  const filtered = MOCK_TASKS.filter(t => {
+  const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
+  const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
+  const tasks = useMemo(
+    () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
+    [onchainTasks, usersByAddress]
+  );
+
+  const filtered = tasks.filter(t => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.tags?.some(tag => tag.toLowerCase().includes(search.toLowerCase()))) return false;
     if (statusFilter !== "All" && !STATUS_MAP[statusFilter].includes(t.status)) return false;
     if (kindFilter !== "all" && t.kind !== kindFilter) return false;
@@ -49,7 +56,7 @@ export default function TasksPage() {
             <div>
               <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
               <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>
-                {MOCK_TASKS.filter(t => t.status === "OPEN").length} open tasks · experience-matched on-chain
+                {tasks.filter(t => t.status === "OPEN").length} open tasks · experience-matched on-chain
               </p>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -138,7 +145,12 @@ export default function TasksPage() {
 
         {/* Task grid */}
         <main>
-          {filtered.length === 0 ? (
+          {tasksLoading ? (
+            <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-dim)" }}>
+              <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-muted)" }}>Loading tasks from Mezo…</div>
+            </div>
+          ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-dim)" }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
               <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>No tasks match your filters</div>

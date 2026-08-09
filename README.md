@@ -10,7 +10,7 @@ Two kinds of task live side by side on one board:
 - **Community tasks** — open to any registered wallet (memes, bug write-ups, social bounties — no code required). Anyone joins with a proof-of-participation link; the creator picks up to *N* winners and the escrow splits evenly between them in one transaction. X-verified.
 
 **Live Demo:** _coming soon_
-**Contract (Mezo Testnet):** _not yet deployed — see [Contract Addresses](#contract-addresses)_
+**Contract (Mezo Testnet):** [`0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb`](https://explorer.test.mezo.org/address/0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb) — see [Contract Addresses](#contract-addresses)
 
 ---
 
@@ -359,14 +359,15 @@ forge fmt --check
 
 ### 5. Deploy Contracts
 
+Already deployed to Mezo testnet at `0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb` (see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To redeploy your own instance:
+
 ```bash
 cd contracts
-PRIVATE_KEY=0x... \
-MUSD_ADDRESS=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503 \
-  forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
+cp .env.example .env   # fill in PRIVATE_KEY (funded via https://faucet.test.mezo.org)
+forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
 ```
 
-Omit `MUSD_ADDRESS`/`MEZO_ADDRESS` to have the script deploy `MockMUSD`/`MockMEZO` instead (MEZO has no official testnet deployment, so this is the default path there).
+Both `MUSD_ADDRESS` and `MEZO_ADDRESS` in `contracts/.env` default to the real Mezo testnet tokens — MEZO turned out to have a live deployment on testnet at the same address as mainnet, so no mock is needed on either token. Set them to `MockMUSD`/`MockMEZO` addresses instead if you want unlimited test balances without a faucet.
 
 ---
 
@@ -388,9 +389,13 @@ NEXT_PUBLIC_MEZO_CHAIN_ID=31611
 NEXT_PUBLIC_MEZO_RPC_URL=https://rpc.test.mezo.org
 NEXT_PUBLIC_MEZO_EXPLORER_URL=https://explorer.test.mezo.org
 
-# Token contracts (MUSD defaults to the real testnet address if unset)
+# Token contracts — both default to the real Mezo testnet deployments if unset
 NEXT_PUBLIC_MUSD_CONTRACT=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503
-NEXT_PUBLIC_MEZO_CONTRACT=   # set once you've deployed a MockMEZO (see Deploy.s.sol)
+NEXT_PUBLIC_MEZO_CONTRACT=0x7B7c000000000000000000000000000000000001
+
+# Taskify contract (see Contract Addresses) — required for every on-chain
+# read/write in the app; leave unset only if you haven't deployed yet.
+NEXT_PUBLIC_TASKIFY_CONTRACT=0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb
 ```
 
 ---
@@ -401,9 +406,9 @@ NEXT_PUBLIC_MEZO_CONTRACT=   # set once you've deployed a MockMEZO (see Deploy.s
 
 | Contract | Address |
 |---|---|
-| Taskify | _not yet deployed_ |
+| Taskify | `0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb` |
 | MUSD (official) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
-| MEZO | _no official testnet deployment — deploy `MockMEZO` per environment_ |
+| MEZO (official) | `0x7B7c000000000000000000000000000000000001` — same address as mainnet, live on testnet too |
 
 ### Mezo Mainnet (chain id `31612`)
 
