@@ -6,7 +6,7 @@ import { useWallet } from "@/lib/wallet-context";
 
 interface Notification {
   id: string;
-  type: "task_assigned" | "work_submitted" | "funds_released" | "grant_vote_opened" | "wave_reward_ready";
+  type: "task_assigned" | "work_submitted" | "funds_released" | "grant_vote_opened" | "wave_reward_ready" | "task_applied" | "community_task_joined";
   task_id: number | null;
   read: boolean;
   created_at: string;
@@ -18,6 +18,8 @@ const META: Record<Notification["type"], { icon: string; label: string }> = {
   funds_released: { icon: "💸", label: "Funds released" },
   grant_vote_opened: { icon: "🗳️", label: "Grant vote opened" },
   wave_reward_ready: { icon: "🌊", label: "Wave reward ready to claim" },
+  task_applied: { icon: "📝", label: "New applicant on your task" },
+  community_task_joined: { icon: "🙋", label: "Someone joined your community task" },
 };
 
 function timeAgo(iso: string): string {

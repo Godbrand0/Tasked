@@ -2,9 +2,9 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
+import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, TIERS, MUSD_DECIMALS } from "@/lib/constants";
 import { useAllTasks, useTaskifyUser, mapOnChainTask } from "@/lib/use-taskify";
@@ -70,13 +70,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
           <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, background: `radial-gradient(ellipse, ${tier.color}10 0%, transparent 70%)`, pointerEvents: "none" }} />
           <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
             {/* Avatar */}
-            <div style={{ width: 80, height: 80, borderRadius: 20, overflow: "hidden", position: "relative", background: avatarUrl ? "var(--surface-2)" : `linear-gradient(135deg, ${tier.color}, var(--secondary))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {avatarUrl ? (
-                <Image src={avatarUrl} alt={displayName} fill sizes="80px" style={{ objectFit: "cover" }} />
-              ) : (
-                displayName.charAt(0).toUpperCase()
-              )}
-            </div>
+            <Avatar src={avatarUrl} alt={displayName} size={80} radius={20} fontSize={32} gradient={`linear-gradient(135deg, ${tier.color}, var(--secondary))`} />
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
                 <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>

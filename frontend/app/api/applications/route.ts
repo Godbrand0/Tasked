@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notify } from "@/lib/notifications";
 
 // Development-task applications. applyForTask() on-chain only records
 // (taskId, applicant, timestamp) — the motivation text has nowhere on-chain
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
   const taskId = body?.taskId;
   const address = typeof body?.address === "string" ? body.address.toLowerCase() : null;
   const motivation = typeof body?.motivation === "string" ? body.motivation.trim() : "";
+  const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
 
   if (!taskId || !address || !motivation) {
     return NextResponse.json({ error: "taskId, address, and motivation are required" }, { status: 400 });
@@ -64,5 +66,10 @@ export async function POST(req: NextRequest) {
     const status = error.code === "23505" ? 409 : 500;
     return NextResponse.json({ error: error.code === "23505" ? "You've already applied to this task." : error.message }, { status });
   }
+
+  if (creatorAddress && creatorAddress !== address) {
+    await notify(creatorAddress, "task_applied", taskId);
+  }
+
   return NextResponse.json({ application: data }, { status: 201 });
 }

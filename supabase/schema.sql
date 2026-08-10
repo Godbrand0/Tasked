@@ -55,7 +55,8 @@ create type task_status as enum (
 create type funding_type as enum ('self', 'grant');
 create type task_kind as enum ('development', 'community');
 create type notification_type as enum (
-  'task_assigned', 'work_submitted', 'funds_released', 'grant_vote_opened', 'wave_reward_ready'
+  'task_assigned', 'work_submitted', 'funds_released', 'grant_vote_opened', 'wave_reward_ready',
+  'task_applied', 'community_task_joined'
 );
 
 -- ============================================================================
@@ -75,6 +76,7 @@ create table profiles (
   x_handle             text,
   x_display_name       text,
   x_avatar_url         text,
+  email                text, -- optional, opt-in; only used to mirror in-app notifications
   notification_prefs   jsonb not null default jsonb_build_object(
     'task_assigned', true,
     'work_submitted', true,

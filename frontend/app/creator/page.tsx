@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
+import Avatar from "@/components/ui/Avatar";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
@@ -67,10 +67,17 @@ export default function CreatorPage() {
     }
   }
 
-  async function handleApproveRelease(taskId: number) {
+  async function handleApproveRelease(taskId: number, assignee?: string) {
     setApprovingTaskId(taskId);
     try {
       await send("approveAndRelease", [BigInt(taskId)]);
+      if (assignee) {
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipient: assignee, type: "funds_released", taskId }),
+        }).catch(() => {});
+      }
     } catch {
       // errors surfaced on the task detail page
     } finally {
@@ -86,13 +93,7 @@ export default function CreatorPage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, overflow: "hidden", position: "relative", background: avatarUrl ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--primary-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {avatarUrl ? (
-                <Image src={avatarUrl} alt={displayUsername} fill sizes="52px" style={{ objectFit: "cover" }} />
-              ) : (
-                displayUsername.charAt(0).toUpperCase()
-              )}
-            </div>
+            <Avatar src={avatarUrl} alt={displayUsername} size={52} radius={14} fontSize={20} gradient="linear-gradient(135deg, var(--primary), var(--primary-strong))" />
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayUsername}</h1>
@@ -148,7 +149,7 @@ export default function CreatorPage() {
                           {task.status === "SUBMITTED" && (
                             <button
                               disabled={approvingTaskId === task.id}
-                              onClick={(e) => { e.preventDefault(); handleApproveRelease(task.id); }}
+                              onClick={(e) => { e.preventDefault(); handleApproveRelease(task.id, task.assignee); }}
                               style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: approvingTaskId === task.id ? "not-allowed" : "pointer", opacity: approvingTaskId === task.id ? 0.7 : 1 }}>
                               {approvingTaskId === task.id ? "Confirming…" : "Approve & Release"}
                             </button>

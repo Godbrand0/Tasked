@@ -8,6 +8,7 @@ import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "@/components/ui/NotificationBell";
 import BackButton from "@/components/ui/BackButton";
+import Avatar from "@/components/ui/Avatar";
 
 const NAV_LINKS = [
   { href: "/tasks", label: "Browse Tasks" },
@@ -138,15 +139,11 @@ export default function Navbar() {
                 <button
                   onClick={() => setDropdownOpen(o => !o)}
                   title={username}
-                  style={{ width: 38, height: 38, borderRadius: "50%", background: avatarUrl ? "var(--surface-2)" : `linear-gradient(135deg, ${roleColor}, ${roleColor}88)`, border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "white", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", overflow: "hidden", position: "relative", padding: 0 }}
+                  style={{ width: 42, height: 42, borderRadius: "50%", background: "none", border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", padding: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = roleColor)}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = `${roleColor}50`)}
                 >
-                  {avatarUrl ? (
-                    <Image src={avatarUrl} alt={username} fill sizes="38px" style={{ objectFit: "cover" }} />
-                  ) : (
-                    (username || "?").charAt(0).toUpperCase()
-                  )}
+                  <Avatar src={avatarUrl} alt={username} size={38} fontSize={15} gradient={`linear-gradient(135deg, ${roleColor}, ${roleColor}88)`} />
                 </button>
 
                 {dropdownOpen && (

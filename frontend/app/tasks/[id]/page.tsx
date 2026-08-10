@@ -2,10 +2,10 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
+import Avatar from "@/components/ui/Avatar";
 import { Badge, TierRangeBadge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, TIERS, TASK_STATUSES, MUSD_DECIMALS } from "@/lib/constants";
 import { MUSD_ADDRESS, statusToString } from "@/lib/taskify";
@@ -258,7 +258,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, address, motivation: motivation.trim() }),
+        body: JSON.stringify({ taskId: task.id, address, motivation: motivation.trim(), creatorAddress: task.creator }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to submit application");
@@ -271,12 +271,21 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
+  function notifyServer(recipient: string, type: "task_assigned" | "work_submitted" | "funds_released") {
+    fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient, type, taskId }),
+    }).catch(() => {});
+  }
+
   async function handleAssign(applicant: string) {
     if (!task) return;
     setTxBusy(true);
     setTxError("");
     try {
       await send("assignTask", [BigInt(task.id), applicant as `0x${string}`]);
+      notifyServer(applicant, "task_assigned");
       await refetchTask();
     } catch (err) {
       setTxError(err instanceof Error ? err.message : "Failed to assign task");
@@ -305,6 +314,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setTxError("");
     try {
       await send("submitTask", [BigInt(task.id)]);
+      notifyServer(task.creator, "work_submitted");
       await refetchTask();
     } catch (err) {
       setTxError(err instanceof Error ? err.message : "Failed to submit task");
@@ -319,6 +329,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setTxError("");
     try {
       await send("approveAndRelease", [BigInt(task.id)]);
+      if (task.assignee) notifyServer(task.assignee, "funds_released");
       await refetchTask();
     } catch (err) {
       setTxError(err instanceof Error ? err.message : "Failed to release funds");
@@ -430,7 +441,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim() }),
+        body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim(), creatorAddress: task.creator }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to join");
@@ -515,13 +526,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           {/* Meta row */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", fontSize: 13, color: "var(--text-dim)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", overflow: "hidden", position: "relative", background: creatorAvatar ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white", flexShrink: 0 }}>
-                {creatorAvatar ? (
-                  <Image src={creatorAvatar} alt={task.creatorUsername} fill sizes="26px" style={{ objectFit: "cover" }} />
-                ) : (
-                  task.creatorUsername.charAt(0).toUpperCase()
-                )}
-              </div>
+              <Avatar src={creatorAvatar} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
               <span>Posted by <strong style={{ color: "var(--text)" }}>{task.creatorUsername}</strong></span>
             </div>
             <span style={{ color: "var(--border-strong)" }}>·</span>
@@ -1133,13 +1138,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             <SideCard>
               <SideCardTitle>Creator</SideCardTitle>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", position: "relative", background: creatorAvatar ? "var(--surface-2)" : "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                  {creatorAvatar ? (
-                    <Image src={creatorAvatar} alt={task.creatorUsername} fill sizes="36px" style={{ objectFit: "cover" }} />
-                  ) : (
-                    task.creatorUsername.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <Avatar src={creatorAvatar} alt={task.creatorUsername} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{task.creatorUsername}</div>
                   <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Task creator</div>

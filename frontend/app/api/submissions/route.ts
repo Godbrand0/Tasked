@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notify } from "@/lib/notifications";
 
 // Community-task join + proof-of-participation link. Mirrors
 // joinCommunityTask() on-chain; see supabase/schema.sql: community_submissions.
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
   const taskId = body?.taskId;
   const address = typeof body?.address === "string" ? body.address.toLowerCase() : null;
   const proofUrl = typeof body?.proofUrl === "string" ? body.proofUrl.trim() : "";
+  const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
 
   if (!taskId || !address || !proofUrl) {
     return NextResponse.json({ error: "taskId, address, and proofUrl are required" }, { status: 400 });
@@ -82,6 +84,11 @@ export async function POST(req: NextRequest) {
     const status = error.code === "23505" ? 409 : 500;
     return NextResponse.json({ error: error.code === "23505" ? "You've already joined this task." : error.message }, { status });
   }
+
+  if (creatorAddress && creatorAddress !== address) {
+    await notify(creatorAddress, "community_task_joined", taskId);
+  }
+
   return NextResponse.json({ submission: data }, { status: 201 });
 }
 

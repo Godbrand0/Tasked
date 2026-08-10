@@ -10,8 +10,18 @@ import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
 
-const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: false, wave_reward_ready: true };
+const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: false, wave_reward_ready: true, task_applied: true, community_task_joined: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
+
+const NOTIF_ITEMS: { key: NotifKey; label: string; desc: string }[] = [
+  { key: "task_applied",          label: "New Applicant",     desc: "When someone applies to your task" },
+  { key: "community_task_joined", label: "Community Join",    desc: "When someone joins your community task" },
+  { key: "task_assigned",         label: "Task Assigned",     desc: "When a creator assigns you to a task" },
+  { key: "work_submitted",        label: "Work Submitted",    desc: "When a contributor submits work on your task" },
+  { key: "funds_released",        label: "Funds Released",    desc: "When MUSD is released to your wallet" },
+  { key: "grant_vote_opened",     label: "Grant Vote Opened", desc: "When a new grant application enters voting" },
+  { key: "wave_reward_ready",     label: "Wave Reward Ready", desc: "When a wave ends and your reward is claimable" },
+];
 
 type Section = "profile" | "experience" | "notifications" | "wallet" | "danger";
 
@@ -46,6 +56,7 @@ function SettingsPageInner() {
   const [loadError, setLoadError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [notifs, setNotifs] = useState<typeof DEFAULT_NOTIFS>(DEFAULT_NOTIFS);
+  const [email, setEmail] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
   const [xConnecting, setXConnecting] = useState(false);
@@ -105,9 +116,10 @@ function SettingsPageInner() {
     if (!address) return;
     fetch(`/api/profile?address=${address}`)
       .then(res => res.json())
-      .then((data: { profile: { bio?: string; notification_prefs?: Partial<typeof DEFAULT_NOTIFS> } | null }) => {
+      .then((data: { profile: { bio?: string; email?: string; notification_prefs?: Partial<typeof DEFAULT_NOTIFS> } | null }) => {
         if (!data.profile) return;
         if (typeof data.profile.bio === "string") setBio(data.profile.bio);
+        if (typeof data.profile.email === "string") setEmail(data.profile.email);
         if (data.profile.notification_prefs) setNotifs(n => ({ ...n, ...data.profile!.notification_prefs }));
       })
       .catch(() => setLoadError("Couldn't load saved settings."));
@@ -125,11 +137,13 @@ function SettingsPageInner() {
           body: JSON.stringify({ address, bio }),
         });
       } else if (active === "notifications") {
-        await fetch("/api/profile", {
+        const res = await fetch("/api/profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, notification_prefs: notifs }),
+          body: JSON.stringify({ address, notification_prefs: notifs, email }),
         });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error ?? "Failed to save");
       } else if (active === "experience" && expTier !== experienceLevel) {
         await send("updateExperience", [expTier]);
       }
@@ -272,15 +286,20 @@ function SettingsPageInner() {
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 8px" }}>Notifications</h2>
                 <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 24px" }}>Choose which on-chain events trigger notifications.</p>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
+                    Email <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional — also sends the events below by email)</span>
+                  </label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
+                    style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+                    onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
+                    onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
+                </div>
+
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  {[
-                    { key: "task_assigned" as NotifKey,     label: "Task Assigned",    desc: "When a creator assigns you to a task" },
-                    { key: "work_submitted" as NotifKey,    label: "Work Submitted",   desc: "When a contributor submits work on your task" },
-                    { key: "funds_released" as NotifKey,    label: "Funds Released",   desc: "When MUSD is released to your wallet" },
-                    { key: "grant_vote_opened" as NotifKey, label: "Grant Vote Opened", desc: "When a new grant application enters voting" },
-                    { key: "wave_reward_ready" as NotifKey, label: "Wave Reward Ready", desc: "When a wave ends and your reward is claimable" },
-                  ].map(({ key, label, desc }, i) => (
-                    <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
+                  {NOTIF_ITEMS.map(({ key, label, desc }, i) => (
+                    <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: i < NOTIF_ITEMS.length - 1 ? "1px solid var(--border)" : "none" }}>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{label}</div>
                         <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{desc}</div>

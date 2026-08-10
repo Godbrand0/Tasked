@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useAccount } from "wagmi";
 import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
+import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
@@ -57,6 +57,11 @@ export default function ContributorPage() {
     setSubmittingActive(true);
     try {
       await send("submitTask", [BigInt(activeTask.id)]);
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient: activeTask.creator, type: "work_submitted", taskId: activeTask.id }),
+      }).catch(() => {});
     } catch {
       // surfaced via task detail page on next visit
     } finally {
@@ -72,13 +77,7 @@ export default function ContributorPage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", position: "relative", background: avatarUrl ? "var(--surface-2)" : "linear-gradient(135deg, var(--secondary), var(--secondary-light))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "white", flexShrink: 0 }}>
-              {avatarUrl ? (
-                <Image src={avatarUrl} alt={displayName} fill sizes="52px" style={{ objectFit: "cover" }} />
-              ) : (
-                displayName.charAt(0).toUpperCase()
-              )}
-            </div>
+            <Avatar src={avatarUrl} alt={displayName} size={52} fontSize={20} gradient="linear-gradient(135deg, var(--secondary), var(--secondary-light))" />
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>
