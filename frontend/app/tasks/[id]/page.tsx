@@ -891,7 +891,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(c.createdAt)}</span>
                             </div>
                             <div style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.7, marginBottom: 8 }}>{c.body}</div>
-                            {connected && isRegistered && isContributor && (
+                            {connected && isRegistered && (
                               <button
                                 onClick={() => { setReplyingTo(replyingTo === c.id ? null : c.id); setReplyBody(""); }}
                                 style={{ background: "none", border: "none", color: replyingTo === c.id ? "var(--text)" : "var(--text-dim)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
@@ -955,7 +955,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   })}
                 </div>
 
-                {connected && isRegistered && isContributor ? (
+                {connected && isRegistered ? (
                   <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                     <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, var(--secondary-light), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
                       Y
