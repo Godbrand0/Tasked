@@ -219,6 +219,35 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     return () => { cancelled = true; };
   }, [task?.id, task?.kind]);
 
+  // Completes the X OAuth flow started from handleQuickXConnect below —
+  // must stay above the `if (!task) return` guard: every hook in this
+  // component has to run on every render regardless of whether task has
+  // loaded yet, or the hook count changes between the loading and loaded
+  // render and React throws (violates the rules of hooks).
+  useEffect(() => {
+    const handle = searchParams.get("x_handle");
+    const avatar = searchParams.get("x_avatar");
+    const error = searchParams.get("x_error");
+    if (handle) {
+      window.history.replaceState({}, "", `/tasks/${id}`);
+      setXConnecting(true);
+      setXConnectError("");
+      linkX(handle, avatar ?? undefined).catch((err) => {
+        setXConnectError(err instanceof Error ? err.message : "Failed to link X on-chain");
+      }).finally(() => setXConnecting(false));
+    }
+    if (error) {
+      window.history.replaceState({}, "", `/tasks/${id}`);
+      setXConnectError("X connection failed. Please try again.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, id]);
+
+  function handleQuickXConnect() {
+    setXConnectError("");
+    window.location.href = `/api/auth/x?return_to=${encodeURIComponent(`/tasks/${id}`)}`;
+  }
+
   if (!task) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -407,30 +436,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       setReplyingTo(null);
     }
   }
-
-  function handleQuickXConnect() {
-    setXConnectError("");
-    window.location.href = `/api/auth/x?return_to=${encodeURIComponent(`/tasks/${id}`)}`;
-  }
-
-  useEffect(() => {
-    const handle = searchParams.get("x_handle");
-    const avatar = searchParams.get("x_avatar");
-    const error = searchParams.get("x_error");
-    if (handle) {
-      window.history.replaceState({}, "", `/tasks/${id}`);
-      setXConnecting(true);
-      setXConnectError("");
-      linkX(handle, avatar ?? undefined).catch((err) => {
-        setXConnectError(err instanceof Error ? err.message : "Failed to link X on-chain");
-      }).finally(() => setXConnecting(false));
-    }
-    if (error) {
-      window.history.replaceState({}, "", `/tasks/${id}`);
-      setXConnectError("X connection failed. Please try again.");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, id]);
 
   async function handleJoinCommunity() {
     if (!proofUrl.trim() || !task || !address) return;

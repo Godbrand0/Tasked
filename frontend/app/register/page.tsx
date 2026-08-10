@@ -55,6 +55,8 @@ function RegisterPageInner() {
   const [xName, setXName] = useState("");
   const [xAvatar, setXAvatar] = useState("");
   const [xError, setXError] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
 
@@ -136,6 +138,13 @@ function RegisterPageInner() {
     setRegisterError("");
     try {
       await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), githubVerified, githubHandle, githubAvatar, xVerified, xHandle, xAvatar });
+      if (email.trim() && address) {
+        fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, email: email.trim() }),
+        }).catch(() => {});
+      }
       router.push("/dashboard");
     } catch (err) {
       setRegisterError(err instanceof Error ? err.message : "Registration failed. Please try again.");
@@ -234,6 +243,29 @@ function RegisterPageInner() {
       {/* ── Step: Details ── */}
       {step === "details" && selectedRole && (
         <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* Email — optional, off-chain, purely for notification delivery */}
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--surface-2)", border: "1px solid var(--border-strong)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Email <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>(optional)</span></div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Get notified when someone applies, submits, or your funds release</div>
+              </div>
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setEmailError(""); }}
+              placeholder="you@example.com"
+              style={{ width: "100%", background: "var(--surface-2)", border: `1px solid ${emailError ? "var(--danger)" : "var(--border)"}`, borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+              onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
+              onBlur={e => (e.target.style.borderColor = emailError ? "var(--danger)" : "var(--border)")}
+            />
+            {emailError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{emailError}</div>}
+          </div>
 
           {/* GitHub — connect this OR X below; at least one is required as your Taskify identity */}
           <div style={{ background: "var(--surface)", border: `1px solid ${githubVerified ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
@@ -361,7 +393,13 @@ function RegisterPageInner() {
             <button onClick={() => setStep("role")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button
               disabled={!hasIdentity || (role === "contributor" && experienceLevel < 0)}
-              onClick={() => setStep("confirm")}
+              onClick={() => {
+                if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+                  setEmailError("Enter a valid email address, or leave it blank.");
+                  return;
+                }
+                setStep("confirm");
+              }}
               style={{ flex: 2, background: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
               Review →
             </button>
@@ -379,6 +417,7 @@ function RegisterPageInner() {
               { label: "Role", value: selectedRole.title },
               ...(role === "contributor" ? [{ label: "Experience", value: `${TIERS[experienceLevel].label} (Tier ${experienceLevel})` }] : []),
               ...(xVerified ? [{ label: "X Account", value: `@${xHandle}` }] : []),
+              ...(email.trim() ? [{ label: "Email", value: email.trim() }] : []),
             ].map(({ label, value }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
                 <span style={{ fontSize: 14, color: "var(--text-dim)" }}>{label}</span>
