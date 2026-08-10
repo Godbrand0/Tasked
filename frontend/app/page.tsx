@@ -946,10 +946,15 @@ function Footer() {
             <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7, maxWidth: 280, margin: "0 0 16px" }}>
               The on-chain bounty board for the Mezo community. Trustless escrow, community grants, Development and Community tasks alike.
             </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }} />
               <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>Mezo Testnet</span>
             </div>
+            <a href="https://x.com/taskifyhq" target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", color: "var(--text-dim)" }}
+              aria-label="Taskify on X">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
           </div>
 
           {/* Link columns */}
