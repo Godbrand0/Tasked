@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notify } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   if (!supabaseAdmin) {
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest) {
   const address = typeof body?.address === "string" ? body.address.toLowerCase() : null;
   const text = typeof body?.body === "string" ? body.body.trim() : "";
   const replyTo = body?.replyTo ?? null;
+  const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
+  const taskTitle = typeof body?.taskTitle === "string" ? body.taskTitle : undefined;
 
   if (!taskId || !address || !text) {
     return NextResponse.json({ error: "taskId, address, and body are required" }, { status: 400 });
@@ -60,5 +63,19 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  if (replyTo) {
+    const { data: parent } = await supabaseAdmin
+      .from("task_comments")
+      .select("author_address")
+      .eq("id", replyTo)
+      .maybeSingle();
+    if (parent && parent.author_address !== address) {
+      await notify(parent.author_address, "comment_reply", taskId, { taskTitle, actorAddress: address });
+    }
+  } else if (creatorAddress && creatorAddress !== address) {
+    await notify(creatorAddress, "task_comment", taskId, { taskTitle, actorAddress: address });
+  }
+
   return NextResponse.json({ comment: data }, { status: 201 });
 }

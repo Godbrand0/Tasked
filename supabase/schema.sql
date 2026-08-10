@@ -56,7 +56,7 @@ create type funding_type as enum ('self', 'grant');
 create type task_kind as enum ('development', 'community');
 create type notification_type as enum (
   'task_assigned', 'work_submitted', 'funds_released', 'grant_vote_opened', 'wave_reward_ready',
-  'task_applied', 'community_task_joined'
+  'task_applied', 'community_task_joined', 'task_comment', 'comment_reply'
 );
 
 -- ============================================================================
@@ -82,7 +82,9 @@ create table profiles (
     'work_submitted', true,
     'funds_released', true,
     'grant_vote_opened', false,
-    'wave_reward_ready', true
+    'wave_reward_ready', true,
+    'task_comment', true,
+    'comment_reply', true
   ),
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()

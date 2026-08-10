@@ -57,6 +57,8 @@ export default function CreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [createdTaskId, setCreatedTaskId] = useState<number | null>(null);
+  const [descriptionSaveFailed, setDescriptionSaveFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fee = fundingType === "self" ? 0.03 : 0.05;
@@ -142,21 +144,32 @@ export default function CreatePage() {
         }
       }
 
+      setCreatedTaskId(taskId ?? null);
+
       // Best-effort — the task is already live on-chain regardless of
       // whether this off-chain write succeeds; a failure here just means
-      // the task shows no description until edited/retried.
+      // the task shows no description until edited/retried (the creator can
+      // add it from the task page — see the "Edit description" affordance
+      // in app/tasks/[id]/page.tsx).
       if (taskId !== undefined && description.trim()) {
-        fetch("/api/task-content", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId,
-            description: description.trim(),
-            tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-            githubRepoUrl: githubIssueData?.url || null,
-            grantJustification: fundingType === "grant" ? grantJustification.trim() : null,
-          }),
-        }).catch(() => {});
+        try {
+          const res = await fetch("/api/task-content", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId,
+              description: description.trim(),
+              tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+              githubRepoUrl: githubIssueData?.url || null,
+              grantJustification: fundingType === "grant" ? grantJustification.trim() : null,
+            }),
+          });
+          if (!res.ok) setDescriptionSaveFailed(true);
+        } catch {
+          setDescriptionSaveFailed(true);
+        }
+      } else if (taskId === undefined && description.trim()) {
+        setDescriptionSaveFailed(true);
       }
 
       setSubmitted(true);
@@ -218,8 +231,18 @@ export default function CreatePage() {
               ? `${numAmount.toLocaleString()} ${currency} is now locked in the Taskify contract. Your task is live in the bounty board.`
               : "Your grant application enters a 3-day community voting period. Patrons will vote using their MUSD + MEZO governance weight."}
           </p>
+          {descriptionSaveFailed && (
+            <div style={{ background: "var(--warning-tint, #fff3cd)", border: "1px solid var(--warning, #e0a100)", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-muted)", textAlign: "left" }}>
+              Your task is live on-chain, but the description couldn&apos;t be saved. {createdTaskId !== null ? "Open the task and add it from there." : "Try adding it again from the task page once it appears in the bounty board."}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/tasks" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>
+            {createdTaskId !== null && (
+              <Link href={`/tasks/${createdTaskId}`} style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>
+                View Your Task →
+              </Link>
+            )}
+            <Link href="/tasks" style={{ background: createdTaskId !== null ? "var(--neutral-tint)" : "var(--primary)", color: createdTaskId !== null ? "var(--text-muted)" : "var(--bg)", fontWeight: createdTaskId !== null ? 600 : 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none", border: createdTaskId !== null ? "1px solid var(--border)" : "none" }}>
               View Bounty Board
             </Link>
             <Link href="/creator" style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none", border: "1px solid var(--border)" }}>

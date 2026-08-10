@@ -68,6 +68,8 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
   const { task: onchainTask, isLoading: taskLoading, refetch: refetchTask } = useTaskifyTask(taskId);
   const { user: creatorUser } = useTaskifyUser(onchainTask?.creator);
+  const assigneeAddr = onchainTask?.assignee && onchainTask.assignee !== "0x0000000000000000000000000000000000000000" ? onchainTask.assignee : undefined;
+  const { user: assigneeUser } = useTaskifyUser(assigneeAddr);
   const { vote: grantVote, refetch: refetchGrantVote } = useGrantVote(taskId);
   const { applied: appliedOnchain, refetch: refetchApplied } = useTaskApplicantAppliedAt(taskId, address);
 
@@ -79,6 +81,39 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       .catch(() => {});
   }, [taskId]);
 
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [savingDescription, setSavingDescription] = useState(false);
+  const [descriptionSaveError, setDescriptionSaveError] = useState("");
+
+  async function saveDescription() {
+    if (!descriptionDraft.trim()) return;
+    setSavingDescription(true);
+    setDescriptionSaveError("");
+    try {
+      const res = await fetch("/api/task-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          description: descriptionDraft.trim(),
+          tags: offchainContent?.tags ?? [],
+          githubRepoUrl: offchainContent?.github_repo_url ?? null,
+          grantJustification: offchainContent?.grant_justification ?? null,
+          images: offchainContent?.images ?? [],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save description");
+      setOffchainContent(data.content);
+      setEditingDescription(false);
+    } catch (err) {
+      setDescriptionSaveError(err instanceof Error ? err.message : "Failed to save description");
+    } finally {
+      setSavingDescription(false);
+    }
+  }
+
   const [creatorAvatar, setCreatorAvatar] = useState("");
   useEffect(() => {
     if (!onchainTask?.creator) return;
@@ -89,6 +124,17 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       )
       .catch(() => {});
   }, [onchainTask?.creator]);
+
+  const [assigneeAvatar, setAssigneeAvatar] = useState("");
+  useEffect(() => {
+    if (!assigneeAddr) { setAssigneeAvatar(""); return; }
+    fetch(`/api/profile?address=${assigneeAddr}`)
+      .then(res => res.json())
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string } }) =>
+        setAssigneeAvatar(data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
+      )
+      .catch(() => {});
+  }, [assigneeAddr]);
 
   const task = onchainTask
     ? {
@@ -287,7 +333,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, address, motivation: motivation.trim(), creatorAddress: task.creator }),
+        body: JSON.stringify({ taskId: task.id, address, motivation: motivation.trim(), creatorAddress: task.creator, taskTitle: task.title }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to submit application");
@@ -304,7 +350,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipient, type, taskId }),
+      body: JSON.stringify({
+        recipient,
+        type,
+        taskId,
+        taskTitle: task?.title,
+        actorAddress: address,
+        amount: type === "funds_released" && task ? `${task.amount} MUSD` : undefined,
+      }),
     }).catch(() => {});
   }
 
@@ -403,7 +456,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, address, body, replyTo }),
+        body: JSON.stringify({ taskId: task.id, address, body, replyTo, creatorAddress: task.creator, taskTitle: task.title }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to post comment");
@@ -446,7 +499,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim(), creatorAddress: task.creator }),
+        body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim(), creatorAddress: task.creator, taskTitle: task.title }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to join");
@@ -567,13 +620,60 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           <div>
             {/* Description */}
             <Section title="Description">
-              {task.description ? (
-                <div style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.85, whiteSpace: "pre-wrap" }}>
-                  {task.description}
+              {editingDescription ? (
+                <div>
+                  <textarea
+                    value={descriptionDraft}
+                    onChange={e => setDescriptionDraft(e.target.value)}
+                    rows={8}
+                    style={{ width: "100%", fontSize: 14, fontFamily: "inherit", color: "var(--text)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, resize: "vertical" }}
+                  />
+                  {descriptionSaveError && (
+                    <div style={{ color: "var(--danger, #d64545)", fontSize: 13, marginTop: 6 }}>{descriptionSaveError}</div>
+                  )}
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button
+                      onClick={saveDescription}
+                      disabled={savingDescription || !descriptionDraft.trim()}
+                      style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "none", cursor: savingDescription ? "default" : "pointer", opacity: savingDescription || !descriptionDraft.trim() ? 0.6 : 1 }}
+                    >
+                      {savingDescription ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      onClick={() => { setEditingDescription(false); setDescriptionSaveError(""); }}
+                      style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : task.description ? (
+                <div>
+                  <div style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.85, whiteSpace: "pre-wrap" }}>
+                    {task.description}
+                  </div>
+                  {address?.toLowerCase() === task.creator.toLowerCase() && (
+                    <button
+                      onClick={() => { setDescriptionDraft(task.description); setEditingDescription(true); }}
+                      style={{ marginTop: 10, background: "none", border: "none", color: "var(--primary)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}
+                    >
+                      Edit description
+                    </button>
+                  )}
                 </div>
               ) : (
-                <div style={{ fontSize: 14, color: "var(--text-dim)", fontStyle: "italic" }}>
-                  No description was saved for this task.
+                <div>
+                  <div style={{ fontSize: 14, color: "var(--text-dim)", fontStyle: "italic", marginBottom: address?.toLowerCase() === task.creator.toLowerCase() ? 10 : 0 }}>
+                    No description was saved for this task.
+                  </div>
+                  {address?.toLowerCase() === task.creator.toLowerCase() && (
+                    <button
+                      onClick={() => { setDescriptionDraft(""); setEditingDescription(true); }}
+                      style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer" }}
+                    >
+                      Add description
+                    </button>
+                  )}
                 </div>
               )}
             </Section>
@@ -727,7 +827,9 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 )}
               </Section>
-            ) : isCreator ? (
+            ) : (
+              <>
+              {isTaskCreator && (
               <Section title={applicationsLoading ? "Applications" : `${applications.length} Application${applications.length !== 1 ? "s" : ""}`}>
                 {txError && (
                   <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 12 }}>{txError}</div>
@@ -763,8 +865,8 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 )}
               </Section>
-            ) : (
-              /* Contributor + visitor: comment thread */
+              )}
+              {/* Comments — visible to creator, contributor, and visitors */}
               <Section title={commentsLoading ? "Comments" : `${comments.length} Comment${comments.length !== 1 ? "s" : ""}`}>
                 {commentsLoading ? (
                   <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>Loading comments…</div>
@@ -885,6 +987,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 ) : null}
               </Section>
+              </>
             )}
           </div>
 
@@ -1136,6 +1239,20 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     </>
                   );
                 })()}
+              </SideCard>
+            )}
+
+            {/* Assignee — development tasks only, once assigned */}
+            {!isCommunity && assigneeAddr && (
+              <SideCard>
+                <SideCardTitle>Assigned To</SideCardTitle>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Avatar src={assigneeAvatar} alt={assigneeUser.username || formatAddress(assigneeAddr)} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--secondary-light), var(--secondary))" />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{assigneeUser.username || formatAddress(assigneeAddr)}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{isAssignee ? "You" : "Contributor"}</div>
+                  </div>
+                </div>
               </SideCard>
             )}
 

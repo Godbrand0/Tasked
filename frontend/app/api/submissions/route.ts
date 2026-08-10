@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
   const address = typeof body?.address === "string" ? body.address.toLowerCase() : null;
   const proofUrl = typeof body?.proofUrl === "string" ? body.proofUrl.trim() : "";
   const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
+  const taskTitle = typeof body?.taskTitle === "string" ? body.taskTitle : undefined;
 
   if (!taskId || !address || !proofUrl) {
     return NextResponse.json({ error: "taskId, address, and proofUrl are required" }, { status: 400 });
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (creatorAddress && creatorAddress !== address) {
-    await notify(creatorAddress, "community_task_joined", taskId);
+    await notify(creatorAddress, "community_task_joined", taskId, { taskTitle, actorAddress: address });
   }
 
   return NextResponse.json({ submission: data }, { status: 201 });

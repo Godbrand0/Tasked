@@ -14,11 +14,14 @@ export async function POST(req: NextRequest) {
   const recipient = typeof body?.recipient === "string" ? body.recipient : null;
   const type = typeof body?.type === "string" ? (body.type as NotificationType) : null;
   const taskId = typeof body?.taskId === "number" ? body.taskId : undefined;
+  const taskTitle = typeof body?.taskTitle === "string" ? body.taskTitle : undefined;
+  const amount = typeof body?.amount === "string" ? body.amount : undefined;
+  const actorAddress = typeof body?.actorAddress === "string" ? body.actorAddress : undefined;
 
   if (!recipient || !type || !ALLOWED_TYPES.includes(type)) {
     return NextResponse.json({ error: "recipient and a valid type are required" }, { status: 400 });
   }
 
-  await notify(recipient, type, taskId);
+  await notify(recipient, type, taskId, { taskTitle, amount, actorAddress });
   return NextResponse.json({ ok: true });
 }
