@@ -140,37 +140,35 @@ export default function TasksPage() {
 
           {/* Status */}
           <FilterGroup label="Status">
-            {STATUS_FILTERS.map(s => (
-              <FilterBtn key={s} active={statusFilter === s} onClick={() => setStatusFilter(s)}>{s}</FilterBtn>
-            ))}
+            <FilterSelect value={statusFilter} onChange={setStatusFilter}>
+              {STATUS_FILTERS.map(s => <option key={s} value={s}>{s}</option>)}
+            </FilterSelect>
           </FilterGroup>
 
           {/* Task type */}
           <FilterGroup label="Task Type">
-            {(["all", "development", "community"] as const).map(k => (
-              <FilterBtn key={k} active={kindFilter === k} onClick={() => setKindFilter(k)}>
-                {k === "all" ? "All Tasks" : k === "development" ? "💻 Development" : "📣 Community"}
-              </FilterBtn>
-            ))}
+            <FilterSelect value={kindFilter} onChange={v => setKindFilter(v as typeof kindFilter)}>
+              <option value="all">All Tasks</option>
+              <option value="development">💻 Development</option>
+              <option value="community">📣 Community</option>
+            </FilterSelect>
           </FilterGroup>
 
           {/* Experience — development-only concept */}
           <FilterGroup label="Experience Level">
-            <FilterBtn active={tierFilter === null} onClick={() => setTierFilter(null)}>All Levels</FilterBtn>
-            {TIERS.map(tier => (
-              <FilterBtn key={tier.id} active={tierFilter === tier.id} onClick={() => setTierFilter(tier.id)} color={tierFilter === tier.id ? tier.color : undefined} bg={tierFilter === tier.id ? tier.bg : undefined}>
-                {tier.label}
-              </FilterBtn>
-            ))}
+            <FilterSelect value={tierFilter === null ? "all" : String(tierFilter)} onChange={v => setTierFilter(v === "all" ? null : Number(v))}>
+              <option value="all">All Levels</option>
+              {TIERS.map(tier => <option key={tier.id} value={tier.id}>{tier.label}</option>)}
+            </FilterSelect>
           </FilterGroup>
 
           {/* Funding */}
           <FilterGroup label="Funding">
-            {(["all", "self", "grant"] as const).map(f => (
-              <FilterBtn key={f} active={fundingFilter === f} onClick={() => setFundingFilter(f)}>
-                {f === "all" ? "All" : f === "self" ? "Self-Funded" : "Grant-Funded"}
-              </FilterBtn>
-            ))}
+            <FilterSelect value={fundingFilter} onChange={v => setFundingFilter(v as typeof fundingFilter)}>
+              <option value="all">All</option>
+              <option value="self">Self-Funded</option>
+              <option value="grant">Grant-Funded</option>
+            </FilterSelect>
           </FilterGroup>
         </aside>
 
@@ -213,18 +211,18 @@ export default function TasksPage() {
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{label}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>{children}</div>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>
+      {children}
     </div>
   );
 }
 
-function FilterBtn({ active, onClick, children, color, bg }: { active: boolean; onClick: () => void; children: React.ReactNode; color?: string; bg?: string }) {
+function FilterSelect({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick}
-      style={{ background: active ? (bg ?? "color-mix(in srgb, var(--primary) 9%, transparent)") : "transparent", border: `1px solid ${active ? (color ?? "var(--primary)") + "30" : "transparent"}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, color: active ? (color ?? "var(--primary)") : "var(--text-muted)", fontWeight: active ? 600 : 400, textAlign: "left", transition: "all 0.15s" }}>
+    <select value={value} onChange={e => onChange(e.target.value)}
+      style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
       {children}
-    </button>
+    </select>
   );
 }

@@ -33,7 +33,7 @@ function TaskedLogo() {
       <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", flexShrink: 0, position: "relative" }}>
         <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
       </div>
-      <span style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
+      <span className="hidden sm:inline" style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
     </Link>
   );
 }
@@ -231,22 +231,13 @@ export default function Navbar() {
             </div>
           )}
           {connected && isRegistered && (
-            <>
-              <div style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
-                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
-                <span style={{ color: "var(--border-strong)" }}>·</span>
-                <span style={{ color: "var(--secondary-light)" }}>{formatBalance(mezoBalance)}</span>
-                <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MEZO</span>
-              </div>
-              <Link href={dashboardHref} style={{ padding: "10px 12px", borderRadius: 8, color: "var(--text-soft)", fontSize: 15, textDecoration: "none" }}>🎯 My Dashboard</Link>
-              <Link href="/settings" style={{ padding: "10px 12px", borderRadius: 8, color: "var(--text-soft)", fontSize: 15, textDecoration: "none" }}>⚙️ Settings</Link>
-              <button
-                onClick={() => { disconnect(); router.push("/"); }}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, fontSize: 15, color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
-                Disconnect
-              </button>
-            </>
+            <div style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
+              <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
+              <span style={{ color: "var(--border-strong)" }}>·</span>
+              <span style={{ color: "var(--secondary-light)" }}>{formatBalance(mezoBalance)}</span>
+              <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MEZO</span>
+            </div>
           )}
           {!connected && (
             <button onClick={connect} style={{ marginTop: 8, padding: "10px 12px", borderRadius: 8, color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", fontSize: 15, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>

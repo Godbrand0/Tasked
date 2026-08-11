@@ -161,7 +161,7 @@ function LandingNavbar() {
           <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", position: "relative", flexShrink: 0 }}>
             <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
           </div>
-          <span style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
+          <span className="hidden sm:inline" style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
         </div>
 
         <div style={{ alignItems: "center", gap: 32 }} className="hidden sm:flex">
