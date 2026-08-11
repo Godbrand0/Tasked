@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
@@ -27,9 +27,40 @@ export default function TasksPage() {
 
   const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
-  const tasks = useMemo(
+  const baseTasks = useMemo(
     () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
     [onchainTasks, usersByAddress]
+  );
+
+  const [submissionCounts, setSubmissionCounts] = useState<Record<number, number>>({});
+  const [applicantCounts, setApplicantCounts] = useState<Record<number, number>>({});
+
+  const communityTaskIds = useMemo(() => baseTasks.filter(t => t.kind === "community").map(t => t.id).join(","), [baseTasks]);
+  const developmentTaskIds = useMemo(() => baseTasks.filter(t => t.kind === "development").map(t => t.id).join(","), [baseTasks]);
+
+  useEffect(() => {
+    if (!communityTaskIds) return;
+    fetch(`/api/submissions/counts?taskIds=${communityTaskIds}`)
+      .then(res => res.json())
+      .then((data: { counts?: Record<number, number> }) => setSubmissionCounts(data.counts ?? {}))
+      .catch(() => {});
+  }, [communityTaskIds]);
+
+  useEffect(() => {
+    if (!developmentTaskIds) return;
+    fetch(`/api/applications/counts?taskIds=${developmentTaskIds}`)
+      .then(res => res.json())
+      .then((data: { counts?: Record<number, number> }) => setApplicantCounts(data.counts ?? {}))
+      .catch(() => {});
+  }, [developmentTaskIds]);
+
+  const tasks = useMemo(
+    () => baseTasks.map(t => ({
+      ...t,
+      submissionCount: t.kind === "community" ? (submissionCounts[t.id] ?? 0) : undefined,
+      applicantCount: t.kind === "development" ? (applicantCounts[t.id] ?? 0) : undefined,
+    })),
+    [baseTasks, submissionCounts, applicantCounts]
   );
 
   const filtered = tasks.filter(t => {

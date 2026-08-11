@@ -56,7 +56,8 @@ export interface Task {
   images?: string[];
   grantJustification?: string;
   comments?: TaskComment[];
-  submissions?: TaskSubmission[]; // community only — proof-of-participation links
+  submissionCount?: number; // community only — total participants, from a batched count fetch (list pages)
+  submissions?: TaskSubmission[]; // community only — proof-of-participation links (task detail page, full rows)
   winners?: string[]; // community only — addresses paid once selectWinners runs
 }
 

@@ -38,7 +38,10 @@ export default function TaskCard({ task }: { task: Task }) {
             <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
           </div>
           {task.kind === "community"
-            ? <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{task.submissions?.length ?? 0} participant{(task.submissions?.length ?? 0) !== 1 ? "s" : ""}</span>
+            ? (() => {
+                const count = task.submissionCount ?? task.submissions?.length ?? 0;
+                return <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{count} participant{count !== 1 ? "s" : ""}</span>;
+              })()
             : task.applicantCount !== undefined && (
               <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{task.applicantCount} applicant{task.applicantCount !== 1 ? "s" : ""}</span>
             )}
