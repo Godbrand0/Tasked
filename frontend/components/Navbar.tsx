@@ -43,13 +43,18 @@ export default function Navbar() {
   const router = useRouter();
   const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, avatarUrl, connect, disconnect } = useWallet();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const addressDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (addressDropdownRef.current && !addressDropdownRef.current.contains(e.target as Node)) {
+        setAddressDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handler);
@@ -113,9 +118,33 @@ export default function Navbar() {
           ) : !isRegistered ? (
             /* Connected, not registered */
             <>
-              <div className="hidden sm:flex" style={{ alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
-                {formatAddress(address)}
+              <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden sm:block">
+                <button
+                  onClick={() => setAddressDropdownOpen(o => !o)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer" }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
+                  {formatAddress(address)}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: addressDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
+
+                {addressDropdownOpen && (
+                  <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                    <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
+                      {address}
+                    </div>
+                    <button
+                      onClick={() => { disconnect(); setAddressDropdownOpen(false); }}
+                      className="wallet-dropdown-item"
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, fontSize: 13, color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", width: "100%", textAlign: "left", transition: "background 0.1s" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      Disconnect & switch account
+                    </button>
+                  </div>
+                )}
               </div>
               <Link href="/register" style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
                 Launch App
@@ -225,9 +254,14 @@ export default function Navbar() {
             </Link>
           )}
           {connected && !isRegistered && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "10px 12px" }}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
-              {formatAddress(address)}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)" }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
+                {formatAddress(address)}
+              </div>
+              <button onClick={disconnect} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+                Disconnect
+              </button>
             </div>
           )}
           {connected && isRegistered && (
