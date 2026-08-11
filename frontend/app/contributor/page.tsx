@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import Navbar from "@/components/Navbar";
@@ -37,6 +37,25 @@ export default function ContributorPage() {
   const { data: appliedIds } = useAppliedTaskIds(openDevTasks.map(t => t.id), address);
   const appliedTasks = allTasks.filter((t) => appliedIds?.includes(t.id));
   const activeTask = allTasks.find((t) => t.assignee && address && t.assignee.toLowerCase() === address.toLowerCase() && ["ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status));
+
+  // task.assignee is never set for community tasks — winners are paid
+  // directly via selectWinners(), not assigned — so wins there have to be
+  // looked up from community_submissions instead of on-chain task data.
+  const [wonCommunityTaskIds, setWonCommunityTaskIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (!address) return;
+    fetch(`/api/submissions?address=${address}`)
+      .then(res => res.json())
+      .then((data: { submissions?: { task_id: number }[] }) =>
+        setWonCommunityTaskIds(new Set((data.submissions ?? []).map(s => s.task_id)))
+      )
+      .catch(() => {});
+  }, [address]);
+
+  const completedTasks = allTasks.filter(t =>
+    t.status === "FUNDS_RELEASED" &&
+    ((t.assignee && address && t.assignee.toLowerCase() === address.toLowerCase()) || wonCommunityTaskIds.has(t.id))
+  );
 
   const displayedExtra = showAll ? outOfRangeTasks : [];
 
@@ -129,6 +148,29 @@ export default function ContributorPage() {
                       View Task
                     </Link>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Completed */}
+            {completedTasks.length > 0 && (
+              <div style={{ marginBottom: 36 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>Completed</h2>
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{completedTasks.length} task{completedTasks.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {completedTasks.map((task) => (
+                    <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
+                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, opacity: 0.7 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{task.title}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token} earned</div>
+                        </div>
+                        <StatusBadge status={task.status} />
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
             )}

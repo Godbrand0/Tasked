@@ -14,6 +14,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const { user, isLoading: userLoading } = useTaskifyUser(address);
   const { data: onchainTasks } = useAllTasks();
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [wonCommunityTaskIds, setWonCommunityTaskIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetch(`/api/profile?address=${address}`)
@@ -24,11 +25,23 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
       .catch(() => {});
   }, [address]);
 
+  // task.assignee is never set for community tasks — winners are paid
+  // directly via selectWinners(), not assigned — so wins there have to be
+  // looked up from community_submissions instead of on-chain task data.
+  useEffect(() => {
+    fetch(`/api/submissions?address=${address}`)
+      .then((res) => res.json())
+      .then((data: { submissions?: { task_id: number }[] }) =>
+        setWonCommunityTaskIds(new Set((data.submissions ?? []).map(s => s.task_id)))
+      )
+      .catch(() => {});
+  }, [address]);
+
   const myTasks = useMemo(
     () => (onchainTasks ?? [])
-      .filter(t => t.assignee?.toLowerCase() === address.toLowerCase())
+      .filter(t => t.assignee?.toLowerCase() === address.toLowerCase() || wonCommunityTaskIds.has(t.id))
       .map(t => mapOnChainTask(t, user.username)),
-    [onchainTasks, address, user.username]
+    [onchainTasks, address, user.username, wonCommunityTaskIds]
   );
   const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
   const appliedTasks = myTasks.filter((t) => t.status !== "FUNDS_RELEASED");

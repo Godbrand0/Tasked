@@ -35,15 +35,23 @@ export async function GET(req: NextRequest) {
   }
 
   const taskId = req.nextUrl.searchParams.get("taskId");
-  if (!taskId) {
-    return NextResponse.json({ error: "taskId query param is required" }, { status: 400 });
+  const address = req.nextUrl.searchParams.get("address");
+  if (!taskId && !address) {
+    return NextResponse.json({ error: "taskId or address query param is required" }, { status: 400 });
   }
 
-  const { data, error } = await supabaseAdmin
+  // task.assignee is never set for community tasks (winners are paid
+  // directly, not assigned) — so a person's won community tasks can only
+  // be found here, keyed by participant address, not by walking on-chain
+  // task data. Used by the profile/contributor pages to fill in completed
+  // community tasks that on-chain assignee-based filtering would miss.
+  let query = supabaseAdmin
     .from("community_submissions")
     .select("task_id, participant_address, proof_url, joined_at, is_winner, payout_tx_hash")
-    .eq("task_id", taskId)
     .order("joined_at", { ascending: true });
+  query = taskId ? query.eq("task_id", taskId) : query.eq("participant_address", address!.toLowerCase()).eq("is_winner", true);
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
