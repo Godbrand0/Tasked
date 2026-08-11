@@ -40,7 +40,11 @@ export interface WalletState {
   xVerified: boolean;
   xHandle: string;
   xAvatar: string;
-  /** githubAvatar if connected, else xAvatar — for UI spots that only show one avatar. */
+  googleVerified: boolean;
+  googleEmail: string;
+  googleName: string;
+  googleAvatar: string;
+  /** googleAvatar if connected, else githubAvatar, else xAvatar — for UI spots that only show one avatar. */
   avatarUrl: string;
   experienceLevel: number;
   tasksCompleted: number;
@@ -54,15 +58,17 @@ interface WalletContextValue extends WalletState {
     username: string;
     role: UserRole;
     experienceLevel: number;
-    githubVerified: boolean;
-    githubHandle: string;
-    githubAvatar?: string;
-    xVerified?: boolean;
-    xHandle?: string;
-    xAvatar?: string;
+    googleEmail: string;
+    googleName?: string;
+    googleAvatar?: string;
   }) => Promise<void>;
   linkX: (handle: string, avatar?: string) => Promise<void>;
   unlinkX: () => Promise<void>;
+  /** Off-chain only — there's no on-chain setGithubVerified, unlike X's setXVerified. */
+  linkGithub: (handle: string, avatar?: string) => Promise<void>;
+  unlinkGithub: () => Promise<void>;
+  /** Off-chain only — for legacy accounts registered before Google existed. */
+  linkGoogle: (email: string, name?: string, avatar?: string) => Promise<void>;
 }
 
 const WalletCtx = createContext<WalletContextValue | null>(null);
@@ -83,6 +89,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [githubAvatar, setGithubAvatar] = useState("");
   const [xHandle, setXHandle] = useState("");
   const [xAvatar, setXAvatar] = useState("");
+  const [googleEmail, setGoogleEmail] = useState("");
+  const [googleName, setGoogleName] = useState("");
+  const [googleAvatar, setGoogleAvatar] = useState("");
 
   useEffect(() => {
     if (!address) {
@@ -90,15 +99,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setGithubAvatar("");
       setXHandle("");
       setXAvatar("");
+      setGoogleEmail("");
+      setGoogleName("");
+      setGoogleAvatar("");
       return;
     }
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string } }) => {
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string; google_email?: string; google_name?: string; google_avatar_url?: string } }) => {
         setGithubHandle(data.profile?.github_handle ?? "");
         setGithubAvatar(data.profile?.github_avatar_url ?? "");
         setXHandle(data.profile?.x_handle ?? "");
         setXAvatar(data.profile?.x_avatar_url ?? "");
+        setGoogleEmail(data.profile?.google_email ?? "");
+        setGoogleName(data.profile?.google_name ?? "");
+        setGoogleAvatar(data.profile?.google_avatar_url ?? "");
       })
       .catch(() => {});
   }, [address]);
@@ -149,30 +164,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     username: string;
     role: UserRole;
     experienceLevel: number;
-    githubVerified: boolean;
-    githubHandle: string;
-    githubAvatar?: string;
-    xVerified?: boolean;
-    xHandle?: string;
-    xAvatar?: string;
+    googleEmail: string;
+    googleName?: string;
+    googleAvatar?: string;
   }) {
     if (!address) throw new Error("No wallet connected");
-    await send("registerUser", [
-      data.username,
-      ROLE_ID[data.role],
-      data.experienceLevel,
-      data.githubVerified,
-      data.xVerified ?? false,
-    ]);
-    setGithubHandle(data.githubHandle);
-    setGithubAvatar(data.githubAvatar ?? "");
-    setXHandle(data.xHandle ?? "");
-    setXAvatar(data.xAvatar ?? "");
+    // GitHub/X are no longer collected at registration — both on-chain
+    // flags start false; linkGithub/linkX set them (or the off-chain
+    // equivalent) afterward, from Settings.
+    await send("registerUser", [data.username, ROLE_ID[data.role], data.experienceLevel, false, false]);
+    setGoogleEmail(data.googleEmail);
+    setGoogleName(data.googleName ?? "");
+    setGoogleAvatar(data.googleAvatar ?? "");
     syncProfile(address, {
-      github_handle: data.githubHandle || null,
-      github_avatar_url: data.githubAvatar || null,
-      x_handle: data.xHandle || null,
-      x_avatar_url: data.xAvatar || null,
+      google_email: data.googleEmail || null,
+      google_name: data.googleName || null,
+      google_avatar_url: data.googleAvatar || null,
     });
     await refetchUser();
   }
@@ -198,6 +205,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await refetchUser();
   }
 
+  // GitHub has no on-chain setGithubVerified (unlike X) — the on-chain flag
+  // is only ever set at registration time, and stays whatever it was set to
+  // then. A post-registration link is purely off-chain; "verified" status
+  // for display purposes is derived below from either source.
+  async function linkGithub(handle: string, avatar?: string) {
+    if (!address) return;
+    setGithubHandle(handle);
+    setGithubAvatar(avatar ?? "");
+    syncProfile(address, { github_handle: handle, github_avatar_url: avatar || null });
+  }
+
+  async function unlinkGithub() {
+    if (!address) return;
+    setGithubHandle("");
+    setGithubAvatar("");
+    syncProfile(address, { github_handle: null, github_avatar_url: null });
+  }
+
+  // Off-chain only, same as linkGithub — for accounts registered before
+  // Google became the required identity, linking it after the fact from
+  // Settings rather than at registration time.
+  async function linkGoogle(email: string, name?: string, avatar?: string) {
+    if (!address) return;
+    setGoogleEmail(email);
+    setGoogleName(name ?? "");
+    setGoogleAvatar(avatar ?? "");
+    syncProfile(address, { google_email: email, google_name: name || null, google_avatar_url: avatar || null });
+  }
+
   const value: WalletContextValue = {
     connected: isConnected,
     address: address ?? "",
@@ -206,13 +242,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     username: onchainUser.username,
     role: onchainUser.role ? roleToString(onchainUser.role) as UserRole : null,
     isRegistered: onchainUser.role !== 0,
-    githubVerified: onchainUser.githubVerified,
+    // GitHub can be linked entirely off-chain post-registration (no
+    // setGithubVerified on-chain), so "verified" for display purposes has
+    // to check both the on-chain flag (legacy/registration-time) and the
+    // off-chain handle (linked later from Settings).
+    githubVerified: onchainUser.githubVerified || Boolean(githubHandle),
     githubHandle,
     githubAvatar,
     xVerified: onchainUser.xVerified,
     xHandle,
     xAvatar,
-    avatarUrl: githubAvatar || xAvatar,
+    googleVerified: Boolean(googleEmail),
+    googleEmail,
+    googleName,
+    googleAvatar,
+    avatarUrl: googleAvatar || githubAvatar || xAvatar,
     experienceLevel: onchainUser.experienceLevel,
     tasksCompleted: onchainUser.tasksCompleted,
     totalEarned: Number(formatUnits(onchainUser.totalEarned, MUSD_DECIMALS)),
@@ -221,6 +265,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     register,
     linkX,
     unlinkX,
+    linkGithub,
+    unlinkGithub,
+    linkGoogle,
   };
 
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;

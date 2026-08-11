@@ -4,7 +4,7 @@ export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(new URL("/register?github_error=no_code", req.url));
+    return NextResponse.redirect(new URL("/settings?github_error=no_code", req.url));
   }
 
   // Exchange code for access token
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const tokenData = await tokenRes.json();
 
   if (tokenData.error || !tokenData.access_token) {
-    return NextResponse.redirect(new URL("/register?github_error=token_exchange", req.url));
+    return NextResponse.redirect(new URL("/settings?github_error=token_exchange", req.url));
   }
 
   // Fetch the authenticated user's profile
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!userRes.ok) {
-    return NextResponse.redirect(new URL("/register?github_error=profile_fetch", req.url));
+    return NextResponse.redirect(new URL("/settings?github_error=profile_fetch", req.url));
   }
 
   const user = await userRes.json();
@@ -48,5 +48,5 @@ export async function GET(req: NextRequest) {
     github_avatar: user.avatar_url ?? "",
   });
 
-  return NextResponse.redirect(new URL(`/register?${params}`, req.url));
+  return NextResponse.redirect(new URL(`/settings?${params}`, req.url));
 }

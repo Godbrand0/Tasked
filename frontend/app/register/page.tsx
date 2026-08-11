@@ -45,16 +45,11 @@ function RegisterPageInner() {
   const [step, setStep] = useState<Step>(connected ? "identity" : "wallet");
   const [role, setRole] = useState<UserRole | null>(null);
   const [experienceLevel, setExperienceLevel] = useState(-1); // -1 = not yet chosen; 0 ("Newcomer") is a valid, falsy tier so it can't double as "unset"
-  const [githubVerified, setGithubVerified] = useState(false);
-  const [githubHandle, setGithubHandle] = useState("");
-  const [githubName, setGithubName] = useState("");
-  const [githubAvatar, setGithubAvatar] = useState("");
-  const [githubError, setGithubError] = useState("");
-  const [xVerified, setXVerified] = useState(false);
-  const [xHandle, setXHandle] = useState("");
-  const [xName, setXName] = useState("");
-  const [xAvatar, setXAvatar] = useState("");
-  const [xError, setXError] = useState("");
+  const [googleVerified, setGoogleVerified] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState("");
+  const [googleName, setGoogleName] = useState("");
+  const [googleAvatar, setGoogleAvatar] = useState("");
+  const [googleError, setGoogleError] = useState("");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -74,70 +69,44 @@ function RegisterPageInner() {
     prevConnected.current = connected;
   }, [connected, step]);
 
-  // Read GitHub profile back from OAuth callback redirect
+  // Read Google profile back from OAuth callback redirect
   useEffect(() => {
-    const handle = searchParams.get("github_handle");
-    const name = searchParams.get("github_name");
-    const avatar = searchParams.get("github_avatar");
-    const error = searchParams.get("github_error");
+    const googleEmailParam = searchParams.get("google_email");
+    const name = searchParams.get("google_name");
+    const avatar = searchParams.get("google_avatar");
+    const error = searchParams.get("google_error");
 
-    if (handle) {
-      setGithubHandle(handle);
-      setGithubName(name ?? handle);
-      setGithubAvatar(avatar ?? "");
-      setGithubVerified(true);
+    if (googleEmailParam) {
+      setGoogleEmail(googleEmailParam);
+      setGoogleName(name ?? googleEmailParam.split("@")[0]);
+      setGoogleAvatar(avatar ?? "");
+      setGoogleVerified(true);
       // Clean params from URL without triggering navigation
       window.history.replaceState({}, "", "/register");
     }
     if (error) {
-      setGithubError("GitHub connection failed. Please try again.");
-      window.history.replaceState({}, "", "/register");
-    }
-  }, [searchParams]);
-
-  // Read X (Twitter) profile back from OAuth callback redirect
-  useEffect(() => {
-    const handle = searchParams.get("x_handle");
-    const name = searchParams.get("x_name");
-    const avatar = searchParams.get("x_avatar");
-    const error = searchParams.get("x_error");
-
-    if (handle) {
-      setXHandle(handle);
-      setXName(name ?? handle);
-      setXAvatar(avatar ?? "");
-      setXVerified(true);
-      window.history.replaceState({}, "", "/register");
-    }
-    if (error) {
-      setXError("X connection failed. Please try again.");
+      setGoogleError("Google connection failed. Please try again.");
       window.history.replaceState({}, "", "/register");
     }
   }, [searchParams]);
 
   const selectedRole = ROLE_OPTIONS.find(r => r.id === role);
-  const hasIdentity = githubVerified || xVerified;
+  const hasIdentity = googleVerified;
   const STEPS: Step[] = ["wallet", "identity", "role", "confirm"];
   const stepIdx = STEPS.indexOf(step);
 
-  function handleGithubConnect() {
-    setGithubError("");
-    // Redirect to the Next.js API route which initiates GitHub OAuth
-    window.location.href = "/api/auth/github";
-  }
-
-  function handleXConnect() {
-    setXError("");
-    window.location.href = "/api/auth/x?return_to=%2Fregister";
+  function handleGoogleConnect() {
+    setGoogleError("");
+    window.location.href = "/api/auth/google?return_to=%2Fregister";
   }
 
   async function handleRegister() {
-    const username = githubHandle || xHandle;
+    const username = googleName || googleEmail.split("@")[0];
     if (!role || !username) return;
     setSubmitting(true);
     setRegisterError("");
     try {
-      await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), githubVerified, githubHandle, githubAvatar, xVerified, xHandle, xAvatar });
+      await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), googleEmail, googleName, googleAvatar });
       if (email.trim() && address) {
         fetch("/api/profile", {
           method: "POST",
@@ -241,98 +210,49 @@ function RegisterPageInner() {
             {emailError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{emailError}</div>}
           </div>
 
-          {/* GitHub — connect this OR X below; at least one is required as your Taskify identity */}
-          <div style={{ background: "var(--surface)", border: `1px solid ${githubVerified ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
-            {!githubVerified ? (
+          {/* Google — required Taskify identity */}
+          <div style={{ background: "var(--surface)", border: `1px solid ${googleVerified ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
+            {!googleVerified ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16 }}>
                 <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--surface-2)", border: "1px solid var(--border-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--text-muted)">
-                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
+                  <svg width="26" height="26" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
                 </div>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
-                    Connect GitHub {!xVerified && <span style={{ color: "var(--danger)" }}>*</span>}
+                    Connect Google <span style={{ color: "var(--danger)" }}>*</span>
                   </div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                    {xVerified
-                      ? "Optional — link GitHub too if you plan to apply for Development tasks."
-                      : "Required unless you connect X below instead. Your GitHub username becomes your Taskify identity — recommended for Development tasks."}
+                    Required — your Google account becomes your Taskify identity. GitHub and X are optional and can be linked later from Settings.
                   </div>
                 </div>
-                {githubError && (
+                {googleError && (
                   <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 8, padding: "8px 12px", width: "100%", textAlign: "center" }}>
-                    {githubError}
+                    {googleError}
                   </div>
                 )}
                 <button
-                  onClick={handleGithubConnect}
+                  onClick={handleGoogleConnect}
                   style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
-                  </svg>
-                  Continue with GitHub
+                  Continue with Google
                 </button>
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                {githubAvatar ? (
-                  <Image src={githubAvatar} alt={githubHandle} width={48} height={48} style={{ borderRadius: "50%", flexShrink: 0 }} />
+                {googleAvatar ? (
+                  <Image src={googleAvatar} alt={googleName} width={48} height={48} style={{ borderRadius: "50%", flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                    {githubHandle.charAt(0).toUpperCase()}
+                    {googleName.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{githubName}</div>
-                  <div style={{ fontSize: 13, color: "var(--success)" }}>@{githubHandle}</div>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", padding: "4px 10px", borderRadius: 6 }}>✓ Verified</div>
-              </div>
-            )}
-          </div>
-
-          {/* X (Twitter) — connect this OR GitHub above; at least one is required as your Taskify identity */}
-          <div style={{ background: "var(--surface)", border: `1px solid ${xVerified ? "color-mix(in srgb, var(--success) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: 24, transition: "border-color 0.2s" }}>
-            {!xVerified ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
-                <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--surface-2)", border: "1px solid var(--border-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
-                    Connect X {!githubVerified && <span style={{ color: "var(--danger)" }}>*</span>}
-                  </div>
-                  <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                    {githubVerified
-                      ? "Optional — link X too if you want to join Community tasks (memes, bug write-ups, social bounties)."
-                      : "Required unless you connect GitHub above instead. Also unlocks Community tasks — no code required, great if you're not a developer."}
-                  </div>
-                </div>
-                {xError && (
-                  <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 8, padding: "8px 12px", width: "100%", textAlign: "center" }}>
-                    {xError}
-                  </div>
-                )}
-                <button
-                  onClick={handleXConnect}
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                  Continue with X
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                {xAvatar ? (
-                  <Image src={xAvatar} alt={xHandle} width={48} height={48} style={{ borderRadius: "50%", flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                    {xHandle.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{xName}</div>
-                  <div style={{ fontSize: 13, color: "var(--success)" }}>@{xHandle}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{googleName}</div>
+                  <div style={{ fontSize: 13, color: "var(--success)" }}>{googleEmail}</div>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", padding: "4px 10px", borderRadius: 6 }}>✓ Verified</div>
               </div>
@@ -418,11 +338,10 @@ function RegisterPageInner() {
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, marginBottom: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Registration Summary</div>
             {[
-              ...(githubVerified ? [{ label: "GitHub Username", value: `@${githubHandle}` }] : []),
+              { label: "Google Account", value: googleEmail },
               { label: "Role", value: selectedRole.title },
               ...(role === "contributor" ? [{ label: "Experience", value: `${TIERS[experienceLevel].label} (Tier ${experienceLevel})` }] : []),
-              ...(xVerified ? [{ label: "X Account", value: `@${xHandle}` }] : []),
-              ...(email.trim() ? [{ label: "Email", value: email.trim() }] : []),
+              ...(email.trim() ? [{ label: "Notification Email", value: email.trim() }] : []),
             ].map(({ label, value }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
                 <span style={{ fontSize: 14, color: "var(--text-dim)" }}>{label}</span>

@@ -2,7 +2,6 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
@@ -62,9 +61,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
 function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const searchParams = useSearchParams();
   const taskId = Number(id);
-  const { role, connected, isRegistered, connect, address, xVerified, xHandle, linkX } = useWallet();
+  const { role, connected, isRegistered, connect, address, xVerified, xHandle } = useWallet();
   const { send } = useTaskifyTx();
 
   const { task: onchainTask, isLoading: taskLoading, refetch: refetchTask } = useTaskifyTask(taskId);
@@ -249,8 +247,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
   const [joinError, setJoinError] = useState("");
-  const [xConnecting, setXConnecting] = useState(false);
-  const [xConnectError, setXConnectError] = useState("");
   const [selectedWinners, setSelectedWinners] = useState<Set<string>>(new Set());
   const [payingWinners, setPayingWinners] = useState(false);
   const [payError, setPayError] = useState("");
@@ -277,35 +273,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       .finally(() => { if (!cancelled) setSubmissionsLoading(false); });
     return () => { cancelled = true; };
   }, [task?.id, task?.kind]);
-
-  // Completes the X OAuth flow started from handleQuickXConnect below —
-  // must stay above the `if (!task) return` guard: every hook in this
-  // component has to run on every render regardless of whether task has
-  // loaded yet, or the hook count changes between the loading and loaded
-  // render and React throws (violates the rules of hooks).
-  useEffect(() => {
-    const handle = searchParams.get("x_handle");
-    const avatar = searchParams.get("x_avatar");
-    const error = searchParams.get("x_error");
-    if (handle) {
-      window.history.replaceState({}, "", `/tasks/${id}`);
-      setXConnecting(true);
-      setXConnectError("");
-      linkX(handle, avatar ?? undefined).catch((err) => {
-        setXConnectError(err instanceof Error ? err.message : "Failed to link X on-chain");
-      }).finally(() => setXConnecting(false));
-    }
-    if (error) {
-      window.history.replaceState({}, "", `/tasks/${id}`);
-      setXConnectError("X connection failed. Please try again.");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, id]);
-
-  function handleQuickXConnect() {
-    setXConnectError("");
-    window.location.href = `/api/auth/x?return_to=${encodeURIComponent(`/tasks/${id}`)}`;
-  }
 
   if (!task) {
     return (
@@ -1080,25 +1047,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       Connect Wallet to Join
                     </button>
                   </SideCard>
-                ) : isCreator ? null : !xVerified ? (
-                  <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
-                    <SideCardTitle color="var(--primary)">Connect X to Join</SideCardTitle>
-                    <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
-                      Community tasks are gated to X-verified accounts.
-                    </p>
-                    <button onClick={handleQuickXConnect} disabled={xConnecting}
-                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: xConnecting ? "not-allowed" : "pointer", opacity: xConnecting ? 0.7 : 1 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                      {xConnecting ? "Connecting…" : "Continue with X"}
-                    </button>
-                    {xConnectError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{xConnectError}</div>}
-                  </SideCard>
-                ) : (
+                ) : isCreator ? null : (
                   <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
                     <SideCardTitle color="var(--primary)">Join this Task</SideCardTitle>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 12, color: "var(--success)" }}>
-                      <span>✓ X linked as @{xHandle}</span>
-                    </div>
+                    {xVerified && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 12, color: "var(--success)" }}>
+                        <span>✓ X linked as @{xHandle}</span>
+                      </div>
+                    )}
                     {joined ? (
                       <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 16, textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
                         ✓ Joined — proof submitted on-chain

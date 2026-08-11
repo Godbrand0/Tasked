@@ -14,14 +14,16 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const { user, isLoading: userLoading } = useTaskifyUser(address);
   const { data: onchainTasks } = useAllTasks();
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [githubHandleOffchain, setGithubHandleOffchain] = useState("");
   const [wonCommunityTaskIds, setWonCommunityTaskIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string } }) =>
-        setAvatarUrl(data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
-      )
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string } }) => {
+        setAvatarUrl(data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "");
+        setGithubHandleOffchain(data.profile?.github_handle ?? "");
+      })
       .catch(() => {});
   }, [address]);
 
@@ -49,6 +51,9 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const tier = TIERS[user.experienceLevel] ?? TIERS[0];
   const totalEarnedHuman = Number(formatUnits(user.totalEarned, MUSD_DECIMALS));
   const displayName = user.username || `${address.slice(0, 6)}…${address.slice(-4)}`;
+  // GitHub can be linked entirely off-chain post-registration (see
+  // lib/wallet-context.tsx) — "verified" here has to check both sources.
+  const githubVerified = user.githubVerified || Boolean(githubHandleOffchain);
 
   if (userLoading) {
     return (
@@ -87,7 +92,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
                 <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>
-                {user.githubVerified && <Badge color="green">✓ GitHub Verified</Badge>}
+                {githubVerified && <Badge color="green">✓ GitHub Verified</Badge>}
                 {user.role === 2 && <TierBadge tier={user.experienceLevel} />}
               </div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", marginBottom: 14 }}>{address}</div>
@@ -173,8 +178,8 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 )}
                 <div>
                   <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 4 }}>GitHub</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: user.githubVerified ? "var(--success)" : "var(--text-dim)" }}>
-                    {user.githubVerified ? `@${displayName}` : "Not verified"}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: githubVerified ? "var(--success)" : "var(--text-dim)" }}>
+                    {githubVerified ? `@${githubHandleOffchain || displayName}` : "Not verified"}
                   </div>
                 </div>
                 <div>

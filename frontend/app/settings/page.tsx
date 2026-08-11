@@ -44,7 +44,12 @@ export default function SettingsPage() {
 }
 
 function SettingsPageInner() {
-  const { username: onchainUsername, role, githubVerified, githubHandle, experienceLevel, xVerified, xHandle, linkX, unlinkX } = useWallet();
+  const {
+    username: onchainUsername, role, experienceLevel,
+    githubVerified, githubHandle, linkGithub, unlinkGithub,
+    xVerified, xHandle, linkX, unlinkX,
+    googleVerified, googleEmail, googleName, linkGoogle,
+  } = useWallet();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const { send } = useTaskifyTx();
@@ -63,6 +68,10 @@ function SettingsPageInner() {
   const [cancelError, setCancelError] = useState("");
   const [xConnecting, setXConnecting] = useState(false);
   const [xError, setXError] = useState("");
+  const [githubConnecting, setGithubConnecting] = useState(false);
+  const [githubError, setGithubError] = useState("");
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+  const [googleError, setGoogleError] = useState("");
 
   useEffect(() => setExpTier(experienceLevel), [experienceLevel]);
 
@@ -91,6 +100,58 @@ function SettingsPageInner() {
   function handleXConnect() {
     setXError("");
     window.location.href = "/api/auth/x?return_to=%2Fsettings";
+  }
+
+  // Completes the GitHub OAuth flow — off-chain only, no on-chain call.
+  useEffect(() => {
+    const handle = searchParams.get("github_handle");
+    const avatar = searchParams.get("github_avatar");
+    const error = searchParams.get("github_error");
+    if (handle) {
+      window.history.replaceState({}, "", "/settings");
+      setGithubConnecting(true);
+      setGithubError("");
+      linkGithub(handle, avatar ?? undefined).catch((err) => {
+        setGithubError(err instanceof Error ? err.message : "Failed to link GitHub");
+      }).finally(() => setGithubConnecting(false));
+    }
+    if (error) {
+      window.history.replaceState({}, "", "/settings");
+      setGithubError("GitHub connection failed. Please try again.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  function handleGithubConnect() {
+    setGithubError("");
+    window.location.href = "/api/auth/github";
+  }
+
+  // Completes the Google OAuth flow — off-chain only, for accounts
+  // registered before Google became the required identity.
+  useEffect(() => {
+    const email = searchParams.get("google_email");
+    const name = searchParams.get("google_name");
+    const avatar = searchParams.get("google_avatar");
+    const error = searchParams.get("google_error");
+    if (email) {
+      window.history.replaceState({}, "", "/settings");
+      setGoogleConnecting(true);
+      setGoogleError("");
+      linkGoogle(email, name ?? undefined, avatar ?? undefined).catch((err) => {
+        setGoogleError(err instanceof Error ? err.message : "Failed to link Google");
+      }).finally(() => setGoogleConnecting(false));
+    }
+    if (error) {
+      window.history.replaceState({}, "", "/settings");
+      setGoogleError("Google connection failed. Please try again.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  function handleGoogleConnect() {
+    setGoogleError("");
+    window.location.href = "/api/auth/google?return_to=%2Fsettings";
   }
 
   const myOpenSelfFundedTasks = useMemo(
@@ -213,25 +274,56 @@ function SettingsPageInner() {
                       onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
                       onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>GitHub</div>
-                        <div style={{ fontSize: 12, color: githubVerified ? "var(--success)" : "var(--text-dim)" }}>
-                          {githubVerified ? `@${githubHandle || onchainUsername}` : "Not connected"}
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Google <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(your Taskify identity)</span></div>
+                        <div style={{ fontSize: 12, color: googleVerified ? "var(--success)" : "var(--text-dim)" }}>
+                          {googleConnecting ? "Connecting…" : googleVerified ? (googleName || googleEmail) : "Not connected"}
                         </div>
                       </div>
                     </div>
-                    <button style={{ background: githubVerified ? "var(--border)" : "color-mix(in srgb, var(--success) 9%, transparent)", border: `1px solid ${githubVerified ? "var(--border)" : "color-mix(in srgb, var(--success) 19%, transparent)"}`, color: githubVerified ? "var(--text-dim)" : "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "not-allowed" }} disabled title="GitHub is linked during registration">
-                      {githubVerified ? "Connected" : "Not connected"}
-                    </button>
+                    {!googleVerified && (
+                      <button onClick={handleGoogleConnect} disabled={googleConnecting}
+                        style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: googleConnecting ? "not-allowed" : "pointer", opacity: googleConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
+                        {googleConnecting ? "Connecting…" : "Continue with Google"}
+                      </button>
+                    )}
                   </div>
+                  {googleError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{googleError}</div>}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>GitHub <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional — for Development task credibility)</span></div>
+                        <div style={{ fontSize: 12, color: githubVerified ? "var(--success)" : "var(--text-dim)" }}>
+                          {githubConnecting ? "Connecting…" : githubVerified ? `@${githubHandle || onchainUsername}` : "Not connected"}
+                        </div>
+                      </div>
+                    </div>
+                    {githubVerified ? (
+                      <button onClick={unlinkGithub} style={{ background: "var(--border)", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button onClick={handleGithubConnect} disabled={githubConnecting}
+                        style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: githubConnecting ? "not-allowed" : "pointer", opacity: githubConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
+                        {githubConnecting ? "Connecting…" : "Continue with GitHub"}
+                      </button>
+                    )}
+                  </div>
+                  {githubError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{githubError}</div>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>X <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(unlocks Community tasks)</span></div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>X <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional)</span></div>
                         <div style={{ fontSize: 12, color: xVerified ? "var(--success)" : "var(--text-dim)" }}>
                           {xConnecting ? "Verifying…" : xVerified ? `@${xHandle}` : "Not connected"}
                         </div>

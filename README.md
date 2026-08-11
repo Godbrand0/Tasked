@@ -376,9 +376,18 @@ Both `MUSD_ADDRESS` and `MEZO_ADDRESS` in `contracts/.env` default to the real M
 Create `frontend/.env.local`:
 
 ```bash
-# GitHub OAuth (registration identity)
+# Google OAuth — the required registration identity. Create credentials at
+# https://console.cloud.google.com/apis/credentials and add
+# `${NEXT_PUBLIC_BASE_URL}/api/auth/google/callback` as an authorized redirect URI.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# GitHub / X OAuth — optional, linked later from Settings (not required to register)
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+X_CLIENT_ID=
+X_CLIENT_SECRET=
+
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
 # WalletConnect Cloud project ID — get one at https://cloud.walletconnect.com
