@@ -254,8 +254,13 @@ export default function InvestorPage() {
                             <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {formatVotingWeight(vote.votesFor)} units</span>
                             <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {formatVotingWeight(vote.votesAgainst)} units</span>
                           </div>
-                          <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
-                            <div style={{ height: "100%", background: passed ? "linear-gradient(90deg, var(--success), color-mix(in srgb, var(--success) 50%, transparent))" : "linear-gradient(90deg, var(--secondary), color-mix(in srgb, var(--secondary) 38%, transparent))", width: `${forPct}%`, borderRadius: 4, transition: "width 0.3s" }} />
+                          <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden", marginBottom: 6, display: "flex" }}>
+                            {total > BigInt(0) && (
+                              <>
+                                <div style={{ height: "100%", background: "var(--success)", width: `${forPct}%`, transition: "width 0.3s" }} />
+                                <div style={{ height: "100%", background: "var(--danger)", width: `${100 - forPct}%`, transition: "width 0.3s" }} />
+                              </>
+                            )}
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)" }}>
                             <span>{forPct.toFixed(1)}% support · {formatVotingWeight(total)} total weight</span>

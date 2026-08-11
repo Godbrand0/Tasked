@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierRangeBadge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, TIERS, TASK_STATUSES, MUSD_DECIMALS } from "@/lib/constants";
-import { MUSD_ADDRESS, statusToString } from "@/lib/taskify";
+import { MUSD_ADDRESS, statusToString, formatVotingWeight } from "@/lib/taskify";
 import {
   useGrantVote,
   useTaskApplicantAppliedAt,
@@ -713,11 +713,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 <Section title="Community Grant Vote">
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-                      <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {grantVote.votesFor.toString()} vote units</span>
-                      <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {grantVote.votesAgainst.toString()} vote units</span>
+                      <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {formatVotingWeight(grantVote.votesFor)} vote units</span>
+                      <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {formatVotingWeight(grantVote.votesAgainst)} vote units</span>
                     </div>
-                    <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", background: "linear-gradient(90deg, var(--success), color-mix(in srgb, var(--success) 44%, transparent))", width: `${Math.min(100, supportPct)}%`, borderRadius: 4 }} />
+                    <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden", display: "flex" }}>
+                      {total > BigInt(0) && (
+                        <>
+                          <div style={{ height: "100%", background: "var(--success)", width: `${supportPct}%` }} />
+                          <div style={{ height: "100%", background: "var(--danger)", width: `${100 - supportPct}%` }} />
+                        </>
+                      )}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
                       <span>{supportPct.toFixed(1)}% support</span>
