@@ -81,7 +81,7 @@ create table profiles (
     'task_assigned', true,
     'work_submitted', true,
     'funds_released', true,
-    'grant_vote_opened', false,
+    'grant_vote_opened', true,
     'wave_reward_ready', true,
     'task_comment', true,
     'comment_reply', true

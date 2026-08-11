@@ -10,7 +10,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
 
-const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: false, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
+const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
 
 const NOTIF_ITEMS: { key: NotifKey; label: string; desc: string }[] = [

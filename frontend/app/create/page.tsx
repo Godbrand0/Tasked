@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import Link from "next/link";
@@ -39,6 +39,13 @@ export default function CreatePage() {
   const [taskKind, setTaskKind] = useState<TaskKind>("development");
   const [fundingType, setFundingType] = useState<FundingType>("self");
   const [currency, setCurrency] = useState<Currency>("MUSD");
+
+  // Grant-funded tasks are always paid out in MUSD from the patron pool —
+  // applyForGrant() has no token param, so MEZO isn't a real option here.
+  // Force it back to MUSD if MEZO was picked while self-funded.
+  useEffect(() => {
+    if (fundingType === "grant") setCurrency("MUSD");
+  }, [fundingType]);
   const [maxWinners, setMaxWinners] = useState(5);
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState(TASK_TOPICS[0]);
@@ -170,6 +177,14 @@ export default function CreatePage() {
         }
       } else if (taskId === undefined && description.trim()) {
         setDescriptionSaveFailed(true);
+      }
+
+      if (fundingType === "grant" && taskId !== undefined) {
+        fetch("/api/notify-patrons", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId, taskTitle: title, amount: `${numAmount} MUSD`, creatorAddress: address }),
+        }).catch(() => {});
       }
 
       setSubmitted(true);
@@ -325,14 +340,17 @@ export default function CreatePage() {
                 {TASK_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
-            <Field label="Payment Currency" required>
+            <Field label="Payment Currency" required hint={fundingType === "grant" ? "Grant tasks pay out in MUSD from the patron pool" : undefined}>
               <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 4, gap: 4 }}>
-                {(["MUSD", "MEZO"] as Currency[]).map(c => (
-                  <button key={c} onClick={() => setCurrency(c)}
-                    style={{ flex: 1, background: currency === c ? (c === "MUSD" ? "color-mix(in srgb, var(--success) 13%, transparent)" : "color-mix(in srgb, var(--secondary-light) 13%, transparent)") : "transparent", color: currency === c ? (c === "MUSD" ? "var(--success)" : "var(--secondary-light)") : "var(--text-dim)", fontWeight: 700, fontSize: 13, padding: "8px 4px", borderRadius: 8, border: `1px solid ${currency === c ? (c === "MUSD" ? "color-mix(in srgb, var(--success) 25%, transparent)" : "color-mix(in srgb, var(--secondary-light) 25%, transparent)") : "transparent"}`, cursor: "pointer" }}>
-                    {c}
-                  </button>
-                ))}
+                {(["MUSD", "MEZO"] as Currency[]).map(c => {
+                  const disabled = fundingType === "grant" && c === "MEZO";
+                  return (
+                    <button key={c} disabled={disabled} onClick={() => setCurrency(c)}
+                      style={{ flex: 1, background: currency === c ? (c === "MUSD" ? "color-mix(in srgb, var(--success) 13%, transparent)" : "color-mix(in srgb, var(--secondary-light) 13%, transparent)") : "transparent", color: disabled ? "color-mix(in srgb, var(--text-faint) 50%, transparent)" : currency === c ? (c === "MUSD" ? "var(--success)" : "var(--secondary-light)") : "var(--text-dim)", fontWeight: 700, fontSize: 13, padding: "8px 4px", borderRadius: 8, border: `1px solid ${currency === c ? (c === "MUSD" ? "color-mix(in srgb, var(--success) 25%, transparent)" : "color-mix(in srgb, var(--secondary-light) 25%, transparent)") : "transparent"}`, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}>
+                      {c}
+                    </button>
+                  );
+                })}
               </div>
             </Field>
           </div>
