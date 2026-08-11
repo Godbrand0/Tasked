@@ -180,6 +180,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       google_email: data.googleEmail || null,
       google_name: data.googleName || null,
       google_avatar_url: data.googleAvatar || null,
+      // Google already hands over a verified email — use it as the
+      // notification email automatically instead of asking again at
+      // registration. Editable/removable later from Settings.
+      email: data.googleEmail || null,
     });
     await refetchUser();
   }
