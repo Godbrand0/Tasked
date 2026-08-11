@@ -38,7 +38,13 @@ export default function CreatorPage() {
   const openTasks = myTasks.filter((t) => t.status === "OPEN");
   const activeTasks = myTasks.filter((t) => ["ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status));
   const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
-  const totalEscrowed = myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status)).reduce((s, t) => s + t.amount, 0);
+  // Grant applications sit at GRANT_PENDING until a patron vote resolves
+  // them — no funds are locked yet (applyForGrant doesn't escrow up front),
+  // so they're tracked separately from the escrowed-tasks buckets above.
+  const grantPendingTasks = myTasks.filter((t) => t.status === "GRANT_PENDING");
+  const totalEscrowed = myTasks
+    .filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status))
+    .reduce((s, t) => s + t.amount, 0);
 
   const { wave } = useCurrentWave();
   const { count: myWaveTasks } = useWaveCreatorTasks(wave.waveId, address);
@@ -160,6 +166,31 @@ export default function CreatorPage() {
                             </span>
                           )}
                         </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Grant applications awaiting patron vote */}
+            {grantPendingTasks.length > 0 && (
+              <div style={{ marginBottom: 36 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>Grant Applications</h2>
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{grantPendingTasks.length} task{grantPendingTasks.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {grantPendingTasks.map((task) => (
+                    <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
+                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, transition: "border-color 0.15s" }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)")}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{task.title}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD requested · Task #{task.id} · awaiting patron vote</div>
+                        </div>
+                        <StatusBadge status={task.status} />
                       </div>
                     </Link>
                   ))}
