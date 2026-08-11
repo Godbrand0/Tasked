@@ -42,6 +42,10 @@ export default function CreatorPage() {
   // them — no funds are locked yet (applyForGrant doesn't escrow up front),
   // so they're tracked separately from the escrowed-tasks buckets above.
   const grantPendingTasks = myTasks.filter((t) => t.status === "GRANT_PENDING");
+  // Catch-all for terminal statuses that never made it into a dedicated
+  // section — without this a cancelled/expired/rejected task disappears
+  // from the dashboard entirely, same class of gap as GRANT_PENDING above.
+  const closedTasks = myTasks.filter((t) => ["CANCELLED", "EXPIRED", "GRANT_REJECTED"].includes(t.status));
   const totalEscrowed = myTasks
     .filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status))
     .reduce((s, t) => s + t.amount, 0);
@@ -225,6 +229,29 @@ export default function CreatorPage() {
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{task.title}</div>
                           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD paid</div>
+                        </div>
+                        <StatusBadge status={task.status} />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Closed — cancelled, expired, or grant-rejected */}
+            {closedTasks.length > 0 && (
+              <div style={{ marginTop: 36 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>Closed</h2>
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{closedTasks.length} task{closedTasks.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {closedTasks.map((task) => (
+                    <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
+                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, opacity: 0.7 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{task.title}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD · Task #{task.id}</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>

@@ -23,7 +23,7 @@ export default function TaskCard({ task }: { task: Task }) {
         </p>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <Badge color="orange">{formatMUSD(task.amount)} MUSD</Badge>
+          <Badge color="orange">{formatMUSD(task.amount)} {task.token}</Badge>
           {task.kind === "community"
             ? <Badge color="gray">Up to {task.maxWinners ?? 1} winner{(task.maxWinners ?? 1) !== 1 ? "s" : ""}</Badge>
             : <TierRangeBadge min={task.experienceMin} max={task.experienceMax} />}

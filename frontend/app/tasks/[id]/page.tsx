@@ -114,6 +114,18 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
+  const [workSubmission, setWorkSubmission] = useState<{ pr_url: string; issue_url: string | null } | null>(null);
+  useEffect(() => {
+    fetch(`/api/task-submission?taskId=${taskId}`)
+      .then(res => res.json())
+      .then((data: { submission?: typeof workSubmission }) => setWorkSubmission(data.submission ?? null))
+      .catch(() => {});
+  }, [taskId]);
+
+  const [prUrl, setPrUrl] = useState("");
+  const [issueUrl, setIssueUrl] = useState("");
+  const [submitWorkError, setSubmitWorkError] = useState("");
+
   const [creatorAvatar, setCreatorAvatar] = useState("");
   useEffect(() => {
     if (!onchainTask?.creator) return;
@@ -391,12 +403,29 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   }
 
   async function handleSubmitTask() {
-    if (!task) return;
+    if (!task || !address || !prUrl.trim()) return;
     setTxBusy(true);
     setTxError("");
+    setSubmitWorkError("");
     try {
       await send("submitTask", [BigInt(task.id)]);
       notifyServer(task.creator, "work_submitted");
+
+      try {
+        const res = await fetch("/api/task-submission", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId: task.id, address, prUrl: prUrl.trim(), issueUrl: issueUrl.trim() || null }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to save submission links");
+        setWorkSubmission(data.submission);
+      } catch (err) {
+        // Best-effort — the task is already marked Submitted on-chain
+        // regardless of whether this off-chain write succeeds.
+        setSubmitWorkError(err instanceof Error ? err.message : "Work submitted on-chain, but saving the PR/issue links failed.");
+      }
+
       await refetchTask();
     } catch (err) {
       setTxError(err instanceof Error ? err.message : "Failed to submit task");
@@ -1181,12 +1210,33 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
                 <SideCardTitle color="var(--primary)">In Progress</SideCardTitle>
                 <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
-                  Submit your work for the creator to review once it's ready.
+                  Link the PR you worked on so the creator can review it.
                 </p>
-                <button disabled={txBusy} onClick={handleSubmitTask} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
+                  PR link <span style={{ color: "var(--danger)" }}>*</span>
+                </label>
+                <input
+                  type="url"
+                  value={prUrl}
+                  onChange={e => setPrUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo/pull/123"
+                  style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box", marginBottom: 12 }}
+                />
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
+                  Issue link <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={issueUrl}
+                  onChange={e => setIssueUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo/issues/45"
+                  style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box", marginBottom: 14 }}
+                />
+                <button disabled={txBusy || !prUrl.trim()} onClick={handleSubmitTask} style={{ width: "100%", background: prUrl.trim() ? "var(--primary)" : "var(--border)", color: prUrl.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: (txBusy || !prUrl.trim()) ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                   {txBusy ? "Confirming…" : "Submit Work →"}
                 </button>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
+                {submitWorkError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{submitWorkError}</div>}
               </SideCard>
             )}
 
@@ -1197,6 +1247,18 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
                   The contributor has marked their work as complete. Review and approve to release funds.
                 </p>
+                {workSubmission && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                    <a href={workSubmission.pr_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--secondary-light)", textDecoration: "none", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6 }}>
+                      🔗 PR: {workSubmission.pr_url}
+                    </a>
+                    {workSubmission.issue_url && (
+                      <a href={workSubmission.issue_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--secondary-light)", textDecoration: "none", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6 }}>
+                        🔗 Issue: {workSubmission.issue_url}
+                      </a>
+                    )}
+                  </div>
+                )}
                 <button disabled={txBusy} onClick={handleApproveRelease} style={{ width: "100%", background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                   {txBusy ? "Confirming…" : "Approve & Release Funds →"}
                 </button>

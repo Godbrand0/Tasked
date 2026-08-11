@@ -122,6 +122,18 @@ create table task_applications (
   unique (task_id, applicant_address)
 );
 
+-- Development-task work submissions. submitTask() on-chain only flips
+-- Status to Submitted — the PR/issue links the assignee is actually
+-- submitting for review have nowhere on-chain to live. One row per task
+-- (a task has at most one assignee at a time).
+create table task_submissions (
+  task_id          bigint primary key,
+  assignee_address text not null references profiles(address),
+  pr_url           text not null,
+  issue_url        text,
+  submitted_at     timestamptz not null default now()
+);
+
 -- Discussion thread on a task (any task, any registered visitor), with
 -- one-level reply support. Entirely off-chain and social — never gates
 -- anything the contract cares about.
@@ -292,6 +304,7 @@ create index notifications_recipient_idx on notifications(recipient_address, rea
 alter table profiles enable row level security;
 alter table task_content enable row level security;
 alter table task_applications enable row level security;
+alter table task_submissions enable row level security;
 alter table task_comments enable row level security;
 alter table notifications enable row level security;
 
@@ -338,6 +351,12 @@ create policy "creator updates own task content" on task_content
 create policy "public read" on task_applications for select using (true);
 create policy "own application write" on task_applications
   for insert with check (applicant_address = auth.jwt() ->> 'address');
+
+create policy "public read" on task_submissions for select using (true);
+create policy "own submission write" on task_submissions
+  for insert with check (assignee_address = auth.jwt() ->> 'address');
+create policy "own submission update" on task_submissions
+  for update using (assignee_address = auth.jwt() ->> 'address');
 
 create policy "public read" on task_comments for select using (true);
 create policy "own comment write" on task_comments
