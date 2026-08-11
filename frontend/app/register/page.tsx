@@ -8,7 +8,7 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 
-type Step = "wallet" | "role" | "details" | "confirm";
+type Step = "wallet" | "identity" | "role" | "confirm";
 
 const ROLE_OPTIONS: { id: UserRole; icon: string; title: string; subtitle: string; desc: string; color: string; bg: string }[] = [
   { id: "creator",     icon: "🧩", title: "Creator",     subtitle: "Fund the work",        color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
@@ -42,7 +42,7 @@ function RegisterPageInner() {
   const searchParams = useSearchParams();
   const { connected, isRegistered, address, connect, register: registerWallet } = useWallet();
 
-  const [step, setStep] = useState<Step>(connected ? "role" : "wallet");
+  const [step, setStep] = useState<Step>(connected ? "identity" : "wallet");
   const [role, setRole] = useState<UserRole | null>(null);
   const [experienceLevel, setExperienceLevel] = useState(-1); // -1 = not yet chosen; 0 ("Newcomer") is a valid, falsy tier so it can't double as "unset"
   const [githubVerified, setGithubVerified] = useState(false);
@@ -69,7 +69,7 @@ function RegisterPageInner() {
   const prevConnected = useRef(connected);
   useEffect(() => {
     if (!prevConnected.current && connected && step === "wallet") {
-      setStep("role");
+      setStep("identity");
     }
     prevConnected.current = connected;
   }, [connected, step]);
@@ -117,7 +117,7 @@ function RegisterPageInner() {
 
   const selectedRole = ROLE_OPTIONS.find(r => r.id === role);
   const hasIdentity = githubVerified || xVerified;
-  const STEPS: Step[] = ["wallet", "role", "details", "confirm"];
+  const STEPS: Step[] = ["wallet", "identity", "role", "confirm"];
   const stepIdx = STEPS.indexOf(step);
 
   function handleGithubConnect() {
@@ -169,10 +169,10 @@ function RegisterPageInner() {
 
       <div style={{ textAlign: "center", marginBottom: 36 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
-          {step === "wallet" ? "Connect your wallet" : step === "role" ? "Choose your role" : step === "details" ? "Set up your profile" : "Confirm & register"}
+          {step === "wallet" ? "Connect your wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>
-          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : step === "details" ? "This information is stored on the Mezo blockchain." : ""}
+          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "identity" ? "This information is stored on the Mezo blockchain." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : ""}
         </p>
       </div>
 
@@ -207,42 +207,16 @@ function RegisterPageInner() {
         </div>
       )}
 
-      {/* ── Step: Role ── */}
-      {step === "role" && (
-        <div style={{ width: "100%", maxWidth: 680, display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* ── Step: Identity ── */}
+      {step === "identity" && (
+        <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 20 }}>
           {address && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "color-mix(in srgb, var(--success) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: "10px 16px", marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "color-mix(in srgb, var(--success) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: "10px 16px" }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Connected</span>
               <code style={{ fontSize: 13, fontWeight: 600, color: "var(--success)", letterSpacing: "0.01em" }}>{address}</code>
             </div>
           )}
-          {ROLE_OPTIONS.map(r => (
-            <button key={r.id} onClick={() => setRole(r.id)}
-              style={{ background: role === r.id ? r.bg : "var(--surface)", border: `1px solid ${role === r.id ? r.color + "50" : "var(--border)"}`, borderRadius: 16, padding: "20px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, border: `1px solid ${r.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{r.icon}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>{r.title}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: r.color, background: r.bg, padding: "2px 8px", borderRadius: 4, border: `1px solid ${r.color}30` }}>{r.subtitle}</span>
-                </div>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0, lineHeight: 1.6 }}>{r.desc}</p>
-              </div>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${role === r.id ? r.color : "var(--border-strong)"}`, background: role === r.id ? r.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {role === r.id && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--bg)" }} />}
-              </div>
-            </button>
-          ))}
-          <button disabled={!role} onClick={() => setStep("details")}
-            style={{ marginTop: 8, background: role ? "var(--primary)" : "var(--border)", color: role ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: role ? "pointer" : "not-allowed" }}>
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* ── Step: Details ── */}
-      {step === "details" && selectedRole && (
-        <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 20 }}>
 
           {/* Email — optional, off-chain, purely for notification delivery */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
@@ -365,6 +339,43 @@ function RegisterPageInner() {
             )}
           </div>
 
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button
+              disabled={!hasIdentity}
+              onClick={() => {
+                if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+                  setEmailError("Enter a valid email address, or leave it blank.");
+                  return;
+                }
+                setStep("role");
+              }}
+              style={{ width: "100%", background: hasIdentity ? "var(--primary)" : "var(--border)", color: hasIdentity ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: hasIdentity ? "pointer" : "not-allowed" }}>
+              Continue →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step: Role ── */}
+      {step === "role" && (
+        <div style={{ width: "100%", maxWidth: 680, display: "flex", flexDirection: "column", gap: 16 }}>
+          {ROLE_OPTIONS.map(r => (
+            <button key={r.id} onClick={() => setRole(r.id)}
+              style={{ background: role === r.id ? r.bg : "var(--surface)", border: `1px solid ${role === r.id ? r.color + "50" : "var(--border)"}`, borderRadius: 16, padding: "20px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, border: `1px solid ${r.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{r.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>{r.title}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: r.color, background: r.bg, padding: "2px 8px", borderRadius: 4, border: `1px solid ${r.color}30` }}>{r.subtitle}</span>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0, lineHeight: 1.6 }}>{r.desc}</p>
+              </div>
+              <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${role === r.id ? r.color : "var(--border-strong)"}`, background: role === r.id ? r.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {role === r.id && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--bg)" }} />}
+              </div>
+            </button>
+          ))}
+
           {/* Experience tier — contributor only */}
           {role === "contributor" && (
             <div>
@@ -390,17 +401,11 @@ function RegisterPageInner() {
           )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <button onClick={() => setStep("role")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
+            <button onClick={() => setStep("identity")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button
-              disabled={!hasIdentity || (role === "contributor" && experienceLevel < 0)}
-              onClick={() => {
-                if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-                  setEmailError("Enter a valid email address, or leave it blank.");
-                  return;
-                }
-                setStep("confirm");
-              }}
-              style={{ flex: 2, background: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (hasIdentity && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
+              disabled={!role || (role === "contributor" && experienceLevel < 0)}
+              onClick={() => setStep("confirm")}
+              style={{ flex: 2, background: (role && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (role && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (role && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
               Review →
             </button>
           </div>
@@ -433,7 +438,7 @@ function RegisterPageInner() {
           )}
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setStep("details")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
+            <button onClick={() => setStep("role")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button onClick={handleRegister} disabled={submitting}
               style={{ flex: 2, background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: "pointer", opacity: submitting ? 0.7 : 1 }}>
               {submitting ? "Registering on-chain…" : "Register on Mezo →"}
