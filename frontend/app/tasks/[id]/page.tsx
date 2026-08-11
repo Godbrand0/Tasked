@@ -45,6 +45,7 @@ interface LiveSubmission {
   proofUrl: string;
   createdAt: number;
   isWinner: boolean;
+  payoutTxHash: string | null;
 }
 
 import { useWallet, formatAddress } from "@/lib/wallet-context";
@@ -252,7 +253,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [xConnectError, setXConnectError] = useState("");
   const [selectedWinners, setSelectedWinners] = useState<Set<string>>(new Set());
   const [payingWinners, setPayingWinners] = useState(false);
-  const [winnersPaid, setWinnersPaid] = useState(false);
   const [payError, setPayError] = useState("");
 
   useEffect(() => {
@@ -261,7 +261,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setSubmissionsLoading(true);
     fetch(`/api/submissions?taskId=${task.id}`)
       .then(res => res.json())
-      .then((data: { submissions?: { participant_address: string; proof_url: string; joined_at: string; is_winner: boolean }[] }) => {
+      .then((data: { submissions?: { participant_address: string; proof_url: string; joined_at: string; is_winner: boolean; payout_tx_hash: string | null }[] }) => {
         if (cancelled || !data.submissions) return;
         setSubmissions(data.submissions.map(s => ({
           address: s.participant_address,
@@ -270,6 +270,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           proofUrl: s.proof_url,
           createdAt: Math.floor(new Date(s.joined_at).getTime() / 1000),
           isWinner: s.is_winner,
+          payoutTxHash: s.payout_tx_hash,
         })));
       })
       .catch(() => {})
@@ -540,6 +541,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         proofUrl: s.proof_url,
         createdAt: Math.floor(new Date(s.joined_at).getTime() / 1000),
         isWinner: s.is_winner,
+        payoutTxHash: null,
       }]);
       setJoined(true);
     } catch (err) {
@@ -567,17 +569,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setPayError("");
     try {
       const winners = Array.from(selectedWinners) as `0x${string}`[];
-      await send("selectWinners", [BigInt(task.id), winners]);
+      const receipt = await send("selectWinners", [BigInt(task.id), winners]);
       const res = await fetch("/api/submissions", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, winners }),
+        body: JSON.stringify({ taskId: task.id, winners, txHash: receipt.transactionHash }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to record winners");
       const winnerSet = new Set((data.submissions as { participant_address: string }[]).map(s => s.participant_address));
-      setSubmissions(prev => prev.map(s => winnerSet.has(s.address) ? { ...s, isWinner: true } : s));
-      setWinnersPaid(true);
+      setSubmissions(prev => prev.map(s => winnerSet.has(s.address) ? { ...s, isWinner: true, payoutTxHash: receipt.transactionHash } : s));
       await refetchTask();
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "Failed to record winners");
@@ -796,9 +797,9 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {/* Community: participants + winner selection */}
             {isCommunity ? (
               <Section title={submissionsLoading ? "Participants" : `${submissions.length} Participant${submissions.length !== 1 ? "s" : ""}`}>
-                {winnersPaid && (
+                {task.status === "FUNDS_RELEASED" && (
                   <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13, color: "var(--success)", fontWeight: 600, textAlign: "center" }}>
-                    ✓ {selectedWinners.size} winner{selectedWinners.size !== 1 ? "s" : ""} recorded — escrow releases and splits evenly once this is live on-chain
+                    ✓ {submissions.filter(s => s.isWinner).length} winner{submissions.filter(s => s.isWinner).length !== 1 ? "s" : ""} paid — escrow released and split on-chain
                   </div>
                 )}
                 {submissionsLoading ? (
@@ -809,7 +810,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     {submissions.map((s, i) => {
                       const isSelected = selectedWinners.has(s.address);
-                      const canSelect = isCreator && task.status === "OPEN" && !winnersPaid;
+                      const canSelect = isCreator && task.status === "OPEN";
                       return (
                         <div key={s.address} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < submissions.length - 1 ? "1px solid var(--border)" : "none", alignItems: "flex-start" }}>
                           {canSelect && (
@@ -830,6 +831,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               {s.isWinner && (
                                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>WINNER</span>
                               )}
+                              {s.isWinner && s.payoutTxHash && (
+                                <a
+                                  href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/tx/${s.payoutTxHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)", textDecoration: "none" }}
+                                >
+                                  View payout ↗
+                                </a>
+                              )}
                             </div>
                             <a href={s.proofUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--secondary-light)", textDecoration: "none", wordBreak: "break-all" }}>
                               {s.proofUrl}
@@ -841,7 +852,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 )}
 
-                {isCreator && task.status === "OPEN" && !winnersPaid && submissions.length > 0 && (
+                {isCreator && task.status === "OPEN" && submissions.length > 0 && (
                   <div style={{ marginTop: 8, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
                       {selectedWinners.size} / {maxWinners} selected

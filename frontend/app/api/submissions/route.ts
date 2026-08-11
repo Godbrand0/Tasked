@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("community_submissions")
-    .select("task_id, participant_address, proof_url, joined_at, is_winner")
+    .select("task_id, participant_address, proof_url, joined_at, is_winner, payout_tx_hash")
     .eq("task_id", taskId)
     .order("joined_at", { ascending: true });
 
@@ -103,6 +103,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const taskId = body?.taskId;
   const winners: unknown = body?.winners;
+  const txHash = typeof body?.txHash === "string" ? body.txHash : null;
 
   if (!taskId || !Array.isArray(winners) || winners.length === 0 || !winners.every(w => typeof w === "string")) {
     return NextResponse.json({ error: "taskId and a non-empty winners array of addresses are required" }, { status: 400 });
@@ -112,10 +113,10 @@ export async function PATCH(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("community_submissions")
-    .update({ is_winner: true })
+    .update({ is_winner: true, payout_tx_hash: txHash })
     .eq("task_id", taskId)
     .in("participant_address", lowered)
-    .select("task_id, participant_address, proof_url, joined_at, is_winner");
+    .select("task_id, participant_address, proof_url, joined_at, is_winner, payout_tx_hash");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

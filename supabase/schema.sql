@@ -217,6 +217,7 @@ create table community_submissions (
   proof_url           text not null,
   joined_at           timestamptz not null,
   is_winner           boolean not null default false, -- set on WinnersSelected
+  payout_tx_hash      text, -- selectWinners() tx hash, set alongside is_winner — same hash for every winner in the batch
   primary key (task_id, participant_address)
 );
 create index community_submissions_task_idx on community_submissions(task_id);
