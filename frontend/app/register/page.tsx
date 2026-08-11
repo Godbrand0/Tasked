@@ -81,6 +81,10 @@ function RegisterPageInner() {
       setGoogleName(name ?? googleEmailParam.split("@")[0]);
       setGoogleAvatar(avatar ?? "");
       setGoogleVerified(true);
+      // Pre-fill the notification email with the Google account's address —
+      // Google already handed over a verified email, no reason to ask twice.
+      // Only fills an empty field so a manually-typed email isn't clobbered.
+      setEmail(prev => prev || googleEmailParam);
       // Clean params from URL without triggering navigation
       window.history.replaceState({}, "", "/register");
     }
