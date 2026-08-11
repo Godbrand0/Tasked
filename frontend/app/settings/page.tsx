@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
@@ -49,6 +50,7 @@ function SettingsPageInner() {
     githubVerified, githubHandle, linkGithub, unlinkGithub,
     xVerified, xHandle, linkX, unlinkX,
     googleVerified, googleEmail, googleName, linkGoogle,
+    avatarUrl, customAvatar, uploadAvatar, removeAvatar,
   } = useWallet();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -72,6 +74,8 @@ function SettingsPageInner() {
   const [githubError, setGithubError] = useState("");
   const [googleConnecting, setGoogleConnecting] = useState(false);
   const [googleError, setGoogleError] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   useEffect(() => setExpTier(experienceLevel), [experienceLevel]);
 
@@ -152,6 +156,30 @@ function SettingsPageInner() {
   function handleGoogleConnect() {
     setGoogleError("");
     window.location.href = "/api/auth/google?return_to=%2Fsettings";
+  }
+
+  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    setAvatarError("");
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please choose an image file.");
+      return;
+    }
+    if (file.size > 1_500_000) {
+      setAvatarError("Image is too large — please choose one under 1.5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarUploading(true);
+      uploadAvatar(reader.result as string)
+        .catch((err) => setAvatarError(err instanceof Error ? err.message : "Failed to upload"))
+        .finally(() => setAvatarUploading(false));
+    };
+    reader.onerror = () => setAvatarError("Failed to read image file.");
+    reader.readAsDataURL(file);
   }
 
   const myOpenSelfFundedTasks = useMemo(
@@ -246,20 +274,32 @@ function SettingsPageInner() {
             {active === "profile" && (
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 24px" }}>Profile</h2>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28 }}>
-                  <div style={{ width: 60, height: 60, borderRadius: 16, background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "white" }}>
-                    {(onchainUsername || (address ?? "")).charAt(0).toUpperCase()}
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 12 }}>
+                  <div style={{ position: "relative" }}>
+                    <Avatar src={avatarUrl} alt={onchainUsername || address || ""} size={60} radius={16} fontSize={24} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
+                    <label style={{ position: "absolute", bottom: -4, right: -4, width: 24, height: 24, borderRadius: "50%", background: "var(--primary)", border: "2px solid var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", cursor: avatarUploading ? "not-allowed" : "pointer", opacity: avatarUploading ? 0.6 : 1 }}>
+                      <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={avatarUploading} style={{ display: "none" }} />
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                    </label>
                   </div>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{onchainUsername || address}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Badge color={role === "creator" ? "orange" : role === "contributor" ? "purple" : "green"}>
                         {role ? role.charAt(0).toUpperCase() + role.slice(1) : "Unregistered"}
                       </Badge>
                       {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                     </div>
+                    {customAvatar && (
+                      <button onClick={() => removeAvatar().catch(() => {})} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, cursor: "pointer", padding: 0, marginTop: 6, textDecoration: "underline" }}>
+                        Remove custom picture
+                      </button>
+                    )}
                   </div>
                 </div>
+                {avatarUploading && <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 16 }}>Uploading…</div>}
+                {avatarError && <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 16 }}>{avatarError}</div>}
+                <div style={{ marginBottom: 16 }} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>Username</label>

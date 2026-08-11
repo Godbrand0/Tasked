@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 // Taskify.sol's registerUser/setXVerified; this table only ever holds the
 // content the contract deliberately doesn't store.
 
-const ALLOWED_FIELDS = ["bio", "github_handle", "github_display_name", "github_avatar_url", "x_handle", "x_display_name", "x_avatar_url", "google_email", "google_name", "google_avatar_url", "email", "notification_prefs"] as const;
+const ALLOWED_FIELDS = ["bio", "github_handle", "github_display_name", "github_avatar_url", "x_handle", "x_display_name", "x_avatar_url", "google_email", "google_name", "google_avatar_url", "custom_avatar_url", "email", "notification_prefs"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET(req: NextRequest) {
@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
 
   if (typeof update.bio === "string" && update.bio.length > 500) {
     return NextResponse.json({ error: "Bio is too long (max 500 chars)" }, { status: 400 });
+  }
+  if (typeof update.custom_avatar_url === "string" && update.custom_avatar_url.length > 2_000_000) {
+    return NextResponse.json({ error: "Image is too large (max ~1.5MB)" }, { status: 400 });
   }
   if (typeof update.email === "string" && update.email && !EMAIL_RE.test(update.email)) {
     return NextResponse.json({ error: "Invalid email address" }, { status: 400 });

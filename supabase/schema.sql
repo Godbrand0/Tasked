@@ -79,6 +79,7 @@ create table profiles (
   google_email         text, -- the required identity as of the Google-first registration flow
   google_name          text,
   google_avatar_url    text,
+  custom_avatar_url    text, -- user-uploaded profile picture (data URI), takes priority over provider avatars
   email                text, -- optional, opt-in; only used to mirror in-app notifications
   notification_prefs   jsonb not null default jsonb_build_object(
     'task_assigned', true,

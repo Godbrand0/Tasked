@@ -44,7 +44,8 @@ export interface WalletState {
   googleEmail: string;
   googleName: string;
   googleAvatar: string;
-  /** googleAvatar if connected, else githubAvatar, else xAvatar — for UI spots that only show one avatar. */
+  customAvatar: string;
+  /** customAvatar if uploaded, else googleAvatar, else githubAvatar, else xAvatar — for UI spots that only show one avatar. */
   avatarUrl: string;
   experienceLevel: number;
   tasksCompleted: number;
@@ -69,6 +70,9 @@ interface WalletContextValue extends WalletState {
   unlinkGithub: () => Promise<void>;
   /** Off-chain only — for legacy accounts registered before Google existed. */
   linkGoogle: (email: string, name?: string, avatar?: string) => Promise<void>;
+  /** Off-chain only — dataUrl from a client-side FileReader read, capped at ~1.5MB server-side. */
+  uploadAvatar: (dataUrl: string) => Promise<void>;
+  removeAvatar: () => Promise<void>;
 }
 
 const WalletCtx = createContext<WalletContextValue | null>(null);
@@ -92,6 +96,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [googleEmail, setGoogleEmail] = useState("");
   const [googleName, setGoogleName] = useState("");
   const [googleAvatar, setGoogleAvatar] = useState("");
+  const [customAvatar, setCustomAvatar] = useState("");
 
   useEffect(() => {
     if (!address) {
@@ -102,11 +107,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setGoogleEmail("");
       setGoogleName("");
       setGoogleAvatar("");
+      setCustomAvatar("");
       return;
     }
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string; google_email?: string; google_name?: string; google_avatar_url?: string } }) => {
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string; google_email?: string; google_name?: string; google_avatar_url?: string; custom_avatar_url?: string } }) => {
         setGithubHandle(data.profile?.github_handle ?? "");
         setGithubAvatar(data.profile?.github_avatar_url ?? "");
         setXHandle(data.profile?.x_handle ?? "");
@@ -114,6 +120,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setGoogleEmail(data.profile?.google_email ?? "");
         setGoogleName(data.profile?.google_name ?? "");
         setGoogleAvatar(data.profile?.google_avatar_url ?? "");
+        setCustomAvatar(data.profile?.custom_avatar_url ?? "");
       })
       .catch(() => {});
   }, [address]);
@@ -238,6 +245,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     syncProfile(address, { google_email: email, google_name: name || null, google_avatar_url: avatar || null });
   }
 
+  // Unlike the other link* functions this is awaited and can throw — the
+  // server enforces a size cap on custom_avatar_url (see app/api/profile),
+  // so the caller (Settings) needs a real error, not a silent no-op.
+  async function uploadAvatar(dataUrl: string) {
+    if (!address) return;
+    const res = await fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, custom_avatar_url: dataUrl }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Failed to upload profile picture");
+    setCustomAvatar(dataUrl);
+  }
+
+  async function removeAvatar() {
+    if (!address) return;
+    setCustomAvatar("");
+    syncProfile(address, { custom_avatar_url: null });
+  }
+
   const value: WalletContextValue = {
     connected: isConnected,
     address: address ?? "",
@@ -260,7 +288,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     googleEmail,
     googleName,
     googleAvatar,
-    avatarUrl: googleAvatar || githubAvatar || xAvatar,
+    customAvatar,
+    avatarUrl: customAvatar || googleAvatar || githubAvatar || xAvatar,
     experienceLevel: onchainUser.experienceLevel,
     tasksCompleted: onchainUser.tasksCompleted,
     totalEarned: Number(formatUnits(onchainUser.totalEarned, MUSD_DECIMALS)),
@@ -272,6 +301,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     linkGithub,
     unlinkGithub,
     linkGoogle,
+    uploadAvatar,
+    removeAvatar,
   };
 
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
