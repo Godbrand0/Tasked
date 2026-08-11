@@ -1,6 +1,7 @@
 "use client";
 
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
+import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -808,7 +809,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What kind of tasks should I post as a creator?",
-    a: "Keep self-funded tasks small and tightly scoped: the bounty amounts on Taskify are modest, so the work should match. Think \"fix a broken footer layout,\" \"make the dashboard page responsive on mobile,\" \"add a loading skeleton to the tasks list,\" or \"write unit tests for one contract function.\" A task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
+    a: "Three broad categories work well: code fixes or changes for developers (Development tasks, experience-tier gated — think \"fix a broken footer layout\" or \"add a loading skeleton to the tasks list\"), social media tasks for the community (Community tasks, open to anyone, no code required — a post, a thread, a meme), and bug bounties or testing for everyone (either type, depending on whether you want it dev-gated or open). Keep bounties small and tightly scoped either way — the amounts on Taskify are modest, so a task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
   },
   {
     q: "Can I post a large, multi-week feature as one task?",
@@ -976,7 +977,18 @@ function Footer() {
           </div>
           <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6 }}>
             <span>Contract:</span>
-            <span style={{ color: "var(--text-dim)" }}>0x…TBD</span>
+            {TASKIFY_ADDRESS ? (
+              <a
+                href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/address/${TASKIFY_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--primary)", textDecoration: "none" }}
+              >
+                {formatAddress(TASKIFY_ADDRESS)} ↗
+              </a>
+            ) : (
+              <span style={{ color: "var(--text-dim)" }}>0x…TBD</span>
+            )}
           </div>
         </div>
       </div>
