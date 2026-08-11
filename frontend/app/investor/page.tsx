@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 import { Badge, PatronTierBadge } from "@/components/ui/Badge";
 import { formatMUSD, PATRON_TIERS, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
-import { MUSD_ADDRESS, MEZO_ADDRESS, TASKIFY_ADDRESS, votingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
+import { MUSD_ADDRESS, MEZO_ADDRESS, TASKIFY_ADDRESS, votingWeight, formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
 import { useAllTasks, useApproveIfNeeded, useGrantVotesBatch, usePatron, useTaskifyTx, useTaskifyUser, toRawMUSD } from "@/lib/use-taskify";
 
 export default function InvestorPage() {
@@ -172,7 +172,7 @@ export default function InvestorPage() {
                 <PatronTierBadge tier={currentTier.id} />
               </div>
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                Voting weight: <strong style={{ color: "var(--success)" }}>{weight.toString()} units</strong>
+                Voting weight: <strong style={{ color: "var(--success)" }}>{formatVotingWeight(weight)} units</strong>
                 {!hasStake && <span style={{ marginLeft: 8, color: "var(--primary)", fontSize: 12 }}>— Stake MEZO to amplify</span>}
               </div>
             </div>
@@ -190,7 +190,7 @@ export default function InvestorPage() {
           {[
             { label: "Total Deposited",    value: `${formatMUSD(totalDepositedHuman)} MUSD`, color: "var(--success)", icon: "💰" },
             { label: "MEZO Staked",         value: `${formatMUSD(mezoStakedHuman)} MEZO`,       color: "var(--secondary-light)", icon: "🔐" },
-            { label: "Voting Weight",      value: `${weight.toString()} units`,             color: "var(--primary)", icon: "⚖️" },
+            { label: "Voting Weight",      value: `${formatVotingWeight(weight)} units`,             color: "var(--primary)", icon: "⚖️" },
             { label: "Active Grant Votes", value: String(grantTasks.length),                    color: "var(--blue)", icon: "🗳️" },
           ].map(({ label, value, color, icon }) => (
             <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
@@ -251,14 +251,14 @@ export default function InvestorPage() {
                       {vote && (
                         <div style={{ marginBottom: 16 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-                            <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {vote.votesFor.toString()} units</span>
-                            <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {vote.votesAgainst.toString()} units</span>
+                            <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {formatVotingWeight(vote.votesFor)} units</span>
+                            <span style={{ color: "var(--danger)", fontWeight: 600 }}>Against: {formatVotingWeight(vote.votesAgainst)} units</span>
                           </div>
                           <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
                             <div style={{ height: "100%", background: passed ? "linear-gradient(90deg, var(--success), color-mix(in srgb, var(--success) 50%, transparent))" : "linear-gradient(90deg, var(--secondary), color-mix(in srgb, var(--secondary) 38%, transparent))", width: `${forPct}%`, borderRadius: 4, transition: "width 0.3s" }} />
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dim)" }}>
-                            <span>{forPct.toFixed(1)}% support · {total.toString()} total weight</span>
+                            <span>{forPct.toFixed(1)}% support · {formatVotingWeight(total)} total weight</span>
                             <span style={{ color: passed ? "var(--success)" : "var(--text-dim)" }}>
                               {GRANT_PASS_THRESHOLD}% required {passed ? "✓" : ""}
                             </span>
@@ -288,7 +288,7 @@ export default function InvestorPage() {
                             </div>
                           ) : myVote ? (
                             <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
-                              ✓ You voted · {weight.toString()} unit weight
+                              ✓ You voted · {formatVotingWeight(weight)} unit weight
                             </div>
                           ) : (
                             <div style={{ display: "flex", gap: 10 }}>
@@ -308,7 +308,7 @@ export default function InvestorPage() {
                           )}
                           {!myVote && canVote && (
                             <div style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>
-                              Your weight: <strong style={{ color: "var(--text)" }}>{weight.toString()} units</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "—"}
+                              Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(weight)} units</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "—"}
                             </div>
                           )}
                         </div>
@@ -330,7 +330,7 @@ export default function InvestorPage() {
                 <WeightRow label="MUSD deposited" value={`${formatMUSD(totalDepositedHuman)} MUSD`} color="var(--success)" />
                 <WeightRow label="MEZO staked" value={`${formatMUSD(mezoStakedHuman)} MEZO`} color="var(--secondary-light)" />
                 <div style={{ height: 1, background: "var(--border)" }} />
-                <WeightRow label="Total weight" value={`${weight.toString()} units`} color="var(--primary)" bold />
+                <WeightRow label="Total weight" value={`${formatVotingWeight(weight)} units`} color="var(--primary)" bold />
               </div>
             </div>
           </div>

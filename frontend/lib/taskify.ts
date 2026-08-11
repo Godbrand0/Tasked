@@ -24,6 +24,18 @@ export function votingWeight(musdDeposited: bigint, mezoStaked: bigint): bigint 
   return musdDeposited / MUSD_VOTE_DIVISOR + mezoStaked / MEZO_VOTE_DIVISOR;
 }
 
+// The raw on-chain weight (above) is in units of wei/1e13, so a modest
+// stake reads as "200,000 units" — technically correct (grant approval is
+// a percentage of votesFor vs. total cast, so the scale itself never
+// affects outcomes) but confusing to look at. This divisor maps it back to
+// the scale the contract's own constants were designed around: 100 MUSD
+// deposited or 1000 MEZO staked each work out to 10 display units.
+export const VOTE_WEIGHT_DISPLAY_SCALE = 1_000_000;
+
+export function formatVotingWeight(raw: bigint): string {
+  return (Number(raw) / VOTE_WEIGHT_DISPLAY_SCALE).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 export const ERC20_ABI = [
   {
     type: "function",

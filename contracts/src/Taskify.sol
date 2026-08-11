@@ -87,8 +87,17 @@ contract Taskify is ReentrancyGuard {
     uint256 public constant MIN_TASK_AMOUNT = 1e18; // 1 MUSD (18 decimals)
     uint256 public constant MIN_MEZO_STAKE = 1e18; // 1 MEZO
     uint256 public constant MIN_PATRON_DEPOSIT = 50e18; // 50 MUSD
-    uint256 public constant MUSD_VOTE_DIVISOR = 1e13; // 100 MUSD deposited = 10 vote units
-    uint256 public constant MEZO_VOTE_DIVISOR = 1e14; // 1000 MEZO staked = 10 vote units
+    // Applied to raw (18-decimal) wei, so the resulting on-chain weight is
+    // large — e.g. 100 MUSD deposited or 1000 MEZO staked each contribute
+    // 10,000,000 raw units. That scale never affects vote outcomes (grant
+    // approval in executeGrant() is a percentage of votesFor vs. total cast,
+    // not an absolute threshold), but it's confusing to display directly.
+    // The frontend divides the raw weight by 1e6 for display, which maps
+    // back to the "100 MUSD / 1000 MEZO = 10 units" scale these divisors
+    // were originally designed around — see lib/taskify.ts's
+    // VOTE_WEIGHT_DISPLAY_SCALE.
+    uint256 public constant MUSD_VOTE_DIVISOR = 1e13;
+    uint256 public constant MEZO_VOTE_DIVISOR = 1e14;
     uint256 public constant GRANT_PASS_THRESHOLD = 70; // 70% of cast votes required to pass
 
     uint8 public constant TIER_NEWCOMER = 0;
