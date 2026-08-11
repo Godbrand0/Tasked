@@ -344,7 +344,6 @@ function Hero() {
 function TrustBar() {
   const items = [
     { icon: <IconBitcoin />, label: "Bitcoin-secured" },
-    { icon: <IconShield />, label: "On-chain enforced" },
     { icon: <IconGithub />, label: "GitHub or X verified" },
     { icon: <IconLock />, label: "Trustless escrow" },
     { icon: <IconCoins />, label: "MUSD + MEZO native" },
