@@ -245,7 +245,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [proofUrl, setProofUrl] = useState("");
   const [joining, setJoining] = useState(false);
-  const [joined, setJoined] = useState(false);
   const [joinError, setJoinError] = useState("");
   const [selectedWinners, setSelectedWinners] = useState<Set<string>>(new Set());
   const [payingWinners, setPayingWinners] = useState(false);
@@ -303,6 +302,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const isTaskCreator = Boolean(address && address.toLowerCase() === task.creator.toLowerCase());
   const isCommunity = task.kind === "community";
   const maxWinners = task.maxWinners ?? 1;
+  // Derived from the actual participant list, not a one-shot local flag —
+  // otherwise a page reload (or a join that succeeded on-chain but whose
+  // local state update got interrupted, e.g. by an RPC hiccup) leaves the
+  // join form showing again, letting someone try to join a second time and
+  // hit a real on-chain AlreadyApplied() revert.
+  const joined = Boolean(address) && submissions.some(s => s.address.toLowerCase() === address.toLowerCase());
 
   async function handleApply() {
     if (!motivation.trim() || !task || !address) return;
@@ -510,7 +515,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         isWinner: s.is_winner,
         payoutTxHash: null,
       }]);
-      setJoined(true);
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : "Failed to join");
     } finally {
