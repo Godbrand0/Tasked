@@ -32,13 +32,32 @@ export function useTaskifyTx() {
       functionName,
       args,
     } as never);
-    // Mezo's public testnet RPC occasionally lags behind the chain tip, so
-    // the default retryCount (6, viem's default) for "receipt not found yet"
-    // can exhaust before the RPC actually catches up — throwing even though
-    // the transaction genuinely succeeded (confirmed separately by the
-    // wallet's own toast). Raised retryCount/retryDelay give it more room.
-    const receipt = await waitForTransactionReceipt(config, { hash, retryCount: 15, retryDelay: 2000 });
-    return receipt;
+    // Mezo's public testnet RPC occasionally lags behind the chain tip.
+    // waitForTransactionReceipt can throw a "not found" error from more than
+    // one internal path — the receipt-lookup retry (tunable via retryCount)
+    // and, separately, the transaction-replacement check it runs by default
+    // (its own getTransaction/getBlock calls, unaffected by retryCount) —
+    // and either one can fire even though the transaction genuinely
+    // succeeded (confirmed independently via the wallet's own toast and,
+    // when checked directly, the contract's own state). checkReplacement is
+    // disabled since this app never needs speed-up/cancel detection, and the
+    // whole wait is retried from scratch a few times so a transient failure
+    // from either path doesn't surface as a false negative to the caller.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        return await waitForTransactionReceipt(config, { hash, checkReplacement: false, retryCount: 10 });
+      } catch {
+        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 4000));
+      }
+    }
+    // All retries exhausted — the transaction was broadcast (we have a
+    // hash), but we couldn't confirm it landed. This is almost always RPC
+    // lag, not a real failure (see the retry comment above), so point
+    // whoever sees this at the explorer instead of surfacing a raw viem
+    // error string.
+    throw new Error(
+      `Sent, but couldn't confirm in time — check ${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/tx/${hash}. If it succeeded there, refresh this page.`
+    );
   }
 
   return { send };
