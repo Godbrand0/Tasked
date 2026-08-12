@@ -69,6 +69,7 @@ create type notification_type as enum (
 -- registering).
 create table profiles (
   address              text primary key check (address = lower(address)),
+  display_name         text, -- optional off-chain override — Taskify.sol has no setUsername, the on-chain username is permanent
   bio                  text,
   github_handle        text,
   github_display_name  text,

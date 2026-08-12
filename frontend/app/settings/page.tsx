@@ -46,11 +46,11 @@ export default function SettingsPage() {
 
 function SettingsPageInner() {
   const {
-    username: onchainUsername, role, experienceLevel,
+    username, onchainUsername, role, experienceLevel,
     githubVerified, githubHandle, linkGithub, unlinkGithub,
     xVerified, xHandle, linkX, unlinkX,
     googleVerified, googleEmail, googleName, linkGoogle,
-    avatarUrl, customAvatar, uploadAvatar, removeAvatar,
+    avatarUrl, customAvatar, uploadAvatar, removeAvatar, updateDisplayName,
   } = useWallet();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -58,6 +58,7 @@ function SettingsPageInner() {
   const { data: onchainTasks } = useAllTasks();
   const searchParams = useSearchParams();
   const [active, setActive] = useState<Section>("profile");
+  const [usernameInput, setUsernameInput] = useState(username);
   const [bio, setBio] = useState("");
   const [expTier, setExpTier] = useState(experienceLevel);
   const [saving, setSaving] = useState(false);
@@ -78,6 +79,7 @@ function SettingsPageInner() {
   const [avatarError, setAvatarError] = useState("");
 
   useEffect(() => setExpTier(experienceLevel), [experienceLevel]);
+  useEffect(() => setUsernameInput(username), [username]);
 
   // Completes the X OAuth flow: the callback route redirects back here with
   // the verified handle in the query string, then we sign setXVerified(true)
@@ -222,6 +224,9 @@ function SettingsPageInner() {
     setSaveError("");
     try {
       if (active === "profile") {
+        if (usernameInput.trim().length === 0) throw new Error("Username can't be empty.");
+        if (usernameInput.trim().length > 32) throw new Error("Username is too long (max 32 chars).");
+        await updateDisplayName(usernameInput.trim());
         await fetch("/api/profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -276,14 +281,14 @@ function SettingsPageInner() {
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 24px" }}>Profile</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 12 }}>
                   <div style={{ position: "relative" }}>
-                    <Avatar src={avatarUrl} alt={onchainUsername || address || ""} size={60} radius={16} fontSize={24} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
+                    <Avatar src={avatarUrl} alt={username || address || ""} size={60} radius={16} fontSize={24} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                     <label style={{ position: "absolute", bottom: -4, right: -4, width: 24, height: 24, borderRadius: "50%", background: "var(--primary)", border: "2px solid var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", cursor: avatarUploading ? "not-allowed" : "pointer", opacity: avatarUploading ? 0.6 : 1 }}>
                       <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={avatarUploading} style={{ display: "none" }} />
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                     </label>
                   </div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{onchainUsername || address}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{username || address}</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Badge color={role === "creator" ? "orange" : role === "contributor" ? "purple" : "green"}>
                         {role ? ROLE_LABELS[role] : "Unregistered"}
@@ -303,9 +308,13 @@ function SettingsPageInner() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>Username</label>
-                    <input value={onchainUsername} disabled
-                      style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text-dim)", outline: "none", boxSizing: "border-box", cursor: "not-allowed" }} />
-                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>Set once at registration — Taskify.sol has no update function for it.</div>
+                    <input value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} maxLength={32} placeholder={onchainUsername}
+                      style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+                      onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
+                      onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
+                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
+                      Changes how you're shown across the app. Your on-chain identity (<code style={{ fontFamily: "var(--font-geist-mono)" }}>{onchainUsername}</code>) never changes — Taskify.sol has no update function for it.
+                    </div>
                   </div>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>Bio <span style={{ fontWeight: 400 }}>(optional)</span></label>

@@ -29,7 +29,10 @@ const MEZO_ADDRESS = (process.env.NEXT_PUBLIC_MEZO_CONTRACT ?? CONTRACT_ADDRESSE
 export interface WalletState {
   connected: boolean;
   address: string;
+  /** display_name if set, else the on-chain username. */
   username: string;
+  /** Always the raw on-chain username, regardless of any display_name override. */
+  onchainUsername: string;
   role: UserRole | null;
   isRegistered: boolean;
   musdBalance: number;
@@ -73,6 +76,8 @@ interface WalletContextValue extends WalletState {
   /** Off-chain only — dataUrl from a client-side FileReader read, capped at ~1.5MB server-side. */
   uploadAvatar: (dataUrl: string) => Promise<void>;
   removeAvatar: () => Promise<void>;
+  /** Off-chain only — there's no on-chain setUsername. */
+  updateDisplayName: (name: string) => Promise<void>;
 }
 
 const WalletCtx = createContext<WalletContextValue | null>(null);
@@ -97,6 +102,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [googleName, setGoogleName] = useState("");
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [customAvatar, setCustomAvatar] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
     if (!address) {
@@ -108,11 +114,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setGoogleName("");
       setGoogleAvatar("");
       setCustomAvatar("");
+      setDisplayName("");
       return;
     }
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string; google_email?: string; google_name?: string; google_avatar_url?: string; custom_avatar_url?: string } }) => {
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string; google_email?: string; google_name?: string; google_avatar_url?: string; custom_avatar_url?: string; display_name?: string } }) => {
         setGithubHandle(data.profile?.github_handle ?? "");
         setGithubAvatar(data.profile?.github_avatar_url ?? "");
         setXHandle(data.profile?.x_handle ?? "");
@@ -121,6 +128,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setGoogleName(data.profile?.google_name ?? "");
         setGoogleAvatar(data.profile?.google_avatar_url ?? "");
         setCustomAvatar(data.profile?.custom_avatar_url ?? "");
+        setDisplayName(data.profile?.display_name ?? "");
       })
       .catch(() => {});
   }, [address]);
@@ -266,12 +274,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     syncProfile(address, { custom_avatar_url: null });
   }
 
+  // Off-chain only — Taskify.sol has no setUsername, the on-chain username
+  // set at registration is permanent. This overrides it for display
+  // purposes wherever the app reads it through this context.
+  async function updateDisplayName(name: string) {
+    if (!address) return;
+    const trimmed = name.trim();
+    const res = await fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, display_name: trimmed }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Failed to update display name");
+    setDisplayName(trimmed);
+  }
+
   const value: WalletContextValue = {
     connected: isConnected,
     address: address ?? "",
     musdBalance,
     mezoBalance,
-    username: onchainUser.username,
+    // Off-chain display_name overrides the permanent on-chain username for
+    // display purposes — see updateDisplayName. onchainUsername always
+    // exposes the real on-chain value underneath, for spots that need it
+    // specifically (e.g. Settings shows both).
+    username: displayName || onchainUser.username,
+    onchainUsername: onchainUser.username,
     role: onchainUser.role ? roleToString(onchainUser.role) as UserRole : null,
     isRegistered: onchainUser.role !== 0,
     // GitHub can be linked entirely off-chain post-registration (no
@@ -303,6 +332,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     linkGoogle,
     uploadAvatar,
     removeAvatar,
+    updateDisplayName,
   };
 
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
