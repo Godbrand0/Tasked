@@ -802,7 +802,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     {submissions.map((s, i) => {
                       const isSelected = selectedWinners.has(s.address);
-                      const canSelect = isCreator && task.status === "OPEN";
+                      const canSelect = isTaskCreator && task.status === "OPEN";
                       return (
                         <div key={s.address} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < submissions.length - 1 ? "1px solid var(--border)" : "none", alignItems: "flex-start" }}>
                           {canSelect && (
@@ -844,7 +844,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 )}
 
-                {isCreator && task.status === "OPEN" && submissions.length > 0 && (
+                {isTaskCreator && task.status === "OPEN" && submissions.length > 0 && (
                   <div style={{ marginTop: 8, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>
                       {selectedWinners.size} / {maxWinners} selected
