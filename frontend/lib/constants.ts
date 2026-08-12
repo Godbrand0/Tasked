@@ -29,7 +29,7 @@ export const TASK_STATUSES: Record<string, { label: string; color: string; bg: s
   ASSIGNED:       { label: "Assigned",       color: "var(--blue)", bg: "color-mix(in srgb, var(--blue-strong) 9%, transparent)" },
   IN_PROGRESS:    { label: "In Progress",    color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)" },
   SUBMITTED:      { label: "Submitted",      color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 9%, transparent)" },
-  FUNDS_RELEASED: { label: "Completed",      color: "var(--success)", bg: "color-mix(in srgb, var(--success) 9%, transparent)" },
+  FUNDS_RELEASED: { label: "Payment Released", color: "var(--success)", bg: "color-mix(in srgb, var(--success) 9%, transparent)" },
   CANCELLED:      { label: "Cancelled",      color: "var(--text-dim)", bg: "var(--neutral-tint)" },
   EXPIRED:        { label: "Expired",        color: "var(--text-dim)", bg: "var(--neutral-tint)" },
   GRANT_REJECTED: { label: "Grant Rejected", color: "var(--danger)", bg: "color-mix(in srgb, var(--danger-strong) 9%, transparent)" },
