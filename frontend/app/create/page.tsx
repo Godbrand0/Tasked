@@ -167,7 +167,11 @@ export default function CreatePage() {
               taskId,
               description: description.trim(),
               tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-              githubRepoUrl: githubIssueData?.url || null,
+              // githubIssueData only populates when the URL matches the
+              // strict github.com/owner/repo/issues/N pattern (used to
+              // auto-fetch title/description) — fall back to whatever raw
+              // URL was typed so a link that doesn't match still gets saved.
+              githubRepoUrl: githubIssueData?.url || githubIssueUrl.trim() || null,
               grantJustification: fundingType === "grant" ? grantJustification.trim() : null,
             }),
           });
