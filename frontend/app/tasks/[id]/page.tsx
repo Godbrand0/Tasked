@@ -113,7 +113,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
-  const [workSubmission, setWorkSubmission] = useState<{ pr_url: string; issue_url: string | null } | null>(null);
+  const [workSubmission, setWorkSubmission] = useState<{ pr_url: string; issue_url: string | null; payout_tx_hash: string | null } | null>(null);
   useEffect(() => {
     fetch(`/api/task-submission?taskId=${taskId}`)
       .then(res => res.json())
@@ -412,8 +412,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setTxBusy(true);
     setTxError("");
     try {
-      await send("approveAndRelease", [BigInt(task.id)]);
+      const receipt = await send("approveAndRelease", [BigInt(task.id)]);
       if (task.assignee) notifyServer(task.assignee, "funds_released");
+      fetch("/api/task-submission", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, payoutTxHash: receipt.transactionHash }),
+      })
+        .then(res => res.json())
+        .then((data: { submission?: typeof workSubmission }) => { if (data.submission) setWorkSubmission(data.submission); })
+        .catch(() => {});
       await refetchTask();
     } catch (err) {
       setTxError(err instanceof Error ? err.message : "Failed to release funds");
@@ -1247,6 +1255,26 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   {txBusy ? "Confirming…" : "Approve & Release Funds →"}
                 </button>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
+              </SideCard>
+            )}
+
+            {/* Payment Released — visible to everyone, so the payout can be verified independently of trusting the app's own status label */}
+            {task.status === "FUNDS_RELEASED" && !isCommunity && (
+              <SideCard style={{ border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>
+                <SideCardTitle color="var(--success)">Payment Released</SideCardTitle>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: workSubmission?.payout_tx_hash ? 14 : 0, lineHeight: 1.6 }}>
+                  {formatMUSD(netAmount)} {task.token} sent to {assigneeUser.username || (assigneeAddr ? formatAddress(assigneeAddr) : "the contributor")}.
+                </p>
+                {workSubmission?.payout_tx_hash && (
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/tx/${workSubmission.payout_tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--primary)", textDecoration: "none" }}
+                  >
+                    View payout transaction ↗
+                  </a>
+                )}
               </SideCard>
             )}
 

@@ -135,6 +135,7 @@ create table task_submissions (
   assignee_address text not null references profiles(address),
   pr_url           text not null,
   issue_url        text,
+  payout_tx_hash   text, -- approveAndRelease() tx hash, set once the creator approves — lets anyone verify the payout directly
   submitted_at     timestamptz not null default now()
 );
 
