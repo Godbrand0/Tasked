@@ -737,7 +737,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {isCommunity ? (
               <Section title="How This Task Works">
                 <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.8 }}>
-                  This is a <strong style={{ color: "var(--text)" }}>Community task</strong> — no application, no single assignee. Anyone joins with a proof link, and the creator pays up to <strong style={{ color: "var(--primary)" }}>{maxWinners} winner{maxWinners !== 1 ? "s" : ""}</strong> directly, splitting the escrow evenly between them in one transaction.
+                  This is a <strong style={{ color: "var(--text)" }}>Community task</strong> — no application, no single assignee. Anyone joins with a proof link, and the owner pays up to <strong style={{ color: "var(--primary)" }}>{maxWinners} winner{maxWinners !== 1 ? "s" : ""}</strong> directly, splitting the escrow evenly between them in one transaction.
                 </div>
               </Section>
             ) : (
@@ -898,7 +898,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{c.author}</span>
                               {c.isCreator && (
-                                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>CREATOR</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>OWNER</span>
                               )}
                               <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(c.createdAt)}</span>
                             </div>
@@ -949,7 +949,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{r.author}</span>
                                         {r.isCreator && (
-                                          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "1px 6px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>CREATOR</span>
+                                          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "1px 6px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>OWNER</span>
                                         )}
                                         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>↳ replying to {c.author}</span>
                                         <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{formatTimestamp(r.createdAt)}</span>
@@ -1062,7 +1062,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     ) : (
                       <>
                         <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
-                          Paste a link proving your participation (a post, a write-up, anything public). The creator reviews it before picking winners.
+                          Paste a link proving your participation (a post, a write-up, anything public). The owner reviews it before picking winners.
                         </p>
                         <input
                           value={proofUrl}
@@ -1177,7 +1177,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
                 <SideCardTitle color="var(--primary)">In Progress</SideCardTitle>
                 <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
-                  Link the PR you worked on so the creator can review it.
+                  Link the PR you worked on so the owner can review it.
                 </p>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
                   PR link <span style={{ color: "var(--danger)" }}>*</span>
@@ -1292,12 +1292,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
             {/* Creator */}
             <SideCard>
-              <SideCardTitle>Creator</SideCardTitle>
+              <SideCardTitle>Owner</SideCardTitle>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Avatar src={creatorAvatar} alt={task.creatorUsername} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{task.creatorUsername}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Task creator</div>
+                  <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Task owner</div>
                 </div>
               </div>
             </SideCard>

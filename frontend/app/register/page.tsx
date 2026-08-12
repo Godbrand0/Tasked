@@ -11,7 +11,7 @@ import type { UserRole } from "@/lib/mock";
 type Step = "wallet" | "identity" | "role" | "confirm";
 
 const ROLE_OPTIONS: { id: UserRole; icon: string; title: string; subtitle: string; desc: string; color: string; bg: string }[] = [
-  { id: "creator",     icon: "🧩", title: "Creator",     subtitle: "Fund the work",        color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
+  { id: "creator",     icon: "🧩", title: "Owner",       subtitle: "Fund the work",        color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
     desc: "Post tasks, lock MUSD in escrow, set experience requirements, and choose from matched applicants." },
   { id: "contributor", icon: "⚡", title: "Contributor", subtitle: "Get paid to build",    color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)",
     desc: "Browse experience-matched bounties, apply on-chain, complete work, and build your on-chain reputation." },

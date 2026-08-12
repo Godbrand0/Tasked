@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
-import { formatMUSD, TIERS, MUSD_DECIMALS } from "@/lib/constants";
+import { formatMUSD, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useCurrentWave, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
@@ -50,7 +50,7 @@ export default function DashboardPage() {
               <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{displayUsername}</h1>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Badge color={displayRole === "creator" ? "orange" : displayRole === "contributor" ? "purple" : "green"}>
-                  {displayRole.charAt(0).toUpperCase() + displayRole.slice(1)}
+                  {ROLE_LABELS[displayRole]}
                 </Badge>
                 {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                 {displayRole === "contributor" && <TierBadge tier={experienceLevel} />}
@@ -58,7 +58,7 @@ export default function DashboardPage() {
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               {displayRole === "creator" && (
-                <Link href="/creator" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Creator Dashboard</Link>
+                <Link href="/creator" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Owner Dashboard</Link>
               )}
               {displayRole === "contributor" && (
                 <Link href="/contributor" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Contributor Dashboard</Link>

@@ -444,11 +444,11 @@ function ExperienceSection() {
             to "best fit applies"
           </h2>
           <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.8, margin: "0 0 28px" }}>
-            Creators select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The contract verifies the match on-chain when a contributor applies, not just the UI.
+            Owners select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The contract verifies the match on-chain when a contributor applies, not just the UI.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[
-              { label: "Creators", text: "Get applicants who genuinely fit the task scope." },
+              { label: "Owners", text: "Get applicants who genuinely fit the task scope." },
               { label: "Contributors", text: "See a curated feed of relevant work, not noise." },
               { label: "On-chain", text: "Experience gate is enforced at applyForTask, not filtered away client-side." },
             ].map(({ label, text }) => (
@@ -510,7 +510,7 @@ function RolesSection() {
       icon: <IconCode />,
       color: "var(--primary)",
       bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
-      title: "Creator",
+      title: "Owner",
       subtitle: "Fund the work",
       desc: "Post a Development task matched by experience tier, or a Community task anyone can join. Lock MUSD in escrow either way.",
       features: [
@@ -518,7 +518,7 @@ function RolesSection() {
         "Experience range picker for Development tasks",
         "Pick up to N winners on Community tasks, payout splits evenly in one transaction",
         "Approve work (or select winners) to release payment",
-        "Wave pool rewards for active self-funded creators",
+        "Wave pool rewards for active self-funded owners",
       ],
       cta: "Post a Task",
     },
@@ -631,7 +631,7 @@ function ProtocolSection() {
               ))}
             </div>
             <div style={{ marginTop: 14, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
-              Community tasks skip ASSIGNED / IN_PROGRESS / SUBMITTED entirely: they go straight from OPEN to FUNDS_RELEASED once the creator selects winners.
+              Community tasks skip ASSIGNED / IN_PROGRESS / SUBMITTED entirely: they go straight from OPEN to FUNDS_RELEASED once the owner selects winners.
             </div>
           </Card>
 
@@ -664,11 +664,11 @@ function ProtocolSection() {
                 </div>
                 <div style={{ flex: 4, background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", borderRadius: 10, padding: "14px 16px" }}>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "var(--secondary-light)" }}>40%</div>
-                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>Creator wave pool</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>Owner wave pool</div>
                 </div>
               </div>
               <div style={{ marginTop: 14, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                Wave pool distributes to active self-funded creators every ~30 days, proportional to tasks posted that epoch.
+                Wave pool distributes to active self-funded owners every ~30 days, proportional to tasks posted that epoch.
               </div>
             </Card>
           </div>
@@ -792,7 +792,7 @@ function IconChevron({ open }: { open: boolean }) {
 const FAQ_ITEMS = [
   {
     q: "What is Taskify?",
-    a: "Taskify is an on-chain bounty board on Mezo. Creators post tasks and lock MUSD in escrow, contributors apply and get paid on approval, and Patrons fund a community grant pool and vote on which grant-funded tasks get built. Every step (escrow, experience gating, payment) is enforced by the Taskify smart contract, not by a central party.",
+    a: "Taskify is an on-chain bounty board on Mezo. Owners post tasks and lock MUSD in escrow, contributors apply and get paid on approval, and Patrons fund a community grant pool and vote on which grant-funded tasks get built. Every step (escrow, experience gating, payment) is enforced by the Taskify smart contract, not by a central party.",
   },
   {
     q: "What is MUSD and why does Taskify use it?",
@@ -804,10 +804,10 @@ const FAQ_ITEMS = [
   },
   {
     q: "How does experience matching work?",
-    a: "Creators set a minimum and maximum experience tier when posting a task. Contributors declare their own tier at registration. The contract itself checks the match when a contributor calls applyForTask, and it's enforced on-chain, not just filtered in the UI.",
+    a: "Owners set a minimum and maximum experience tier when posting a task. Contributors declare their own tier at registration. The contract itself checks the match when a contributor calls applyForTask, and it's enforced on-chain, not just filtered in the UI.",
   },
   {
-    q: "What kind of tasks should I post as a creator?",
+    q: "What kind of tasks should I post as an owner?",
     a: "Three broad categories work well: code fixes or changes for developers (Development tasks, experience-tier gated — think \"fix a broken footer layout\" or \"add a loading skeleton to the tasks list\"), social media tasks for the community (Community tasks, open to anyone, no code required — a post, a thread, a meme), and bug bounties or testing for everyone (either type, depending on whether you want it dev-gated or open). Keep bounties small and tightly scoped either way — the amounts on Taskify are modest, so a task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
   },
   {
@@ -816,11 +816,11 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is my money safe in escrow?",
-    a: "Funds move only through the Taskify contract: MUSD locks in at task creation and only leaves escrow when the creator approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no custodial intermediary holding funds at any point.",
+    a: "Funds move only through the Taskify contract: MUSD locks in at task creation and only leaves escrow when the owner approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no custodial intermediary holding funds at any point.",
   },
   {
     q: "What fees does Taskify take?",
-    a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the protocol treasury and 40% goes into the wave pool, which is redistributed to active self-funded creators roughly every 30 days.",
+    a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the protocol treasury and 40% goes into the wave pool, which is redistributed to active self-funded owners roughly every 30 days.",
   },
   {
     q: "What wallets are supported?",

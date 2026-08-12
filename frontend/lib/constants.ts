@@ -1,3 +1,12 @@
+// Display label for each on-chain role — "creator" stays the internal
+// string everywhere (variables, API fields, role comparisons); this is
+// only what gets shown to users.
+export const ROLE_LABELS: Record<"creator" | "contributor" | "investor", string> = {
+  creator: "Owner",
+  contributor: "Contributor",
+  investor: "Investor",
+};
+
 export const TIERS = [
   { id: 0, label: "Newcomer", years: "0 – 1 year",  color: "var(--text-dim)", bg: "var(--neutral-tint)" },
   { id: 1, label: "Junior",   years: "1 – 2 years", color: "var(--blue)", bg: "color-mix(in srgb, var(--blue-strong) 9%, transparent)" },

@@ -49,7 +49,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "8. Task Escrow, Grants, and Disputes",
     body: [
-      "Task approval is a decision made solely by the task creator; Taskify does not arbitrate whether submitted work meets a creator's expectations. Grant approval is decided by weighted community vote per the on-chain formula, not by the Taskify team. Neither the interface operator nor any Taskify contributor is a party to, or guarantor of, any task agreement between a creator and a contributor.",
+      "Task approval is a decision made solely by the task owner; Taskify does not arbitrate whether submitted work meets an owner's expectations. Grant approval is decided by weighted community vote per the on-chain formula, not by the Taskify team. Neither the interface operator nor any Taskify contributor is a party to, or guarantor of, any task agreement between an owner and a contributor.",
     ],
   },
   {

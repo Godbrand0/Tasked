@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
-import { TIERS } from "@/lib/constants";
+import { TIERS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
@@ -17,7 +17,7 @@ type NotifKey = keyof typeof DEFAULT_NOTIFS;
 const NOTIF_ITEMS: { key: NotifKey; label: string; desc: string }[] = [
   { key: "task_applied",          label: "New Applicant",     desc: "When someone applies to your task" },
   { key: "community_task_joined", label: "Community Join",    desc: "When someone joins your community task" },
-  { key: "task_assigned",         label: "Task Assigned",     desc: "When a creator assigns you to a task" },
+  { key: "task_assigned",         label: "Task Assigned",     desc: "When an owner assigns you to a task" },
   { key: "work_submitted",        label: "Work Submitted",    desc: "When a contributor submits work on your task" },
   { key: "funds_released",        label: "Funds Released",    desc: "When MUSD is released to your wallet" },
   { key: "task_comment",          label: "New Comment",       desc: "When someone comments on your task" },
@@ -286,7 +286,7 @@ function SettingsPageInner() {
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{onchainUsername || address}</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Badge color={role === "creator" ? "orange" : role === "contributor" ? "purple" : "green"}>
-                        {role ? role.charAt(0).toUpperCase() + role.slice(1) : "Unregistered"}
+                        {role ? ROLE_LABELS[role] : "Unregistered"}
                       </Badge>
                       {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                     </div>

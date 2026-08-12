@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
+import { ROLE_LABELS } from "@/lib/constants";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "@/components/ui/NotificationBell";
 import BackButton from "@/components/ui/BackButton";
@@ -183,7 +184,7 @@ export default function Navbar() {
                         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{username}</span>
                         {role && (
                           <span style={{ fontSize: 10, fontWeight: 700, color: roleColor, background: `${roleColor}18`, padding: "2px 7px", borderRadius: 4, border: `1px solid ${roleColor}30` }}>
-                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                            {ROLE_LABELS[role]}
                           </span>
                         )}
                       </div>

@@ -68,9 +68,9 @@ export default function LeaderboardPage() {
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", borderRadius: 20, padding: "4px 14px", fontSize: 12, fontWeight: 600, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>
             🏆 Leaderboard
           </div>
-          <h1 style={{ fontSize: 36, fontWeight: 800, color: "var(--text)", margin: "0 0 12px", letterSpacing: "-0.02em" }}>Top Creators</h1>
+          <h1 style={{ fontSize: 36, fontWeight: 800, color: "var(--text)", margin: "0 0 12px", letterSpacing: "-0.02em" }}>Top Owners</h1>
           <p style={{ fontSize: 16, color: "var(--text-dim)", margin: 0 }}>
-            Ranked by self-funded tasks posted this wave (Wave #{wave.waveId}). Grant-funded tasks don't count — only creators who commit their own MUSD earn wave rewards.
+            Ranked by self-funded tasks posted this wave (Wave #{wave.waveId}). Grant-funded tasks don't count — only owners who commit their own MUSD earn wave rewards.
           </p>
         </div>
 
@@ -111,7 +111,7 @@ export default function LeaderboardPage() {
               {/* Table header */}
               <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 120px 80px", gap: 0, padding: "12px 24px", borderBottom: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", minWidth: 600 }}>
                 <span>#</span>
-                <span>Creator</span>
+                <span>Owner</span>
                 <span style={{ textAlign: "center" }}>Tasks Posted</span>
                 <span style={{ textAlign: "right" }}>Est. Wave Share</span>
                 <span style={{ textAlign: "center" }}>GitHub</span>

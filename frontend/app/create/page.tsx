@@ -220,9 +220,9 @@ export default function CreatePage() {
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
           <div style={{ fontSize: 48, marginBottom: 20 }}>🧩</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Creator access only</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Owner access only</h1>
           <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 28 }}>
-            Task posting is restricted to Creator accounts. Your current role is <strong style={{ color: "var(--text)" }}>{role}</strong>.
+            Task posting is restricted to Owner accounts. Your current role is <strong style={{ color: "var(--text)" }}>{role}</strong>.
           </p>
           <Link href="/tasks" style={{ color: "var(--primary)", fontSize: 14, textDecoration: "none" }}>← Browse bounties instead</Link>
         </div>
@@ -460,7 +460,7 @@ export default function CreatePage() {
 
           {/* Number of winners — community only */}
           {taskKind === "community" && (
-            <Field label="Number of Winners" required hint="Creator picks up to this many participants; payout splits evenly">
+            <Field label="Number of Winners" required hint="Owner picks up to this many participants; payout splits evenly">
               <input type="number" value={maxWinners} onChange={e => setMaxWinners(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} min={1} max={20}
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}

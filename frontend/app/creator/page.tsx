@@ -108,7 +108,7 @@ export default function CreatorPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayUsername}</h1>
                 {githubVerified && <Badge color="green">GitHub Verified</Badge>}
-                <Badge color="orange">Creator</Badge>
+                <Badge color="orange">Owner</Badge>
               </div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{displayAddress.slice(0, 12)}…{displayAddress.slice(-6)}</div>
             </div>

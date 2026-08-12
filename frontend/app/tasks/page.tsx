@@ -115,7 +115,7 @@ export default function TasksPage() {
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             {role === "creator"
-              ? "As a creator you can browse tasks for inspiration, but only contributors can apply to Development tasks. "
+              ? "As an owner you can browse tasks for inspiration, but only contributors can apply to Development tasks. "
               : "Patrons can browse tasks to inform grant voting, but only contributors can apply to Development tasks. Community tasks are open to any registered role, including you. "}
             <Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none" }}>Learn more</Link>
           </div>
