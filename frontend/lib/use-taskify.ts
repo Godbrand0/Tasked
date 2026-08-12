@@ -32,7 +32,12 @@ export function useTaskifyTx() {
       functionName,
       args,
     } as never);
-    const receipt = await waitForTransactionReceipt(config, { hash });
+    // Mezo's public testnet RPC occasionally lags behind the chain tip, so
+    // the default retryCount (6, viem's default) for "receipt not found yet"
+    // can exhaust before the RPC actually catches up — throwing even though
+    // the transaction genuinely succeeded (confirmed separately by the
+    // wallet's own toast). Raised retryCount/retryDelay give it more room.
+    const receipt = await waitForTransactionReceipt(config, { hash, retryCount: 15, retryDelay: 2000 });
     return receipt;
   }
 
