@@ -604,10 +604,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
           {/* Meta row */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", fontSize: 13, color: "var(--text-dim)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Link href={`/profile/${task.creator}`} style={{ display: "flex", alignItems: "center", gap: 8, color: "inherit", textDecoration: "none" }}>
               <Avatar src={creatorAvatar} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
               <span>Posted by <strong style={{ color: "var(--text)" }}>{task.creatorUsername}</strong></span>
-            </div>
+            </Link>
             <span style={{ color: "var(--border-strong)" }}>·</span>
             <span>Task #{task.id}</span>
             <span style={{ color: "var(--border-strong)" }}>·</span>
@@ -928,10 +928,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     return (
                       <div key={c.id} style={{ paddingBottom: 20, marginBottom: 20, borderBottom: i < topLevel.length - 1 ? "1px solid var(--border)" : "none" }}>
                         <div style={{ display: "flex", gap: 14 }}>
-                          <Avatar src={commentProfiles?.[c.address.toLowerCase()]?.avatarUrl ?? undefined} alt={c.author} size={36} fontSize={14} gradient={c.avatarColor} />
+                          <Link href={`/profile/${c.address}`}>
+                            <Avatar src={commentProfiles?.[c.address.toLowerCase()]?.avatarUrl ?? undefined} alt={c.author} size={36} fontSize={14} gradient={c.avatarColor} />
+                          </Link>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{c.author}</span>
+                              <Link href={`/profile/${c.address}`} style={{ color: "inherit", textDecoration: "none" }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{c.author}</span>
+                              </Link>
                               {c.isCreator && (
                                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>OWNER</span>
                               )}
@@ -977,10 +981,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               <div style={{ marginTop: 16, paddingLeft: 18, borderLeft: "2px solid var(--border)", display: "flex", flexDirection: "column", gap: 16 }}>
                                 {replies.map(r => (
                                   <div key={r.id} style={{ display: "flex", gap: 10 }}>
-                                    <Avatar src={commentProfiles?.[r.address.toLowerCase()]?.avatarUrl ?? undefined} alt={r.author} size={28} fontSize={12} gradient={r.avatarColor} />
+                                    <Link href={`/profile/${r.address}`}>
+                                      <Avatar src={commentProfiles?.[r.address.toLowerCase()]?.avatarUrl ?? undefined} alt={r.author} size={28} fontSize={12} gradient={r.avatarColor} />
+                                    </Link>
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{r.author}</span>
+                                        <Link href={`/profile/${r.address}`} style={{ color: "inherit", textDecoration: "none" }}>
+                                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{r.author}</span>
+                                        </Link>
                                         {r.isCreator && (
                                           <span style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "1px 6px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>OWNER</span>
                                         )}
@@ -1333,26 +1341,26 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {!isCommunity && assigneeAddr && (
               <SideCard>
                 <SideCardTitle>Assigned To</SideCardTitle>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Link href={`/profile/${assigneeAddr}`} style={{ display: "flex", alignItems: "center", gap: 10, color: "inherit", textDecoration: "none" }}>
                   <Avatar src={assigneeAvatar} alt={assigneeDisplayName || assigneeUser.username || formatAddress(assigneeAddr)} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--secondary-light), var(--secondary))" />
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{assigneeDisplayName || assigneeUser.username || formatAddress(assigneeAddr)}</div>
                     <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{isAssignee ? "You" : "Contributor"}</div>
                   </div>
-                </div>
+                </Link>
               </SideCard>
             )}
 
             {/* Creator */}
             <SideCard>
               <SideCardTitle>Owner</SideCardTitle>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Link href={`/profile/${task.creator}`} style={{ display: "flex", alignItems: "center", gap: 10, color: "inherit", textDecoration: "none" }}>
                 <Avatar src={creatorAvatar} alt={task.creatorUsername} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{task.creatorUsername}</div>
                   <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Task owner</div>
                 </div>
-              </div>
+              </Link>
             </SideCard>
           </div>
         </div>
