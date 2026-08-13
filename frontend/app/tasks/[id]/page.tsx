@@ -10,6 +10,7 @@ import { formatMUSD, TIERS, TASK_STATUSES, MUSD_DECIMALS } from "@/lib/constants
 import { MUSD_ADDRESS, statusToString, formatVotingWeight } from "@/lib/taskify";
 import {
   useGrantVote,
+  useProfilesBatch,
   useTaskApplicantAppliedAt,
   useTaskifyTask,
   useTaskifyTx,
@@ -29,6 +30,7 @@ function colorForAddress(address: string): string {
 
 interface LiveComment {
   id: string;
+  address: string;
   author: string;
   avatarColor: string;
   body: string;
@@ -194,6 +196,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         if (cancelled || !data.comments) return;
         setComments(data.comments.map(c => ({
           id: c.id,
+          address: c.author_address,
           author: formatAddress(c.author_address),
           avatarColor: colorForAddress(c.author_address),
           body: c.body,
@@ -206,6 +209,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       .finally(() => { if (!cancelled) setCommentsLoading(false); });
     return () => { cancelled = true; };
   }, [task?.id]);
+
+  // Real profile pictures for commenters/repliers — colorForAddress above
+  // is just the fallback for anyone without one.
+  const { data: commentProfiles } = useProfilesBatch(comments.map(c => c.address));
 
   // Development-task applications (off-chain motivation text keyed to the
   // on-chain applyForTask event — see app/api/applications/route.ts).
@@ -473,6 +480,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const c = data.comment as { id: string; author_address: string; body: string; reply_to: string | null; created_at: string };
       setComments(prev => [...prev, {
         id: c.id,
+        address: c.author_address,
         author: formatAddress(c.author_address),
         avatarColor: colorForAddress(c.author_address),
         body: c.body,
@@ -916,9 +924,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     return (
                       <div key={c.id} style={{ paddingBottom: 20, marginBottom: 20, borderBottom: i < topLevel.length - 1 ? "1px solid var(--border)" : "none" }}>
                         <div style={{ display: "flex", gap: 14 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: c.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                            {c.author.charAt(0).toUpperCase()}
-                          </div>
+                          <Avatar src={commentProfiles?.[c.address.toLowerCase()]?.avatarUrl ?? undefined} alt={c.author} size={36} fontSize={14} gradient={c.avatarColor} />
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{c.author}</span>
@@ -967,9 +973,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               <div style={{ marginTop: 16, paddingLeft: 18, borderLeft: "2px solid var(--border)", display: "flex", flexDirection: "column", gap: 16 }}>
                                 {replies.map(r => (
                                   <div key={r.id} style={{ display: "flex", gap: 10 }}>
-                                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: r.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                                      {r.author.charAt(0).toUpperCase()}
-                                    </div>
+                                    <Avatar src={commentProfiles?.[r.address.toLowerCase()]?.avatarUrl ?? undefined} alt={r.author} size={28} fontSize={12} gradient={r.avatarColor} />
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{r.author}</span>
