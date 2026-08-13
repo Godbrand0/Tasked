@@ -128,24 +128,28 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [submitWorkError, setSubmitWorkError] = useState("");
 
   const [creatorAvatar, setCreatorAvatar] = useState("");
+  const [creatorDisplayName, setCreatorDisplayName] = useState("");
   useEffect(() => {
     if (!onchainTask?.creator) return;
     fetch(`/api/profile?address=${onchainTask.creator}`)
       .then(res => res.json())
-      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string } }) =>
-        setCreatorAvatar(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
-      )
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string; display_name?: string } }) => {
+        setCreatorAvatar(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "");
+        setCreatorDisplayName(data.profile?.display_name || "");
+      })
       .catch(() => {});
   }, [onchainTask?.creator]);
 
   const [assigneeAvatar, setAssigneeAvatar] = useState("");
+  const [assigneeDisplayName, setAssigneeDisplayName] = useState("");
   useEffect(() => {
-    if (!assigneeAddr) { setAssigneeAvatar(""); return; }
+    if (!assigneeAddr) { setAssigneeAvatar(""); setAssigneeDisplayName(""); return; }
     fetch(`/api/profile?address=${assigneeAddr}`)
       .then(res => res.json())
-      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string } }) =>
-        setAssigneeAvatar(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
-      )
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string; display_name?: string } }) => {
+        setAssigneeAvatar(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "");
+        setAssigneeDisplayName(data.profile?.display_name || "");
+      })
       .catch(() => {});
   }, [assigneeAddr]);
 
@@ -153,7 +157,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     ? {
         id: taskId,
         creator: onchainTask.creator,
-        creatorUsername: creatorUser.username || formatAddress(onchainTask.creator),
+        creatorUsername: creatorDisplayName || creatorUser.username || formatAddress(onchainTask.creator),
         title: onchainTask.title,
         description: offchainContent?.description ?? "",
         amount: Number(formatUnits(onchainTask.amount, MUSD_DECIMALS)),
@@ -1267,7 +1271,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>
                 <SideCardTitle color="var(--success)">Payment Released</SideCardTitle>
                 <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: workSubmission?.payout_tx_hash ? 14 : 0, lineHeight: 1.6 }}>
-                  {formatMUSD(netAmount)} {task.token} sent to {assigneeUser.username || (assigneeAddr ? formatAddress(assigneeAddr) : "the contributor")}.
+                  {formatMUSD(netAmount)} {task.token} sent to {assigneeDisplayName || assigneeUser.username || (assigneeAddr ? formatAddress(assigneeAddr) : "the contributor")}.
                 </p>
                 {workSubmission?.payout_tx_hash && (
                   <a
@@ -1330,9 +1334,9 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard>
                 <SideCardTitle>Assigned To</SideCardTitle>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Avatar src={assigneeAvatar} alt={assigneeUser.username || formatAddress(assigneeAddr)} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--secondary-light), var(--secondary))" />
+                  <Avatar src={assigneeAvatar} alt={assigneeDisplayName || assigneeUser.username || formatAddress(assigneeAddr)} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--secondary-light), var(--secondary))" />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{assigneeUser.username || formatAddress(assigneeAddr)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{assigneeDisplayName || assigneeUser.username || formatAddress(assigneeAddr)}</div>
                     <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{isAssignee ? "You" : "Contributor"}</div>
                   </div>
                 </div>
