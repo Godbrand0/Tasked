@@ -4,15 +4,17 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
+import Avatar from "@/components/ui/Avatar";
 import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
 import { MUSD_ADDRESS } from "@/lib/taskify";
-import { useAllTasks, useCurrentWave, useUsersBatchFull } from "@/lib/use-taskify";
+import { useAllTasks, useCurrentWave, useUsersBatchFull, useProfilesBatch } from "@/lib/use-taskify";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 interface LeaderboardEntry {
   address: string;
   username: string;
+  avatarUrl?: string;
   githubVerified: boolean;
   selfFundedTasksPosted: number;
 }
@@ -39,17 +41,22 @@ export default function LeaderboardPage() {
 
   const creatorAddresses = Object.keys(counts);
   const { data: usersByAddress } = useUsersBatchFull(creatorAddresses);
+  const { data: profilesByAddress } = useProfilesBatch(creatorAddresses);
 
   const sorted: LeaderboardEntry[] = useMemo(() => {
     return creatorAddresses
-      .map((address) => ({
-        address,
-        username: usersByAddress?.[address]?.username || `${address.slice(0, 6)}…${address.slice(-4)}`,
-        githubVerified: usersByAddress?.[address]?.githubVerified ?? false,
-        selfFundedTasksPosted: counts[address],
-      }))
+      .map((address) => {
+        const profile = profilesByAddress?.[address];
+        return {
+          address,
+          username: profile?.displayName || usersByAddress?.[address]?.username || `${address.slice(0, 6)}…${address.slice(-4)}`,
+          avatarUrl: profile?.avatarUrl ?? undefined,
+          githubVerified: usersByAddress?.[address]?.githubVerified ?? false,
+          selfFundedTasksPosted: counts[address],
+        };
+      })
       .sort((a, b) => b.selfFundedTasksPosted - a.selfFundedTasksPosted);
-  }, [creatorAddresses, usersByAddress, counts]);
+  }, [creatorAddresses, usersByAddress, profilesByAddress, counts]);
 
   const top3 = sorted.slice(0, 3);
   const rest = sorted.slice(3);
@@ -93,8 +100,8 @@ export default function LeaderboardPage() {
                       onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)")}
                       onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.transform = "translateY(0)")}>
                       <div style={{ fontSize: 28, marginBottom: 8 }}>{MEDALS[rank]}</div>
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "white", margin: "0 auto 10px" }}>
-                        {creator.username.charAt(0).toUpperCase()}
+                      <div style={{ margin: "0 auto 10px" }}>
+                        <Avatar src={creator.avatarUrl} alt={creator.username} size={40} fontSize={16} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{creator.username}</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: "var(--primary)", marginTop: 10 }}>{creator.selfFundedTasksPosted}</div>
@@ -124,9 +131,7 @@ export default function LeaderboardPage() {
                     onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = "transparent")}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: i < 3 ? "var(--primary)" : "var(--text-dim)" }}>{i + 1}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, hsl(${(i * 60) % 360}, 70%, 50%), hsl(${(i * 60 + 120) % 360}, 70%, 50%))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                        {creator.username.charAt(0).toUpperCase()}
-                      </div>
+                      <Avatar src={creator.avatarUrl} alt={creator.username} size={36} fontSize={14} gradient={`linear-gradient(135deg, hsl(${(i * 60) % 360}, 70%, 50%), hsl(${(i * 60 + 120) % 360}, 70%, 50%))`} />
                       <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{creator.username}</div>
                     </div>
                     <div style={{ textAlign: "center", fontSize: 15, fontWeight: 700, color: "var(--success)" }}>{creator.selfFundedTasksPosted}</div>
