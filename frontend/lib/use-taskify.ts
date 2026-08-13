@@ -309,6 +309,25 @@ export function useUsersBatchFull(addresses: string[]) {
   });
 }
 
+// Off-chain counterpart to useUsersBatch/useUsersBatchFull — display_name
+// overrides and avatars live in Supabase, not on-chain, so list pages need
+// both a chain read (for the real username/role data) and this (for
+// anything a user's customized). See app/api/profile/batch.
+export function useProfilesBatch(addresses: string[]) {
+  const unique = Array.from(new Set(addresses.map((a) => a.toLowerCase()))).filter(Boolean);
+
+  return useQuery({
+    queryKey: ["taskify", "profilesBatch", unique.join(",")],
+    enabled: unique.length > 0,
+    queryFn: async () => {
+      const res = await fetch(`/api/profile/batch?addresses=${unique.join(",")}`);
+      if (!res.ok) return {} as Record<string, { displayName: string | null; avatarUrl: string | null }>;
+      const data = await res.json();
+      return (data.profiles ?? {}) as Record<string, { displayName: string | null; avatarUrl: string | null }>;
+    },
+  });
+}
+
 export function useTaskifyTask(taskId: number | undefined) {
   const { data, isLoading, refetch } = useReadContract({
     address: TASKIFY_ADDRESS,

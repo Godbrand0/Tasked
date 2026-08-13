@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Task } from "@/lib/mock";
 import { formatMUSD } from "@/lib/constants";
 import { Badge, TierRangeBadge, StatusBadge } from "./Badge";
+import Avatar from "./Avatar";
 
-export default function TaskCard({ task }: { task: Task }) {
+export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creatorAvatarUrl?: string }) {
   return (
     <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none", display: "block" }}>
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
@@ -32,9 +33,7 @@ export default function TaskCard({ task }: { task: Task }) {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white" }}>
-              {task.creatorUsername.charAt(0).toUpperCase()}
-            </div>
+            <Avatar src={creatorAvatarUrl} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
             <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
           </div>
           {task.kind === "community"

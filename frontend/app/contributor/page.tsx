@@ -9,7 +9,7 @@ import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
-import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
+import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function ContributorPage() {
   const { username, experienceLevel, tasksCompleted, totalEarned, connected, isRegistered, avatarUrl } = useWallet();
@@ -25,9 +25,15 @@ export default function ContributorPage() {
 
   const { data: onchainTasks } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
+  const { data: profilesByAddress } = useProfilesBatch((onchainTasks ?? []).map(t => t.creator));
   const allTasks = useMemo(
-    () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
-    [onchainTasks, usersByAddress]
+    () => (onchainTasks ?? []).map(t => {
+      const addr = t.creator.toLowerCase();
+      const onchainUsername = usersByAddress?.[addr] ?? "";
+      const profile = profilesByAddress?.[addr];
+      return mapOnChainTask(t, profile?.displayName || onchainUsername);
+    }),
+    [onchainTasks, usersByAddress, profilesByAddress]
   );
 
   const openDevTasks = allTasks.filter(t => t.status === "OPEN" && t.kind === "development");
@@ -186,7 +192,7 @@ export default function ContributorPage() {
               </div>
               {matchedTasks.length > 0 ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                  {matchedTasks.map((task) => <TaskCard key={task.id} task={task} />)}
+                  {matchedTasks.map((task) => <TaskCard key={task.id} task={task} creatorAvatarUrl={profilesByAddress?.[task.creator.toLowerCase()]?.avatarUrl ?? undefined} />)}
                 </div>
               ) : (
                 <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "40px 24px", textAlign: "center" }}>
@@ -206,7 +212,7 @@ export default function ContributorPage() {
                 </button>
                 {showAll && (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, opacity: 0.55 }}>
-                    {displayedExtra.map((task) => <TaskCard key={task.id} task={task} />)}
+                    {displayedExtra.map((task) => <TaskCard key={task.id} task={task} creatorAvatarUrl={profilesByAddress?.[task.creator.toLowerCase()]?.avatarUrl ?? undefined} />)}
                   </div>
                 )}
               </div>

@@ -210,7 +210,7 @@ export default function CreatorPage() {
                   <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{openTasks.length} task{openTasks.length !== 1 ? "s" : ""}</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                  {openTasks.map((task) => <TaskCard key={task.id} task={task} />)}
+                  {openTasks.map((task) => <TaskCard key={task.id} task={task} creatorAvatarUrl={avatarUrl} />)}
                 </div>
               </div>
             )}

@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
-import { useAllTasks, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
+import { useAllTasks, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 const STATUS_FILTERS = ["All", "Open", "In Progress", "Submitted", "Completed"];
 const STATUS_MAP: Record<string, string[]> = {
@@ -27,9 +27,17 @@ export default function TasksPage() {
 
   const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
+  // Off-chain overrides (custom display name, uploaded/Google avatar) —
+  // useUsersBatch only ever returns the permanent on-chain username.
+  const { data: profilesByAddress } = useProfilesBatch((onchainTasks ?? []).map(t => t.creator));
   const baseTasks = useMemo(
-    () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
-    [onchainTasks, usersByAddress]
+    () => (onchainTasks ?? []).map(t => {
+      const addr = t.creator.toLowerCase();
+      const onchainUsername = usersByAddress?.[addr] ?? "";
+      const profile = profilesByAddress?.[addr];
+      return mapOnChainTask(t, profile?.displayName || onchainUsername);
+    }),
+    [onchainTasks, usersByAddress, profilesByAddress]
   );
 
   const [submissionCounts, setSubmissionCounts] = useState<Record<number, number>>({});
@@ -189,7 +197,7 @@ export default function TasksPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
               {filtered.map(task => (
                 <div key={task.id} style={{ position: "relative" }}>
-                  <TaskCard task={task} />
+                  <TaskCard task={task} creatorAvatarUrl={profilesByAddress?.[task.creator.toLowerCase()]?.avatarUrl ?? undefined} />
                   {/* Quick-action badge on open tasks — apply (dev, contributors only) or join (community, any role) */}
                   {task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor)) && (
                     <div style={{ position: "absolute", bottom: 20, right: 20 }}>
