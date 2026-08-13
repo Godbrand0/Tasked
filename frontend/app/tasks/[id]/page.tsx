@@ -130,8 +130,8 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     if (!onchainTask?.creator) return;
     fetch(`/api/profile?address=${onchainTask.creator}`)
       .then(res => res.json())
-      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string } }) =>
-        setCreatorAvatar(data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string } }) =>
+        setCreatorAvatar(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
       )
       .catch(() => {});
   }, [onchainTask?.creator]);
@@ -141,8 +141,8 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     if (!assigneeAddr) { setAssigneeAvatar(""); return; }
     fetch(`/api/profile?address=${assigneeAddr}`)
       .then(res => res.json())
-      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string } }) =>
-        setAssigneeAvatar(data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
+      .then((data: { profile?: { github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string } }) =>
+        setAssigneeAvatar(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "")
       )
       .catch(() => {});
   }, [assigneeAddr]);

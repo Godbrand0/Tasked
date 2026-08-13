@@ -20,8 +20,8 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   useEffect(() => {
     fetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
-      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string } }) => {
-        setAvatarUrl(data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "");
+      .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_avatar_url?: string; google_avatar_url?: string; custom_avatar_url?: string } }) => {
+        setAvatarUrl(data.profile?.custom_avatar_url || data.profile?.google_avatar_url || data.profile?.github_avatar_url || data.profile?.x_avatar_url || "");
         setGithubHandleOffchain(data.profile?.github_handle ?? "");
       })
       .catch(() => {});
