@@ -589,13 +589,13 @@ function RolesSection() {
       bg: "color-mix(in srgb, var(--success) 9%, transparent)",
       title: "Investor",
       subtitle: "Shape what gets built",
-      desc: "Deposit MUSD into the patron pool, stake MEZO for amplified governance weight, and vote on grant applications.",
+      desc: "Deposit MUSD to fund the grant pool and earn Patron tiers. Vote on grant applications with the veBTC position you already hold on Mezo Earn — funding and voting power are fully decoupled.",
       features: [
         "Permanent MUSD deposits → patron tiers",
-        "MEZO staking boosts voting weight 10×",
-        "Vote For / Against grant applications",
+        "Voting weight read live from your veBTC lock on Mezo Earn",
+        "Vote For / Against grant applications (pilot access)",
         "Bronze → Silver → Gold → Diamond tiers",
-        "No lockup for MEZO stake, always withdrawable",
+        "Taskify never custodies your veBTC — it stays on Mezo Earn",
       ],
       cta: "Become a Patron",
     },
@@ -732,10 +732,10 @@ function TokensSection() {
         <div style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>Native tokens</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
-            MUSD pays. MEZO governs.
+            MUSD pays. veBTC governs.
           </h2>
           <p style={{ fontSize: 16, color: "var(--text-dim)", marginTop: 12 }}>
-            Both tokens are native to the Mezo ecosystem. Neither is speculative filler.
+            Payment and governance are deliberately separate systems — one native to Taskify, one native to Mezo Earn.
           </p>
         </div>
 
@@ -760,7 +760,7 @@ function TokensSection() {
                 "Releases directly to contributor on approval",
                 "Patron pool deposits denominated in MUSD",
                 "Wave rewards paid in MUSD",
-                "Multi-token tasks supported via ERC-20",
+                "Tasks can also be posted and paid in MEZO",
               ].map((f) => (
                 <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "var(--text-muted)" }}>
                   <span style={{ color: "var(--success)", flexShrink: 0, marginTop: 1 }}><IconCheck /></span>
@@ -770,27 +770,26 @@ function TokensSection() {
             </div>
           </Card>
 
-          {/* MEZO */}
+          {/* veBTC */}
           <Card style={{ borderColor: "color-mix(in srgb, var(--secondary) 19%, transparent)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--secondary-light)" }}>
                 <IconVote />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--secondary-light)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Governance token</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>MEZO</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--secondary-light)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Governance, read live</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>veBTC</div>
               </div>
             </div>
             <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, margin: "0 0 20px" }}>
-              Native Mezo token. Stake MEZO to amplify voting weight on grant applications, turning passive holders into active ecosystem governors.
+              Taskify doesn&apos;t custody anything for governance. Lock BTC on Mezo Earn to mint veBTC, and that position's weight is read directly from Mezo&apos;s own contracts every time a grant vote is cast.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
-                "1 MEZO staked = 10 MUSD governance weight",
-                "Always withdrawable, no lockup or slashing",
-                "Multiplier adjustable by contract owner",
-                "Unstaking does not alter past votes",
-                "Growing grant pool increases governance value",
+                "Voting weight = your real veBTC position, nothing invented by Taskify",
+                "Pair with a veMEZO lock via Mezo's Matching Market to boost weight up to 5×",
+                "Each proposal snapshots weight when it opens — late locks can't swing a live vote",
+                "Stays on Mezo Earn the whole time; Taskify only ever reads it",
               ].map((f) => (
                 <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "var(--text-muted)" }}>
                   <span style={{ color: "var(--secondary-light)", flexShrink: 0, marginTop: 1 }}><IconCheck /></span>
@@ -801,21 +800,18 @@ function TokensSection() {
           </Card>
         </div>
 
-        {/* Voting weight formula */}
+        {/* Voting weight source */}
         <div style={{ marginTop: 24, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "24px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>Voting weight formula</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>Voting weight, on-chain</div>
             <code style={{ fontSize: 15, color: "var(--text)", fontFamily: "var(--font-geist-mono), monospace" }}>
-              <span style={{ color: "var(--success)" }}>total-musd-deposited</span>
-              {" + ("}
-              <span style={{ color: "var(--secondary-light)" }}>mezo-staked</span>
-              {" × "}
-              <span style={{ color: "var(--primary)" }}>10</span>
-              {" / 1e6)"}
+              <span style={{ color: "var(--primary)" }}>getVotingWeight</span>
+              {"(patron, proposalSnapshot) → "}
+              <span style={{ color: "var(--secondary-light)" }}>veBTC.getPastVotes(...)</span>
             </code>
           </div>
           <div style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 320 }}>
-            Staking 1,000 MEZO adds 10,000 MUSD-equivalent voting units. Capital commitment and ecosystem conviction both shape governance.
+            No formula, no multiplier owned by Taskify — a live read straight from Mezo&apos;s Tigris contracts, aggregated across every veBTC position a wallet holds.
           </div>
         </div>
       </div>
@@ -844,8 +840,12 @@ const FAQ_ITEMS = [
     a: "MUSD is Mezo's native Bitcoin-backed stablecoin. It's the default escrow and payout currency, so contributors know exactly what a bounty is worth with no price exposure between the day a task is posted and the day it's paid out.",
   },
   {
-    q: "What is MEZO and what does staking it do?",
-    a: "MEZO is Mezo's governance token. Patrons can stake it to amplify their voting weight on grant applications. 1,000 MEZO staked adds meaningful voting power on top of any MUSD deposited. Staked MEZO is always withdrawable; there's no lockup or slashing.",
+    q: "What is MEZO used for on Taskify?",
+    a: "MEZO is Mezo's native token; tasks can be posted and paid in MEZO the same way they can in MUSD. It doesn't grant any voting power on its own — pair a veMEZO lock with a veBTC position via Mezo's Matching Market if you want to boost your governance weight (see \"How does grant voting work?\" below).",
+  },
+  {
+    q: "How does grant voting work?",
+    a: "Voting weight comes entirely from your veBTC position on Mezo Earn — lock BTC there to mint veBTC, and Taskify reads that weight live via Mezo's own contracts every time you vote. It's completely decoupled from MUSD deposits: depositing funds the grant pool and earns Patron tiers, but doesn't grant votes. Each proposal snapshots weight at the moment it opens, so locking veBTC after a vote has already started doesn't let you swing it. Grant voting is currently rolling out to an initial group of veBTC holders as the patron base grows.",
   },
   {
     q: "How does experience matching work?",
@@ -966,7 +966,7 @@ function Footer() {
     ],
     Tokens: [
       { label: "MUSD", href: "#tokens" },
-      { label: "MEZO staking", href: "#tokens" },
+      { label: "veBTC voting", href: "#tokens" },
       { label: "Patron tiers", href: "#tokens" },
       { label: "Governance", href: "#tokens" },
     ],
