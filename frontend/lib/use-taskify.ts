@@ -424,6 +424,21 @@ export function useVotingWeight(address: string | undefined, snapshotTimestamp: 
   return { weight: (data as bigint | undefined) ?? BigInt(0), isLoading, refetch };
 }
 
+// Pilot-phase voter whitelist — voteOnGrant requires approvedVoters[voter]
+// in addition to role + veBTC weight (see Taskify.sol). Real weight alone
+// doesn't mean a wallet can actually vote yet.
+export function useIsApprovedVoter(address: string | undefined) {
+  const { data, isLoading, refetch } = useReadContract({
+    address: TASKIFY_ADDRESS,
+    abi: TASKIFY_ABI,
+    functionName: "approvedVoters",
+    args: address ? [address as `0x${string}`] : undefined,
+    query: { enabled: Boolean(address && TASKIFY_ADDRESS) },
+  });
+
+  return { isApproved: Boolean(data), isLoading, refetch };
+}
+
 // Batched version of useGrantVote + grantVoters + per-proposal voting weight
 // for a set of task ids — used by the investor page, which lists every
 // GRANT_PENDING task at once and can't call one useReadContract per row (hook

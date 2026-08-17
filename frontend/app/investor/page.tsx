@@ -9,7 +9,7 @@ import { Badge, PatronTierBadge } from "@/components/ui/Badge";
 import { formatMUSD, PATRON_TIERS, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { MUSD_ADDRESS, TASKIFY_ADDRESS, formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
-import { useAllTasks, useApproveIfNeeded, useGrantVotesBatch, usePatron, useTaskifyTx, useTaskifyUser, useVotingWeight, toRawMUSD } from "@/lib/use-taskify";
+import { useAllTasks, useApproveIfNeeded, useGrantVotesBatch, useIsApprovedVoter, usePatron, useTaskifyTx, useTaskifyUser, useVotingWeight, toRawMUSD } from "@/lib/use-taskify";
 
 // Where "become a Taskify patron" onboarding sends people to actually lock
 // BTC or MEZO — Taskify no longer custodies anything for voting purposes,
@@ -34,6 +34,10 @@ export default function InvestorPage() {
   // this current-time read. See lib/use-taskify.ts's useVotingWeight.
   const nowTimestamp = useMemo(() => Math.floor(Date.now() / 1000), []);
   const { weight: currentWeight, refetch: refetchWeight } = useVotingWeight(address, nowTimestamp);
+  // Pilot-phase voter whitelist — real veBTC weight alone isn't enough to
+  // vote yet; the owner has to have explicitly approved the wallet too.
+  // See Taskify.sol's approvedVoters/setApprovedVoters.
+  const { isApproved } = useIsApprovedVoter(address);
 
   const [depositAmt, setDepositAmt] = useState("");
   const [unstakeAmt, setUnstakeAmt] = useState("");
@@ -46,7 +50,7 @@ export default function InvestorPage() {
   const currentTier = PATRON_TIERS.find(t => t.id === patron.tier) ?? PATRON_TIERS[0];
   const nextTierIdx = PATRON_TIERS.findIndex(t => t.id === currentTier.id) - 1;
   const nextTier = nextTierIdx >= 0 ? PATRON_TIERS[nextTierIdx] : undefined;
-  const canVote = currentWeight > BigInt(0);
+  const canVote = currentWeight > BigInt(0) && isApproved;
   // mezoStaked is legacy-only now — stakeMezo() is gone, this can only be
   // nonzero for patrons who staked before the migration and haven't
   // withdrawn yet. See Taskify.sol's unstakeMezo and VOTING_SYSTEM_REDESIGN.md.
@@ -167,7 +171,10 @@ export default function InvestorPage() {
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>
                 Voting power: <strong style={{ color: "var(--success)" }}>{formatVotingWeight(currentWeight)}</strong>
                 {" "}<button onClick={() => refetchWeight()} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>refresh</button>
-                {!canVote && (
+                {!canVote && !isApproved && (
+                  <span style={{ marginLeft: 8, color: "var(--text-dim)", fontSize: 12 }}>— voting is pilot-only right now</span>
+                )}
+                {!canVote && isApproved && (
                   <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: "var(--primary)", fontSize: 12, textDecoration: "none" }}>
                     — Lock BTC or MEZO on Mezo Earn to vote →
                   </a>
@@ -203,7 +210,12 @@ export default function InvestorPage() {
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 20px" }}>Grant Applications</h2>
 
-            {!canVote && (
+            {!canVote && !isApproved && (
+              <div style={{ background: "var(--border)", borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
+                Grant voting is limited to an approved pilot group of veBTC holders right now — reach out if you&apos;d like to be added.
+              </div>
+            )}
+            {!canVote && isApproved && (
               <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: "var(--primary)", lineHeight: 1.6 }}>
                 Voting weight comes from your veBTC/veMEZO position on{" "}
                 <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>Mezo Earn</a>
@@ -231,7 +243,7 @@ export default function InvestorPage() {
                   // position changed after this proposal opened. This is the
                   // actual value voteOnGrant will use.
                   const myWeightForThisTask = vote?.myWeight ?? BigInt(0);
-                  const canVoteThisTask = myWeightForThisTask > BigInt(0);
+                  const canVoteThisTask = myWeightForThisTask > BigInt(0) && isApproved;
                   const amountHuman = Number(formatUnits(task.amount, MUSD_DECIMALS));
 
                   return (
@@ -294,7 +306,9 @@ export default function InvestorPage() {
                         <div>
                           {!canVoteThisTask ? (
                             <div style={{ background: "var(--border)", borderRadius: 10, padding: "12px 16px", textAlign: "center", fontSize: 13, color: "var(--text-dim)" }}>
-                              {canVote
+                              {!isApproved
+                                ? "Voting is limited to an approved pilot group right now — reach out if you'd like to be added."
+                                : currentWeight > BigInt(0)
                                 ? "Your veBTC position was locked after this proposal opened — it doesn't carry weight here."
                                 : "Lock BTC or MEZO on Mezo Earn to unlock voting →"}
                             </div>

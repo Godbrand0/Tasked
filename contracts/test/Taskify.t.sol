@@ -28,6 +28,12 @@ contract TaskifyTest is Test {
         taskify = new Taskify(address(musd), address(mezo));
         veEscrow = new MockVotingEscrow();
         taskify.setVeBTCEscrow(address(veEscrow));
+
+        // Pilot-phase voter whitelist — charlie is the voting patron in every
+        // existing test below, so approve that address once here rather than per test.
+        address[] memory initialVoters = new address[](1);
+        initialVoters[0] = charlie;
+        taskify.setApprovedVoters(initialVoters, true);
     }
 
     function test_FullProtocolLifecycle() public {
@@ -487,5 +493,39 @@ contract TaskifyTest is Test {
 
         assertEq(veEscrow.balanceOf(charlie), max + 5);
         assertEq(taskify.getVotingWeight(charlie, block.timestamp), max);
+    }
+
+    /// @notice The pilot-phase voter whitelist: a wallet with a real,
+    /// nonzero veBTC position and the correct Investor role still can't
+    /// vote unless the owner has explicitly approved it. getVotingWeight
+    /// itself is untouched by the whitelist — it's a pure read of external
+    /// veBTC weight — only the ability to actually cast a vote is gated.
+    function test_UnapprovedVoterCannotVoteDespiteRealWeight() public {
+        address frank = makeAddr("frankTheUnapprovedWhale");
+
+        vm.prank(alice);
+        taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
+        vm.prank(frank);
+        taskify.registerUser("frank", Taskify.Role.Investor, 0, false, false);
+
+        veEscrow.mint(frank, 99, 1_000_000);
+        assertEq(taskify.getVotingWeight(frank, block.timestamp), 1_000_000);
+
+        vm.prank(alice);
+        uint256 taskId = taskify.applyForGrant("Whitelist probe", 100e18, 0, 4);
+
+        vm.prank(frank);
+        vm.expectRevert(Taskify.NotApprovedVoter.selector);
+        taskify.voteOnGrant(taskId, true);
+
+        // Once the owner approves frank, the exact same vote succeeds.
+        address[] memory newlyApproved = new address[](1);
+        newlyApproved[0] = frank;
+        taskify.setApprovedVoters(newlyApproved, true);
+
+        vm.prank(frank);
+        taskify.voteOnGrant(taskId, true);
+        (uint256 votesFor,,,,) = taskify.grantVotes(taskId);
+        assertEq(votesFor, 1_000_000);
     }
 }

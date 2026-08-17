@@ -43,6 +43,7 @@ contract Taskify is ReentrancyGuard {
     error VotingOpen();
     error AlreadyVoted();
     error NoStake();
+    error NotApprovedVoter();
     error WaveNotFinished();
     error AlreadyClaimed();
     error NoReward();
@@ -177,6 +178,12 @@ contract Taskify is ReentrancyGuard {
     // unused until Mezo deploys veMEZO boost support (see VOTING_SYSTEM_REDESIGN.md).
     address public veBTCEscrow;
     address public veMEZOEscrow;
+    // Pilot-phase voter whitelist — voteOnGrant additionally requires
+    // approvedVoters[msg.sender] on top of the existing role + veBTC-weight
+    // checks. Deliberately narrows the otherwise-permissionless voting model
+    // while the platform is bootstrapping with a small, DevRel-sourced set
+    // of real veBTC holders — see VOTING_SYSTEM_REDESIGN.md.
+    mapping(address => bool) public approvedVoters;
     uint256 public nextTaskId = 1;
 
     uint256 public currentWaveId = 1;
@@ -206,6 +213,7 @@ contract Taskify is ReentrancyGuard {
     event WaveRewardClaimed(uint256 indexed waveId, address indexed creator, uint256 reward);
     event Deposited(address indexed patron, uint256 amount, uint8 newTier);
     event MezoUnstaked(address indexed patron, uint256 amount);
+    event VoterApproved(address indexed voter, bool approved);
 
     constructor(address _musd, address _mezo) {
         CONTRACT_OWNER = msg.sender;
@@ -497,6 +505,7 @@ contract Taskify is ReentrancyGuard {
         if (task.creator == address(0)) revert TaskNotFound();
         GrantVote storage vote = grantVotes[taskId];
         if (users[msg.sender].role != Role.Investor) revert NoStake();
+        if (!approvedVoters[msg.sender]) revert NotApprovedVoter();
 
         if (task.status != Status.GrantPending) revert InvalidStatus();
         if (block.timestamp >= vote.deadline) revert VotingClosed();
@@ -791,5 +800,16 @@ contract Taskify is ReentrancyGuard {
     function setVeMEZOEscrow(address _veMEZOEscrow) external {
         if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
         veMEZOEscrow = _veMEZOEscrow;
+    }
+
+    /// @notice Adds or removes addresses from the pilot-phase voter
+    /// whitelist. voteOnGrant() requires approvedVoters[msg.sender] in
+    /// addition to its existing role + veBTC-weight checks.
+    function setApprovedVoters(address[] calldata voters, bool approved) external {
+        if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
+        for (uint256 i = 0; i < voters.length; i++) {
+            approvedVoters[voters[i]] = approved;
+            emit VoterApproved(voters[i], approved);
+        }
     }
 }
