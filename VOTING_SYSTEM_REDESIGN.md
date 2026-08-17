@@ -2,13 +2,17 @@
 
 ## Implementation status
 
-**Sections 5 and 7 are implemented and tested**, against the mock `IMezoVotingEscrow` interface (real DevRel-confirmed addresses are still needed before anything touches mainnet — see Section 9).
+**Sections 5 and 7 are implemented, tested, and deployed to Mezo testnet.**
 
+- **Deployed 2026-08-17:** `0xce788B980a4339B8edCaaaFb42a9Bf2Ad8E0de6f` (Mezo testnet, chain 31611), via `contracts/script/Deploy.s.sol`. `veBTCEscrow` is set to the independently-verified testnet veBTC address (`0xB63fcCd03521Cf21907627bd7fA465C129479231`, confirmed on-chain — see Section 3); `veMEZOEscrow` is unset (no address exists yet). `frontend/.env.local`'s `NEXT_PUBLIC_TASKIFY_CONTRACT` points at it. The previous pre-redesign deployment (`0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb`, MUSD/MEZO-divisor voting, 10 tasks) was left behind, not migrated — accepted tradeoff, testnet only.
+- **⚠️ Not yet done:** the live Vercel deployment (`taskifybounties.vercel.app`) reads its own `NEXT_PUBLIC_TASKIFY_CONTRACT` from Vercel's project environment variables, not from this repo — someone needs to update that in the Vercel dashboard and redeploy before real users (including the 5 veBTC holders being onboarded via DevRel) are actually interacting with the new contract.
+- **Also not yet done:** a real end-to-end vote against the live veBTC contract (all testing so far is either the mock `MockVotingEscrow` in Foundry tests, or read-only `cast call`s confirming the interface responds correctly — nobody has cast an actual `voteOnGrant` vote backed by a real veBTC position yet).
 - `contracts/src/Taskify.sol` — `IMezoVotingEscrow`, `veBTCEscrow`/`veMEZOEscrow` + setters, `_votingWeight`/`getVotingWeight` (`Taskify.sol:233-251`), `GrantVote.snapshotTimestamp` wired through `applyForGrant`/`voteOnGrant`, `stakeMezo` removed (`unstakeMezo` kept for migration), dead divisor constants removed.
 - `contracts/src/MockVotingEscrow.sol` — checkpoint-aware test double.
 - `contracts/test/Taskify.t.sol` — 7 passing tests, including snapshot-vs-live-weight and the NFT cap.
 - `contracts/script/Deploy.s.sol` — optional `VEBTC_ESCROW_ADDRESS`/`VEMEZO_ESCROW_ADDRESS` env vars, since both are also owner-settable post-deploy.
 - `frontend/lib/taskify.ts`, `frontend/lib/use-taskify.ts`, `frontend/app/investor/page.tsx` — old divisor-based `votingWeight()` removed, `getVotingWeight(address, snapshotTimestamp)` read live per-proposal (`vote.myWeight`) and as a non-binding current-time preview; Stake MEZO UI replaced with a migration-only legacy-withdrawal panel; Mezo Earn CTA added.
+- **No on-chain quorum/self-dealing safeguard exists.** Discussed at length (low-turnout votes can pass on a single voter's weight since `executeGrant` only checks cast-vote ratio, not participation). Current mitigation is operational — DevRel connecting real veBTC holders as voters — not a contract change. Revisit a quorum floor if that turns out to be insufficient.
 
 ## Summary
 
