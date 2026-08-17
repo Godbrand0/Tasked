@@ -385,6 +385,7 @@ export interface OnChainGrantVote {
   votesFor: bigint;
   votesAgainst: bigint;
   deadline: number;
+  snapshotTimestamp: number;
   executed: boolean;
 }
 
@@ -397,17 +398,38 @@ export function useGrantVote(taskId: number | undefined) {
     query: { enabled: Boolean(taskId !== undefined && TASKIFY_ADDRESS) },
   });
 
-  const t = data as readonly [bigint, bigint, bigint, boolean] | undefined;
+  const t = data as readonly [bigint, bigint, bigint, bigint, boolean] | undefined;
   const vote: OnChainGrantVote | undefined = t
-    ? { votesFor: t[0], votesAgainst: t[1], deadline: Number(t[2]), executed: t[3] }
+    ? { votesFor: t[0], votesAgainst: t[1], deadline: Number(t[2]), snapshotTimestamp: Number(t[3]), executed: t[4] }
     : undefined;
 
   return { vote, isLoading, refetch };
 }
 
-// Batched version of useGrantVote + grantVoters for a set of task ids — used
-// by the investor page, which lists every GRANT_PENDING task at once and
-// can't call one useReadContract per row (hook count must stay fixed).
+// Live veBTC-derived voting weight for `address` as of `snapshotTimestamp` —
+// mirrors Taskify.sol's getVotingWeight() exactly rather than re-implementing
+// the veBTC NFT aggregation client-side. Pass a proposal's own
+// snapshotTimestamp (see OnChainGrantVote) when the weight matters for an
+// actual vote; a current-time value is fine for a non-binding "your voting
+// power right now" preview outside of any specific proposal.
+export function useVotingWeight(address: string | undefined, snapshotTimestamp: number | undefined) {
+  const { data, isLoading, refetch } = useReadContract({
+    address: TASKIFY_ADDRESS,
+    abi: TASKIFY_ABI,
+    functionName: "getVotingWeight",
+    args: address && snapshotTimestamp !== undefined ? [address as `0x${string}`, BigInt(snapshotTimestamp)] : undefined,
+    query: { enabled: Boolean(address && snapshotTimestamp !== undefined && TASKIFY_ADDRESS) },
+  });
+
+  return { weight: (data as bigint | undefined) ?? BigInt(0), isLoading, refetch };
+}
+
+// Batched version of useGrantVote + grantVoters + per-proposal voting weight
+// for a set of task ids — used by the investor page, which lists every
+// GRANT_PENDING task at once and can't call one useReadContract per row (hook
+// count must stay fixed). myWeight is read against each proposal's own
+// snapshotTimestamp, not a blanket "current weight" — different proposals can
+// have different snapshots, and that's the weight voteOnGrant will actually use.
 export function useGrantVotesBatch(taskIds: number[], voterAddress: string | undefined) {
   const publicClient = usePublicClient();
 
@@ -417,7 +439,7 @@ export function useGrantVotesBatch(taskIds: number[], voterAddress: string | und
     refetchInterval: 20000,
     queryFn: async () => {
       const contractAddress = TASKIFY_ADDRESS;
-      if (!publicClient || !contractAddress) return {} as Record<number, OnChainGrantVote & { hasVoted: boolean }>;
+      if (!publicClient || !contractAddress) return {} as Record<number, OnChainGrantVote & { hasVoted: boolean; myWeight: bigint }>;
       const results = await Promise.all(
         taskIds.map(async (id) => {
           const t = (await publicClient.readContract({
@@ -425,7 +447,8 @@ export function useGrantVotesBatch(taskIds: number[], voterAddress: string | und
             abi: TASKIFY_ABI,
             functionName: "grantVotes",
             args: [BigInt(id)],
-          })) as readonly [bigint, bigint, bigint, boolean];
+          })) as readonly [bigint, bigint, bigint, bigint, boolean];
+          const snapshotTimestamp = Number(t[3]);
           const hasVoted = voterAddress
             ? ((await publicClient.readContract({
                 address: contractAddress,
@@ -434,10 +457,29 @@ export function useGrantVotesBatch(taskIds: number[], voterAddress: string | und
                 args: [BigInt(id), voterAddress as `0x${string}`],
               })) as boolean)
             : false;
-          return [id, { votesFor: t[0], votesAgainst: t[1], deadline: Number(t[2]), executed: t[3], hasVoted }] as const;
+          const myWeight = voterAddress
+            ? ((await publicClient.readContract({
+                address: contractAddress,
+                abi: TASKIFY_ABI,
+                functionName: "getVotingWeight",
+                args: [voterAddress as `0x${string}`, BigInt(snapshotTimestamp)],
+              })) as bigint)
+            : BigInt(0);
+          return [
+            id,
+            {
+              votesFor: t[0],
+              votesAgainst: t[1],
+              deadline: Number(t[2]),
+              snapshotTimestamp,
+              executed: t[4],
+              hasVoted,
+              myWeight,
+            },
+          ] as const;
         })
       );
-      return Object.fromEntries(results) as Record<number, OnChainGrantVote & { hasVoted: boolean }>;
+      return Object.fromEntries(results) as Record<number, OnChainGrantVote & { hasVoted: boolean; myWeight: bigint }>;
     },
   });
 }

@@ -30,6 +30,24 @@ contract Deploy is Script {
         Taskify taskify = new Taskify(musd, mezo);
         console.log("Deployed Taskify:", address(taskify));
 
+        // Optional — veBTC/veMEZO escrow addresses are unverified leads as of
+        // VOTING_SYSTEM_REDESIGN.md (never confirmed on a live block explorer
+        // from this environment) and often aren't known yet at deploy time.
+        // Both are owner-settable post-deploy via setVeBTCEscrow/
+        // setVeMEZOEscrow specifically so they don't need to gate a redeploy —
+        // set here only if already confirmed and passed explicitly.
+        address veBTCEscrow = vm.envOr("VEBTC_ESCROW_ADDRESS", address(0));
+        address veMEZOEscrow = vm.envOr("VEMEZO_ESCROW_ADDRESS", address(0));
+
+        if (veBTCEscrow != address(0)) {
+            taskify.setVeBTCEscrow(veBTCEscrow);
+            console.log("Set veBTCEscrow:", veBTCEscrow);
+        }
+        if (veMEZOEscrow != address(0)) {
+            taskify.setVeMEZOEscrow(veMEZOEscrow);
+            console.log("Set veMEZOEscrow:", veMEZOEscrow);
+        }
+
         vm.stopBroadcast();
     }
 }

@@ -7,12 +7,12 @@ import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
-import { formatMUSD, TIERS } from "@/lib/constants";
+import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function ContributorPage() {
-  const { username, experienceLevel, tasksCompleted, totalEarned, connected, isRegistered, avatarUrl } = useWallet();
+  const { username, experienceLevel, tasksCompleted, connected, isRegistered, avatarUrl } = useWallet();
   const { address } = useAccount();
   const { send } = useTaskifyTx();
   const [showAll, setShowAll] = useState(false);
@@ -120,7 +120,7 @@ export default function ContributorPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
             { label: "Tasks Completed", value: String(tasksCompleted), color: "var(--success)", icon: "✓" },
-            { label: "Total Earned",    value: `${formatMUSD(totalEarned)} MUSD`, color: "var(--primary)", icon: "💰" },
+            { label: "Total Earned",    value: formatEarnedBreakdown(completedTasks), color: "var(--primary)", icon: "💰" },
             { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: "🏅" },
             { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "var(--blue)", icon: "🎯" },
           ].map(({ label, value, color, icon }) => (
@@ -257,7 +257,7 @@ export default function ContributorPage() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Total Earned</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(totalEarned)} MUSD</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatEarnedBreakdown(completedTasks)}</span>
                 </div>
               </div>
               <div style={{ height: 1, background: "var(--border)", margin: "16px 0" }} />

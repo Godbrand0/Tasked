@@ -60,6 +60,24 @@ export function formatMUSD(amount: number): string {
   return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
+// User.totalEarned on-chain is a single counter that both approveAndRelease
+// and selectWinners add raw payout amounts to regardless of token — MUSD and
+// MEZO payouts land in the same number, which is why it can never be safely
+// labeled "MUSD" once a contributor has earned any MEZO. Recompute a proper
+// per-token breakdown from actual completed-task data instead, which does
+// carry the correct token per task.
+export function earnedByToken(tasks: { amount: number; token: string }[]): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const t of tasks) totals[t.token] = (totals[t.token] ?? 0) + t.amount;
+  return totals;
+}
+
+export function formatEarnedBreakdown(tasks: { amount: number; token: string }[]): string {
+  const entries = Object.entries(earnedByToken(tasks));
+  if (entries.length === 0) return "0 MUSD";
+  return entries.map(([token, amt]) => `${formatMUSD(amt)} ${token}`).join(" + ");
+}
+
 export function getTier(id: number) {
   return TIERS.find((t) => t.id === id) ?? TIERS[0];
 }

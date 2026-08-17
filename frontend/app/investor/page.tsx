@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
@@ -8,8 +8,13 @@ import Navbar from "@/components/Navbar";
 import { Badge, PatronTierBadge } from "@/components/ui/Badge";
 import { formatMUSD, PATRON_TIERS, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
-import { MUSD_ADDRESS, MEZO_ADDRESS, TASKIFY_ADDRESS, votingWeight, formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
-import { useAllTasks, useApproveIfNeeded, useGrantVotesBatch, usePatron, useTaskifyTx, useTaskifyUser, toRawMUSD } from "@/lib/use-taskify";
+import { MUSD_ADDRESS, TASKIFY_ADDRESS, formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
+import { useAllTasks, useApproveIfNeeded, useGrantVotesBatch, usePatron, useTaskifyTx, useTaskifyUser, useVotingWeight, toRawMUSD } from "@/lib/use-taskify";
+
+// Where "become a Taskify patron" onboarding sends people to actually lock
+// BTC or MEZO — Taskify no longer custodies anything for voting purposes,
+// see VOTING_SYSTEM_REDESIGN.md.
+const MEZO_EARN_URL = "https://mezo.org/earn";
 
 export default function InvestorPage() {
   const { connected, isRegistered, role, username } = useWallet();
@@ -24,25 +29,30 @@ export default function InvestorPage() {
   const taskIds = grantTasks.map(t => t.id);
   const { data: votesById, refetch: refetchVotes } = useGrantVotesBatch(taskIds, address);
 
+  // Non-binding "your voting power right now" preview — an actual vote uses
+  // the specific proposal's own snapshotTimestamp (vote.myWeight below), not
+  // this current-time read. See lib/use-taskify.ts's useVotingWeight.
+  const nowTimestamp = useMemo(() => Math.floor(Date.now() / 1000), []);
+  const { weight: currentWeight, refetch: refetchWeight } = useVotingWeight(address, nowTimestamp);
+
   const [depositAmt, setDepositAmt] = useState("");
-  const [stakeAmt, setStakeAmt] = useState("");
   const [unstakeAmt, setUnstakeAmt] = useState("");
   const [depositing, setDepositing] = useState(false);
-  const [staking, setStaking] = useState(false);
   const [unstaking, setUnstaking] = useState(false);
   const [votingTaskId, setVotingTaskId] = useState<number | null>(null);
   const [executingTaskId, setExecutingTaskId] = useState<number | null>(null);
   const [actionError, setActionError] = useState("");
 
-  const weight = votingWeight(patron.totalDeposited, patron.mezoStaked);
   const currentTier = PATRON_TIERS.find(t => t.id === patron.tier) ?? PATRON_TIERS[0];
   const nextTierIdx = PATRON_TIERS.findIndex(t => t.id === currentTier.id) - 1;
   const nextTier = nextTierIdx >= 0 ? PATRON_TIERS[nextTierIdx] : undefined;
-  const canVote = weight > BigInt(0);
-  const hasStake = patron.mezoStaked > BigInt(0);
+  const canVote = currentWeight > BigInt(0);
+  // mezoStaked is legacy-only now — stakeMezo() is gone, this can only be
+  // nonzero for patrons who staked before the migration and haven't
+  // withdrawn yet. See Taskify.sol's unstakeMezo and VOTING_SYSTEM_REDESIGN.md.
+  const hasLegacyStake = patron.mezoStaked > BigInt(0);
 
   const numDeposit = parseFloat(depositAmt) || 0;
-  const numStake = parseFloat(stakeAmt) || 0;
   const numUnstake = parseFloat(unstakeAmt) || 0;
   const totalDepositedHuman = Number(formatUnits(patron.totalDeposited, MUSD_DECIMALS));
   const mezoStakedHuman = Number(formatUnits(patron.mezoStaked, MUSD_DECIMALS));
@@ -61,23 +71,6 @@ export default function InvestorPage() {
       setActionError(err instanceof Error ? err.message : "Deposit failed");
     } finally {
       setDepositing(false);
-    }
-  }
-
-  async function handleStake() {
-    if (numStake < 1 || !address || !MEZO_ADDRESS || !TASKIFY_ADDRESS) return;
-    setStaking(true);
-    setActionError("");
-    try {
-      const raw = toRawMUSD(numStake);
-      await ensureApproval(MEZO_ADDRESS, address, TASKIFY_ADDRESS, raw);
-      await send("stakeMezo", [raw]);
-      setStakeAmt("");
-      await refetchPatron();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Stake failed");
-    } finally {
-      setStaking(false);
     }
   }
 
@@ -172,8 +165,13 @@ export default function InvestorPage() {
                 <PatronTierBadge tier={currentTier.id} />
               </div>
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                Voting weight: <strong style={{ color: "var(--success)" }}>{formatVotingWeight(weight)} units</strong>
-                {!hasStake && <span style={{ marginLeft: 8, color: "var(--primary)", fontSize: 12 }}>— Stake MEZO to amplify</span>}
+                Voting power: <strong style={{ color: "var(--success)" }}>{formatVotingWeight(currentWeight)}</strong>
+                {" "}<button onClick={() => refetchWeight()} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>refresh</button>
+                {!canVote && (
+                  <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: "var(--primary)", fontSize: 12, textDecoration: "none" }}>
+                    — Lock BTC or MEZO on Mezo Earn to vote →
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -188,10 +186,9 @@ export default function InvestorPage() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "Total Deposited",    value: `${formatMUSD(totalDepositedHuman)} MUSD`, color: "var(--success)", icon: "💰" },
-            { label: "MEZO Staked",         value: `${formatMUSD(mezoStakedHuman)} MEZO`,       color: "var(--secondary-light)", icon: "🔐" },
-            { label: "Voting Weight",      value: `${formatVotingWeight(weight)} units`,             color: "var(--primary)", icon: "⚖️" },
-            { label: "Active Grant Votes", value: String(grantTasks.length),                    color: "var(--blue)", icon: "🗳️" },
+            { label: "Total Deposited",     value: `${formatMUSD(totalDepositedHuman)} MUSD`, color: "var(--success)", icon: "💰" },
+            { label: "Mezo Earn Voting Power", value: formatVotingWeight(currentWeight),         color: "var(--primary)", icon: "⚖️" },
+            { label: "Active Grant Votes",  value: String(grantTasks.length),                  color: "var(--blue)", icon: "🗳️" },
           ].map(({ label, value, color, icon }) => (
             <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
               <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
@@ -208,7 +205,9 @@ export default function InvestorPage() {
 
             {!canVote && (
               <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: "var(--primary)", lineHeight: 1.6 }}>
-                You need to deposit MUSD or stake MEZO to vote on grant applications.
+                Voting weight comes from your veBTC/veMEZO position on{" "}
+                <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>Mezo Earn</a>
+                {" "}— lock BTC or MEZO there to vote on grant applications.
               </div>
             )}
 
@@ -227,6 +226,12 @@ export default function InvestorPage() {
                   const votingClosed = vote ? Math.floor(Date.now() / 1000) >= vote.deadline : false;
                   const isExecuted = vote?.executed ?? false;
                   const myVote = vote?.hasVoted ?? false;
+                  // Weight as of *this proposal's* snapshotTimestamp — not
+                  // currentWeight, which can differ if the patron's veBTC
+                  // position changed after this proposal opened. This is the
+                  // actual value voteOnGrant will use.
+                  const myWeightForThisTask = vote?.myWeight ?? BigInt(0);
+                  const canVoteThisTask = myWeightForThisTask > BigInt(0);
                   const amountHuman = Number(formatUnits(task.amount, MUSD_DECIMALS));
 
                   return (
@@ -287,13 +292,15 @@ export default function InvestorPage() {
                         </div>
                       ) : (
                         <div>
-                          {!canVote ? (
+                          {!canVoteThisTask ? (
                             <div style={{ background: "var(--border)", borderRadius: 10, padding: "12px 16px", textAlign: "center", fontSize: 13, color: "var(--text-dim)" }}>
-                              Deposit MUSD or stake MEZO to unlock voting →
+                              {canVote
+                                ? "Your veBTC position was locked after this proposal opened — it doesn't carry weight here."
+                                : "Lock BTC or MEZO on Mezo Earn to unlock voting →"}
                             </div>
                           ) : myVote ? (
                             <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
-                              ✓ You voted · {formatVotingWeight(weight)} unit weight
+                              ✓ You voted · {formatVotingWeight(myWeightForThisTask)} weight
                             </div>
                           ) : (
                             <div style={{ display: "flex", gap: 10 }}>
@@ -311,9 +318,9 @@ export default function InvestorPage() {
                               </button>
                             </div>
                           )}
-                          {!myVote && canVote && (
+                          {!myVote && canVoteThisTask && (
                             <div style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>
-                              Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(weight)} units</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "—"}
+                              Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(myWeightForThisTask)}</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "—"}
                             </div>
                           )}
                         </div>
@@ -324,18 +331,18 @@ export default function InvestorPage() {
               </div>
             )}
 
-            {/* Voting weight formula */}
+            {/* Voting weight source */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginTop: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Voting Weight Formula</div>
-              <code style={{ fontSize: 14, color: "var(--text)", fontFamily: "var(--font-geist-mono), monospace", display: "block", marginBottom: 16 }}>
-                <span style={{ color: "var(--success)" }}>musd-deposited / 1e13</span>{" + "}
-                <span style={{ color: "var(--secondary-light)" }}>mezo-staked / 1e14</span>
-              </code>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Where Voting Weight Comes From</div>
+              <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 16 }}>
+                Taskify doesn&apos;t custody anything for governance. Voting weight is read live from your{" "}
+                <strong style={{ color: "var(--text)" }}>veBTC</strong> position on{" "}
+                <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>Mezo Earn</a>
+                {" "}— lock BTC to mint veBTC, or pair it with a veMEZO lock via Mezo&apos;s Matching Market to boost your weight up to 5x.
+                Each grant proposal fixes a snapshot when it opens, so weight acquired after a vote starts doesn&apos;t count toward it.
+              </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <WeightRow label="MUSD deposited" value={`${formatMUSD(totalDepositedHuman)} MUSD`} color="var(--success)" />
-                <WeightRow label="MEZO staked" value={`${formatMUSD(mezoStakedHuman)} MEZO`} color="var(--secondary-light)" />
-                <div style={{ height: 1, background: "var(--border)" }} />
-                <WeightRow label="Total weight" value={`${formatVotingWeight(weight)} units`} color="var(--primary)" bold />
+                <WeightRow label="Your voting power now" value={formatVotingWeight(currentWeight)} color="var(--primary)" bold />
               </div>
             </div>
           </div>
@@ -383,33 +390,27 @@ export default function InvestorPage() {
               </button>
             </div>
 
-            {/* Stake MEZO */}
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--secondary-light)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Stake MEZO</div>
-              <p style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 14 }}>
-                Amplifies your grant voting weight. Always withdrawable — no lockup or slashing. Minimum 1 MEZO.
-              </p>
-              <input type="number" value={stakeAmt} onChange={e => setStakeAmt(e.target.value)} placeholder="Amount in MEZO" min="1"
-                style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box", marginBottom: 10 }}
-                onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--secondary-light) 25%, transparent)")}
-                onBlur={e => (e.target.style.borderColor = "var(--border)")} />
-              <button disabled={numStake < 1 || staking} onClick={handleStake}
-                style={{ width: "100%", background: numStake >= 1 ? "color-mix(in srgb, var(--secondary) 9%, transparent)" : "var(--border)", border: `1px solid ${numStake >= 1 ? "color-mix(in srgb, var(--secondary) 19%, transparent)" : "var(--border)"}`, color: numStake >= 1 ? "var(--secondary-light)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: numStake >= 1 ? "pointer" : "not-allowed", marginBottom: 10 }}>
-                {staking ? "Staking…" : "Stake MEZO"}
-              </button>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="number" value={unstakeAmt} onChange={e => setUnstakeAmt(e.target.value)} placeholder="Amount to unstake" min="0"
-                  style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box" }} />
-                <button disabled={!hasStake || numUnstake <= 0 || numUnstake > mezoStakedHuman || unstaking} onClick={handleUnstake}
-                  style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: (hasStake && numUnstake > 0) ? "pointer" : "not-allowed", opacity: (!hasStake || numUnstake <= 0) ? 0.5 : 1 }}>
-                  {unstaking ? "Unstaking…" : "Unstake"}
-                </button>
+            {/* Legacy MEZO stake withdrawal — stakeMezo() is gone, this is
+                migration-only for patrons who staked before the redesign. */}
+            {hasLegacyStake && (
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--secondary-light)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Withdraw Legacy MEZO Stake</div>
+                <p style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 14 }}>
+                  Taskify no longer stakes MEZO for voting weight — that&apos;s now read live from Mezo Earn. This is your old stake; withdraw it whenever you like.
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input type="number" value={unstakeAmt} onChange={e => setUnstakeAmt(e.target.value)} placeholder="Amount to unstake" min="0"
+                    style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box" }} />
+                  <button disabled={numUnstake <= 0 || numUnstake > mezoStakedHuman || unstaking} onClick={handleUnstake}
+                    style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: numUnstake > 0 ? "pointer" : "not-allowed", opacity: numUnstake <= 0 ? 0.5 : 1 }}>
+                    {unstaking ? "Unstaking…" : "Unstake"}
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
+                  Staked: <strong style={{ color: "var(--text)" }}>{formatMUSD(mezoStakedHuman)} MEZO</strong>
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
-                Staked: <strong style={{ color: "var(--text)" }}>{formatMUSD(mezoStakedHuman)} MEZO</strong>
-                {!hasStake && <span style={{ color: "var(--primary)", marginLeft: 6 }}>← Stake to amplify your vote</span>}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

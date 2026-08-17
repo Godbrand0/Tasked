@@ -5,6 +5,15 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+/// @notice Minimal read interface onto Mezo's Tigris veBTC/veMEZO voting-escrow
+/// contracts. Patron voting weight is sourced live from here instead of a
+/// Taskify-custodied stake — see VOTING_SYSTEM_REDESIGN.md.
+interface IMezoVotingEscrow {
+    function balanceOf(address owner) external view returns (uint256);
+    function ownerToNFTokenIdList(address owner, uint256 index) external view returns (uint256);
+    function getPastVotes(address account, uint256 tokenId, uint256 timestamp) external view returns (uint256);
+}
+
 /// @title Taskify — on-chain bounty board for the Mezo / Bitcoin ecosystem
 /// @notice Solidity port of taskify.clar. Same modules, same fee math, same
 /// wave-reward and grant-voting logic — MUSD plays the role USDX plays on
@@ -38,7 +47,6 @@ contract Taskify is ReentrancyGuard {
     error AlreadyClaimed();
     error NoReward();
     error InvalidWave();
-    error StakeTooLow();
     error TaskKindMismatch();
     error InvalidWinnerCount();
     error WinnerNotJoined();
@@ -85,20 +93,14 @@ contract Taskify is ReentrancyGuard {
     uint256 public constant EXPERIENCE_UPDATE_COOLDOWN = 1 days;
 
     uint256 public constant MIN_TASK_AMOUNT = 1e18; // 1 MUSD (18 decimals)
-    uint256 public constant MIN_MEZO_STAKE = 1e18; // 1 MEZO
     uint256 public constant MIN_PATRON_DEPOSIT = 50e18; // 50 MUSD
-    // Applied to raw (18-decimal) wei, so the resulting on-chain weight is
-    // large — e.g. 100 MUSD deposited or 1000 MEZO staked each contribute
-    // 10,000,000 raw units. That scale never affects vote outcomes (grant
-    // approval in executeGrant() is a percentage of votesFor vs. total cast,
-    // not an absolute threshold), but it's confusing to display directly.
-    // The frontend divides the raw weight by 1e6 for display, which maps
-    // back to the "100 MUSD / 1000 MEZO = 10 units" scale these divisors
-    // were originally designed around — see lib/taskify.ts's
-    // VOTE_WEIGHT_DISPLAY_SCALE.
-    uint256 public constant MUSD_VOTE_DIVISOR = 1e13;
-    uint256 public constant MEZO_VOTE_DIVISOR = 1e14;
     uint256 public constant GRANT_PASS_THRESHOLD = 70; // 70% of cast votes required to pass
+    // Per-wallet cap on veBTC NFTs aggregated in one voteOnGrant() call. Each
+    // NFT costs a cross-contract call plus a checkpoint binary search inside
+    // getPastVotes, so this bounds worst-case gas. Legitimate holders have no
+    // voting-power reason to fragment a position across many NFTs, so 20
+    // comfortably covers real holders — revisit with real testnet gas numbers.
+    uint256 public constant MAX_VE_NFTS_PER_VOTE = 20;
 
     uint8 public constant TIER_NEWCOMER = 0;
     uint8 public constant TIER_JUNIOR = 1;
@@ -149,6 +151,7 @@ contract Taskify is ReentrancyGuard {
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 deadline;
+        uint256 snapshotTimestamp; // fixed at proposal creation; passed to every getPastVotes call for this proposal
         bool executed;
     }
 
@@ -169,6 +172,11 @@ contract Taskify is ReentrancyGuard {
     mapping(uint256 => mapping(address => uint256)) public waveCreatorTasks;
 
     address public treasuryAddress;
+    // Mezo Tigris voting-escrow contracts patron voting weight is read from
+    // live — see IMezoVotingEscrow and _votingWeight(). veMEZOEscrow is
+    // unused until Mezo deploys veMEZO boost support (see VOTING_SYSTEM_REDESIGN.md).
+    address public veBTCEscrow;
+    address public veMEZOEscrow;
     uint256 public nextTaskId = 1;
 
     uint256 public currentWaveId = 1;
@@ -197,7 +205,6 @@ contract Taskify is ReentrancyGuard {
     event WaveAdvanced(uint256 indexed finishedWaveId, uint256 newWaveId);
     event WaveRewardClaimed(uint256 indexed waveId, address indexed creator, uint256 reward);
     event Deposited(address indexed patron, uint256 amount, uint8 newTier);
-    event MezoStaked(address indexed patron, uint256 amount);
     event MezoUnstaked(address indexed patron, uint256 amount);
 
     constructor(address _musd, address _mezo) {
@@ -218,7 +225,30 @@ contract Taskify is ReentrancyGuard {
         return 99; // None
     }
 
+    /// @dev Aggregates voting weight across every veBTC NFT `account` holds,
+    /// as of `snapshotTimestamp` (fixed once per proposal — see
+    /// applyForGrant — never block.timestamp at vote-cast time, which would
+    /// give live weight instead of a real snapshot and reopen the
+    /// flash-position gaming getPastVotes exists to prevent).
+    function _votingWeight(address account, uint256 snapshotTimestamp) internal view returns (uint256 weight) {
+        if (veBTCEscrow == address(0)) return 0;
+        IMezoVotingEscrow ve = IMezoVotingEscrow(veBTCEscrow);
+        uint256 count = ve.balanceOf(account);
+        uint256 iterations = count > MAX_VE_NFTS_PER_VOTE ? MAX_VE_NFTS_PER_VOTE : count;
+        for (uint256 i = 0; i < iterations; i++) {
+            uint256 tokenId = ve.ownerToNFTokenIdList(account, i);
+            weight += ve.getPastVotes(account, tokenId, snapshotTimestamp);
+        }
+    }
+
     // ----- Read helpers -----
+
+    /// @notice Live veBTC-derived voting weight for `account` as of
+    /// `snapshotTimestamp`. Frontend should never re-implement this
+    /// aggregation client-side — call this directly.
+    function getVotingWeight(address account, uint256 snapshotTimestamp) external view returns (uint256) {
+        return _votingWeight(account, snapshotTimestamp);
+    }
 
     function getCurrentWave()
         external
@@ -400,17 +430,11 @@ contract Taskify is ReentrancyGuard {
         emit Deposited(msg.sender, amount, patron.tier);
     }
 
-    function stakeMezo(uint256 amount) external nonReentrant {
-        User storage user = users[msg.sender];
-        if (user.role != Role.Investor) revert UserNotRegistered();
-        if (amount < MIN_MEZO_STAKE) revert StakeTooLow();
-
-        IERC20(mezo).safeTransferFrom(msg.sender, address(this), amount);
-
-        patrons[msg.sender].mezoStaked += amount;
-        emit MezoStaked(msg.sender, amount);
-    }
-
+    /// @notice Deposit-only migration: new MEZO staking is closed now that
+    /// voting weight comes from external veBTC/veMEZO positions instead (see
+    /// VOTING_SYSTEM_REDESIGN.md). unstakeMezo is kept so no one's already-
+    /// staked MEZO from the old pool gets stranded — patrons should withdraw
+    /// during the announced migration window.
     function unstakeMezo(uint256 amount) external nonReentrant {
         User storage user = users[msg.sender];
         if (user.role != Role.Investor) revert UserNotRegistered();
@@ -455,7 +479,13 @@ contract Taskify is ReentrancyGuard {
             maxWinners: 0
         });
 
-        grantVotes[taskId] = GrantVote({votesFor: 0, votesAgainst: 0, deadline: deadline, executed: false});
+        grantVotes[taskId] = GrantVote({
+            votesFor: 0,
+            votesAgainst: 0,
+            deadline: deadline,
+            snapshotTimestamp: block.timestamp,
+            executed: false
+        });
 
         nextTaskId = taskId + 1;
         emit GrantApplied(taskId, msg.sender, amount);
@@ -466,7 +496,6 @@ contract Taskify is ReentrancyGuard {
         Task storage task = tasks[taskId];
         if (task.creator == address(0)) revert TaskNotFound();
         GrantVote storage vote = grantVotes[taskId];
-        Patron storage patron = patrons[msg.sender];
         if (users[msg.sender].role != Role.Investor) revert NoStake();
 
         if (task.status != Status.GrantPending) revert InvalidStatus();
@@ -474,7 +503,7 @@ contract Taskify is ReentrancyGuard {
         if (vote.executed) revert VotingClosed();
         if (grantVoters[taskId][msg.sender]) revert AlreadyVoted();
 
-        uint256 votingWeight = (patron.totalDeposited / MUSD_VOTE_DIVISOR) + (patron.mezoStaked / MEZO_VOTE_DIVISOR);
+        uint256 votingWeight = _votingWeight(msg.sender, vote.snapshotTimestamp);
         if (votingWeight == 0) revert NoStake();
 
         grantVoters[taskId][msg.sender] = true;
@@ -752,5 +781,15 @@ contract Taskify is ReentrancyGuard {
     function setTreasuryAddress(address newTreasury) external {
         if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
         treasuryAddress = newTreasury;
+    }
+
+    function setVeBTCEscrow(address _veBTCEscrow) external {
+        if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
+        veBTCEscrow = _veBTCEscrow;
+    }
+
+    function setVeMEZOEscrow(address _veMEZOEscrow) external {
+        if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
+        veMEZOEscrow = _veMEZOEscrow;
     }
 }

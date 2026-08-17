@@ -2,11 +2,10 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
-import { formatMUSD, TIERS, MUSD_DECIMALS } from "@/lib/constants";
+import { formatMUSD, formatEarnedBreakdown, earnedByToken, TIERS } from "@/lib/constants";
 import { useAllTasks, useTaskifyUser, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function ProfilePage({ params }: { params: Promise<{ address: string }> }) {
@@ -49,7 +48,6 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const appliedTasks = myTasks.filter((t) => t.status !== "FUNDS_RELEASED");
 
   const tier = TIERS[user.experienceLevel] ?? TIERS[0];
-  const totalEarnedHuman = Number(formatUnits(user.totalEarned, MUSD_DECIMALS));
   const displayName = user.username || `${address.slice(0, 6)}…${address.slice(-4)}`;
   // GitHub can be linked entirely off-chain post-registration (see
   // lib/wallet-context.tsx) — "verified" here has to check both sources.
@@ -99,7 +97,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
               <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                 {[
                   { label: "Tasks Completed",  value: String(user.tasksCompleted),        color: "var(--success)" },
-                  { label: "Total Earned",     value: `${formatMUSD(totalEarnedHuman)} MUSD`, color: "var(--primary)" },
+                  { label: "Total Earned",     value: formatEarnedBreakdown(completedTasks), color: "var(--primary)" },
                 ].map(({ label, value, color }) => (
                   <div key={label}>
                     <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 2 }}>{value}</div>
@@ -197,18 +195,20 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Total Earned</span>
-                  <span style={{ color: "var(--primary)", fontWeight: 700 }}>{formatMUSD(totalEarnedHuman)} MUSD</span>
+                  <span style={{ color: "var(--primary)", fontWeight: 700 }}>{formatEarnedBreakdown(completedTasks)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "var(--text-dim)" }}>Tasks Completed</span>
                   <span style={{ color: "var(--text)", fontWeight: 600 }}>{user.tasksCompleted}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "var(--text-dim)" }}>Avg per task</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>
-                    {user.tasksCompleted > 0 ? formatMUSD(totalEarnedHuman / user.tasksCompleted) : "—"} MUSD
-                  </span>
-                </div>
+                {Object.entries(earnedByToken(completedTasks)).map(([token, amt]) => (
+                  <div key={token} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--text-dim)" }}>Avg per task ({token})</span>
+                    <span style={{ color: "var(--text)", fontWeight: 600 }}>
+                      {formatMUSD(amt / completedTasks.filter(t => t.token === token).length)} {token}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 

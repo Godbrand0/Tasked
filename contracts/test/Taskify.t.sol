@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Taskify} from "../src/Taskify.sol";
 import {MockMUSD} from "../src/MockMUSD.sol";
 import {MockMEZO} from "../src/MockMEZO.sol";
+import {MockVotingEscrow} from "../src/MockVotingEscrow.sol";
 
 /// @notice Solidity port of taskify.test.ts — same lifecycle, same actors,
 /// amounts scaled from 6-decimal USDX to 18-decimal MUSD (x 1e12), block
@@ -13,6 +14,7 @@ contract TaskifyTest is Test {
     Taskify taskify;
     MockMUSD musd;
     MockMEZO mezo;
+    MockVotingEscrow veEscrow;
 
     address deployer = address(this);
     address alice = makeAddr("alice"); // creator
@@ -24,6 +26,8 @@ contract TaskifyTest is Test {
         musd = new MockMUSD();
         mezo = new MockMEZO();
         taskify = new Taskify(address(musd), address(mezo));
+        veEscrow = new MockVotingEscrow();
+        taskify.setVeBTCEscrow(address(veEscrow));
     }
 
     function test_FullProtocolLifecycle() public {
@@ -128,23 +132,23 @@ contract TaskifyTest is Test {
         vm.stopPrank();
 
         // -------------------------------------------------------------
-        // Step 4: Grant Pool Deposits, Staking, and Voting
+        // Step 4: Grant Pool Deposits and Voting
         // -------------------------------------------------------------
         musd.mint(10000e18, charlie);
-        mezo.mint(100e18, charlie);
 
         vm.startPrank(charlie);
         musd.approve(address(taskify), 5000e18);
         taskify.depositToPool(5000e18);
-
-        mezo.approve(address(taskify), 100e18);
-        taskify.stakeMezo(100e18);
         vm.stopPrank();
 
-        (uint256 totalDeposited, uint256 mezoStaked, uint8 tier) = taskify.patrons(charlie);
-        assertEq(mezoStaked, 100e18);
+        (uint256 totalDeposited,, uint8 tier) = taskify.patrons(charlie);
         assertEq(tier, 3); // Diamond
         assertEq(totalDeposited, 5000e18);
+
+        // Voting weight now comes from a live veBTC position, not
+        // Taskify-custodied MEZO staking — mint charlie a mock veBTC NFT
+        // instead of the old stakeMezo() call.
+        veEscrow.mint(charlie, 1, 501_000_000);
 
         vm.prank(alice);
         uint256 taskId2 = taskify.applyForGrant("Build Taskify Rust Parser", 1000e18, 2, 4);
@@ -153,8 +157,8 @@ contract TaskifyTest is Test {
         vm.prank(charlie);
         taskify.voteOnGrant(taskId2, true);
 
-        // voting weight: 5000e18 / 1e13 + 100e18 / 1e14 = 500_000_000 + 1_000_000 = 501_000_000
-        (uint256 votesFor, uint256 votesAgainst,,) = taskify.grantVotes(taskId2);
+        // voting weight comes straight from the mock veBTC NFT's weight.
+        (uint256 votesFor, uint256 votesAgainst,,,) = taskify.grantVotes(taskId2);
         assertEq(votesFor, 501_000_000);
         assertEq(votesAgainst, 0);
 
@@ -168,7 +172,7 @@ contract TaskifyTest is Test {
         // desync the test contract's own timestamp reads from the real
         // environment (verified: external calls always saw the correct
         // time; only this contract's local reads went stale).
-        (,, uint256 deadline2,) = taskify.grantVotes(taskId2);
+        (,, uint256 deadline2,,) = taskify.grantVotes(taskId2);
         vm.warp(deadline2 + 1);
 
         vm.prank(alice);
@@ -198,7 +202,7 @@ contract TaskifyTest is Test {
         vm.prank(charlie);
         taskify.voteOnGrant(taskId3, false);
 
-        (,, uint256 deadline3,) = taskify.grantVotes(taskId3);
+        (,, uint256 deadline3,,) = taskify.grantVotes(taskId3);
         vm.warp(deadline3 + 1);
 
         vm.prank(alice);
@@ -354,5 +358,134 @@ contract TaskifyTest is Test {
         vm.prank(frank);
         vm.expectRevert(Taskify.InvalidStatus.selector);
         taskify.joinCommunityTask(taskId, "https://x.com/frank/status/2");
+    }
+
+    /// @notice Covers the veBTC-derived voting weight itself, independent of
+    /// the grant lifecycle already exercised above: multiple NFTs aggregate,
+    /// and a zero-position wallet still hits NoStake in voteOnGrant.
+    function test_VotingWeightAggregation() public {
+        vm.prank(alice);
+        taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
+        vm.prank(charlie);
+        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+
+        // Zero veBTC position: NoStake, same as the old zero-stake case.
+        vm.prank(alice);
+        uint256 zeroTaskId = taskify.applyForGrant("Zero-weight probe", 100e18, 0, 4);
+        vm.prank(charlie);
+        vm.expectRevert(Taskify.NoStake.selector);
+        taskify.voteOnGrant(zeroTaskId, true);
+
+        // Multiple veBTC NFTs aggregate into one weight.
+        veEscrow.mint(charlie, 10, 300);
+        veEscrow.mint(charlie, 11, 700);
+        assertEq(taskify.getVotingWeight(charlie, block.timestamp), 1000);
+
+        vm.prank(charlie);
+        taskify.voteOnGrant(zeroTaskId, true);
+        (uint256 votesFor,,,,) = taskify.grantVotes(zeroTaskId);
+        assertEq(votesFor, 1000);
+    }
+
+    /// @notice The whole reason voteOnGrant snapshots a fixed timestamp
+    /// instead of using block.timestamp at vote-cast time: a patron who
+    /// re-locks (grows their position) *after* a proposal opens must still
+    /// vote with their pre-proposal weight, not the boosted live weight —
+    /// otherwise getPastVotes buys nothing over just reading current state.
+    function test_VoteUsesSnapshotWeightNotLiveWeight() public {
+        // Anchored to a timestamp captured once, not re-read from
+        // block.timestamp between warps — see the via-ir stack-pressure note
+        // on test_GrantVotingAndWaveRewards above for why.
+        uint256 t0 = block.timestamp;
+
+        vm.prank(alice);
+        taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
+        vm.prank(charlie);
+        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+
+        veEscrow.mint(charlie, 1, 1000);
+        vm.warp(t0 + 1 hours);
+
+        vm.prank(alice);
+        uint256 taskId = taskify.applyForGrant("Snapshot probe", 100e18, 0, 4);
+        (,,, uint256 snapshotTimestamp,) = taskify.grantVotes(taskId);
+        vm.warp(t0 + 2 hours);
+
+        // Charlie re-locks after the proposal opened — weight goes 1000 -> 5000.
+        veEscrow.reweight(1, 5000);
+        assertEq(taskify.getVotingWeight(charlie, block.timestamp), 5000);
+        assertEq(taskify.getVotingWeight(charlie, snapshotTimestamp), 1000);
+
+        vm.prank(charlie);
+        taskify.voteOnGrant(taskId, true);
+
+        // The cast vote used the snapshot weight (1000), not the live,
+        // post-reweight value (5000) — confirms getPastVotes is doing its
+        // anti-gaming job through voteOnGrant, not just in isolation.
+        (uint256 votesFor,,,,) = taskify.grantVotes(taskId);
+        assertEq(votesFor, 1000);
+    }
+
+    /// @notice Known limitation, not a bug: veBTC NFT enumeration
+    /// (balanceOf/ownerToNFTokenIdList) is live, not historical — only
+    /// per-NFT getPastVotes is checkpointed. So if a patron transfers a veBTC
+    /// NFT away between a proposal's snapshot and their vote, that NFT's
+    /// snapshot-time weight becomes uncastable by either party: the old
+    /// owner's aggregation loop no longer enumerates it (it's not in their
+    /// live list), and the new owner fails getPastVotes' ownership check for
+    /// a timestamp before they owned it. This mirrors how the real Tigris
+    /// contracts are shaped — there's no historical enumeration function to
+    /// aggregate against instead.
+    function test_TransferBetweenSnapshotAndVoteDropsThatNFTsWeight() public {
+        // See the t0 note in test_VoteUsesSnapshotWeightNotLiveWeight above.
+        uint256 t0 = block.timestamp;
+
+        vm.prank(alice);
+        taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
+        vm.prank(charlie);
+        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        vm.prank(dave);
+        taskify.registerUser("dave", Taskify.Role.Investor, 0, false, false);
+
+        veEscrow.mint(charlie, 10, 300);
+        veEscrow.mint(charlie, 11, 700);
+        vm.warp(t0 + 1 hours);
+
+        vm.prank(alice);
+        uint256 taskId = taskify.applyForGrant("Transfer-during-vote probe", 100e18, 0, 4);
+        (,,, uint256 snapshotTimestamp,) = taskify.grantVotes(taskId);
+        vm.warp(t0 + 2 hours);
+
+        veEscrow.transfer(11, dave);
+
+        // Charlie's live enumeration no longer includes NFT 11 at all, so his
+        // vote only carries NFT 10's snapshot weight (300), not the full 1000
+        // he actually held as of the snapshot.
+        vm.prank(charlie);
+        taskify.voteOnGrant(taskId, true);
+        (uint256 votesFor,,,,) = taskify.grantVotes(taskId);
+        assertEq(votesFor, 300);
+
+        // Dave owns NFT 11 live but didn't as of snapshotTimestamp, so his
+        // snapshot-scoped weight for this proposal is 0 — NFT 11's 700 is
+        // simply unreachable by anyone once it moves mid-vote.
+        assertEq(taskify.getVotingWeight(dave, snapshotTimestamp), 0);
+        assertEq(taskify.getVotingWeight(dave, block.timestamp), 700);
+    }
+
+    /// @notice A wallet holding more veBTC NFTs than MAX_VE_NFTS_PER_VOTE
+    /// (20) only gets the first 20 aggregated — confirms the cap is actually
+    /// applied, bounding worst-case gas, rather than being a dead constant.
+    function test_VotingWeightCappedAtMaxNFTsPerVote() public {
+        vm.prank(charlie);
+        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+
+        uint256 max = taskify.MAX_VE_NFTS_PER_VOTE();
+        for (uint256 i = 0; i < max + 5; i++) {
+            veEscrow.mint(charlie, i, 1);
+        }
+
+        assertEq(veEscrow.balanceOf(charlie), max + 5);
+        assertEq(taskify.getVotingWeight(charlie, block.timestamp), max);
     }
 }

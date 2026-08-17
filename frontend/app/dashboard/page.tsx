@@ -6,13 +6,13 @@ import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
-import { formatMUSD, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
+import { formatMUSD, formatEarnedBreakdown, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useCurrentWave, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function DashboardPage() {
   const { address } = useAccount();
-  const { username, role, experienceLevel, tasksCompleted, totalEarned, githubVerified } = useWallet();
+  const { username, role, experienceLevel, tasksCompleted, githubVerified } = useWallet();
   const displayUsername = username || formatAddress(address ?? "");
 
   const { data: onchainTasks } = useAllTasks();
@@ -26,6 +26,7 @@ export default function DashboardPage() {
     role === "creator" ? (address && t.creator.toLowerCase() === address.toLowerCase()) : (address && t.assignee?.toLowerCase() === address.toLowerCase())
   );
   const activeTasks = myTasks.filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "GRANT_PENDING"].includes(t.status));
+  const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
   const totalEscrowed = role === "creator"
     ? myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status)).reduce((s, t) => s + t.amount, 0)
     : 0;
@@ -86,7 +87,7 @@ export default function DashboardPage() {
               ))}
               {displayRole === "contributor" && [
                 { label: "Tasks Done",    value: String(tasksCompleted),              color: "var(--success)" },
-                { label: "Total Earned",  value: `${formatMUSD(totalEarned)} MUSD`,   color: "var(--primary)" },
+                { label: "Total Earned",  value: formatEarnedBreakdown(completedTasks), color: "var(--primary)" },
                 { label: "Experience",    value: tier.label,                                       color: tier.color },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
