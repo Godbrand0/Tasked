@@ -1322,9 +1322,24 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, margin: "0 0 12px" }}>
                         Voting {votingClosed ? "ended" : "ends"} {formatTimestamp(grantVote.deadline)}. {total > BigInt(0) ? `${supportPct.toFixed(1)}% support (70% required).` : "No votes cast yet."}
                       </p>
-                      {votingClosed && !grantVote.executed && (
-                        <button disabled={txBusy} onClick={handleExecuteGrant} style={{ width: "100%", background: passed ? "var(--success)" : "var(--danger)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
-                          {txBusy ? "Confirming…" : passed ? "Execute — Approve Grant →" : "Execute — Reject Grant →"}
+                      {!grantVote.executed && (
+                        <button
+                          disabled={txBusy || !votingClosed}
+                          onClick={handleExecuteGrant}
+                          style={{
+                            width: "100%",
+                            background: !votingClosed ? "var(--border)" : passed ? "var(--success)" : "var(--danger)",
+                            color: !votingClosed ? "color-mix(in srgb, var(--text-faint) 53%, transparent)" : "var(--bg)",
+                            fontWeight: 700,
+                            fontSize: 13,
+                            padding: "10px",
+                            borderRadius: 10,
+                            border: "none",
+                            cursor: txBusy || !votingClosed ? "not-allowed" : "pointer",
+                            opacity: txBusy ? 0.7 : 1,
+                          }}
+                        >
+                          {txBusy ? "Confirming…" : !votingClosed ? "Execute Grant (locked until voting ends)" : passed ? "Execute — Approve Grant →" : "Execute — Reject Grant →"}
                         </button>
                       )}
                       {grantVote.executed && (
