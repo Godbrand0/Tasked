@@ -164,7 +164,7 @@ contract TaskifyTest is Test {
         taskify.voteOnGrant(taskId2, true);
 
         // voting weight comes straight from the mock veBTC NFT's weight.
-        (uint256 votesFor, uint256 votesAgainst,,,) = taskify.grantVotes(taskId2);
+        (uint256 votesFor, uint256 votesAgainst,,,,) = taskify.grantVotes(taskId2);
         assertEq(votesFor, 501_000_000);
         assertEq(votesAgainst, 0);
 
@@ -178,7 +178,7 @@ contract TaskifyTest is Test {
         // desync the test contract's own timestamp reads from the real
         // environment (verified: external calls always saw the correct
         // time; only this contract's local reads went stale).
-        (,, uint256 deadline2,,) = taskify.grantVotes(taskId2);
+        (,, uint256 deadline2,,,) = taskify.grantVotes(taskId2);
         vm.warp(deadline2 + 1);
 
         vm.prank(alice);
@@ -208,7 +208,7 @@ contract TaskifyTest is Test {
         vm.prank(charlie);
         taskify.voteOnGrant(taskId3, false);
 
-        (,, uint256 deadline3,,) = taskify.grantVotes(taskId3);
+        (,, uint256 deadline3,,,) = taskify.grantVotes(taskId3);
         vm.warp(deadline3 + 1);
 
         vm.prank(alice);
@@ -389,7 +389,7 @@ contract TaskifyTest is Test {
 
         vm.prank(charlie);
         taskify.voteOnGrant(zeroTaskId, true);
-        (uint256 votesFor,,,,) = taskify.grantVotes(zeroTaskId);
+        (uint256 votesFor,,,,,) = taskify.grantVotes(zeroTaskId);
         assertEq(votesFor, 1000);
     }
 
@@ -414,7 +414,7 @@ contract TaskifyTest is Test {
 
         vm.prank(alice);
         uint256 taskId = taskify.applyForGrant("Snapshot probe", 100e18, 0, 4);
-        (,,, uint256 snapshotTimestamp,) = taskify.grantVotes(taskId);
+        (,,, uint256 snapshotTimestamp,,) = taskify.grantVotes(taskId);
         vm.warp(t0 + 2 hours);
 
         // Charlie re-locks after the proposal opened — weight goes 1000 -> 5000.
@@ -428,7 +428,7 @@ contract TaskifyTest is Test {
         // The cast vote used the snapshot weight (1000), not the live,
         // post-reweight value (5000) — confirms getPastVotes is doing its
         // anti-gaming job through voteOnGrant, not just in isolation.
-        (uint256 votesFor,,,,) = taskify.grantVotes(taskId);
+        (uint256 votesFor,,,,,) = taskify.grantVotes(taskId);
         assertEq(votesFor, 1000);
     }
 
@@ -459,7 +459,7 @@ contract TaskifyTest is Test {
 
         vm.prank(alice);
         uint256 taskId = taskify.applyForGrant("Transfer-during-vote probe", 100e18, 0, 4);
-        (,,, uint256 snapshotTimestamp,) = taskify.grantVotes(taskId);
+        (,,, uint256 snapshotTimestamp,,) = taskify.grantVotes(taskId);
         vm.warp(t0 + 2 hours);
 
         veEscrow.transfer(11, dave);
@@ -469,7 +469,7 @@ contract TaskifyTest is Test {
         // he actually held as of the snapshot.
         vm.prank(charlie);
         taskify.voteOnGrant(taskId, true);
-        (uint256 votesFor,,,,) = taskify.grantVotes(taskId);
+        (uint256 votesFor,,,,,) = taskify.grantVotes(taskId);
         assertEq(votesFor, 300);
 
         // Dave owns NFT 11 live but didn't as of snapshotTimestamp, so his
@@ -525,7 +525,7 @@ contract TaskifyTest is Test {
 
         vm.prank(frank);
         taskify.voteOnGrant(taskId, true);
-        (uint256 votesFor,,,,) = taskify.grantVotes(taskId);
+        (uint256 votesFor,,,,,) = taskify.grantVotes(taskId);
         assertEq(votesFor, 1_000_000);
     }
 }

@@ -10,7 +10,7 @@ Two kinds of task live side by side on one board:
 - **Community tasks** — open to any registered wallet (memes, bug write-ups, social bounties — no code required). Anyone joins with a proof-of-participation link; the creator picks up to *N* winners and the escrow splits evenly between them in one transaction. X-verified.
 
 **Live Demo:** [taskifybounties.vercel.app](https://taskifybounties.vercel.app/)
-**Contract (Mezo Testnet):** [`0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb`](https://explorer.test.mezo.org/address/0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb) — see [Contract Addresses](#contract-addresses)
+**Contract (Mezo Testnet):** [`0x0ceC7A61B12d801a37143e6E223Cab907839cE3f`](https://explorer.test.mezo.org/address/0x0ceC7A61B12d801a37143e6E223Cab907839cE3f) — see [Contract Addresses](#contract-addresses)
 
 ---
 
@@ -50,7 +50,7 @@ Two kinds of task live side by side on one board:
 ### Grant-Funded Tasks (Development only, for now)
 
 1. A creator applies for a grant via `applyForGrant`, specifying the amount and experience range needed.
-2. A 3-day on-chain voting window opens. Investors (patrons) vote for or against; weight is proportional to their MUSD deposited plus staked MEZO.
+2. A 3-day on-chain voting window opens. Investors (patrons) vote for or against; weight comes live from each voter's veBTC position on Mezo Earn — MUSD deposited into the grant pool funds grants but grants no votes (see [Token Roles](#token-roles) and [`VOTING_SYSTEM_REDESIGN.md`](VOTING_SYSTEM_REDESIGN.md)). Voting is currently limited to a pilot whitelist of approved veBTC holders.
 3. If approved, MUSD moves from the patron pool into escrow and the task becomes `OPEN`, following the same lifecycle as a self-funded Development task.
 
 ### Wave Rewards
@@ -105,7 +105,7 @@ Taskify/
 │   │   ├── create/page.tsx           # Post a Development or Community task, or apply for a grant
 │   │   ├── creator/page.tsx          # Creator dashboard
 │   │   ├── contributor/page.tsx      # Contributor dashboard
-│   │   ├── investor/page.tsx         # Patron deposit, MEZO stake, grant voting
+│   │   ├── investor/page.tsx         # Patron MUSD deposit, veBTC voting power display, grant voting
 │   │   ├── leaderboard/page.tsx      # Top creators by self-funded tasks posted this wave
 │   │   ├── profile/[address]/page.tsx # Public profile
 │   │   ├── dashboard/page.tsx        # General dashboard
@@ -132,7 +132,9 @@ Taskify/
 │                                      # (see file header — not wired into the app yet)
 │
 ├── Tasked_Contract_Security_Audit.docx  # Audit of the legacy Clarity contract — does NOT
-│                                         # cover contracts/Taskify.sol (unaudited, see below)
+│                                         # cover contracts/Taskify.sol (see below)
+├── TASKIFY_SECURITY_AUDIT.md          # Internal review of contracts/Taskify.sol (see below)
+├── VOTING_SYSTEM_REDESIGN.md          # veBTC/veMEZO voting design + implementation status
 ├── TASKIFY.md                        # Full protocol specification
 └── README.md
 ```
@@ -154,12 +156,12 @@ WAVE_EPOCH_DURATION        = 30 days
 GRANT_VOTING_DURATION      = 3 days
 EXPERIENCE_UPDATE_COOLDOWN = 1 days
 MIN_TASK_AMOUNT            = 1e18      (1 MUSD, 18 decimals)
-MIN_MEZO_STAKE             = 1e18      (1 MEZO)
 MIN_PATRON_DEPOSIT         = 50e18     (50 MUSD)
-MUSD_VOTE_DIVISOR          = 1e13      (100 MUSD deposited = 10 vote units)
-MEZO_VOTE_DIVISOR          = 1e14      (1,000 MEZO staked = 10 vote units)
 GRANT_PASS_THRESHOLD       = 70        (% of cast votes required to pass)
+MAX_VE_NFTS_PER_VOTE       = 20        (per-wallet cap on veBTC NFTs aggregated in one vote — gas bound)
 ```
+
+Voting weight has no divisor/formula of Taskify's own — it's a live, unscaled read of the voter's veBTC position via `getVotingWeight`/`getProposalVotingWeight`. See [Token Roles](#token-roles).
 
 ### On-Chain Storage
 
@@ -207,16 +209,16 @@ GRANT_PASS_THRESHOLD       = 70        (% of cast votes required to pass)
 #### Grant Pool Module
 | Function | Who Can Call | Description |
 |---|---|---|
-| `depositToPool` | Investors | Permanently deposit MUSD into the patron pool |
-| `stakeMezo` / `unstakeMezo` | Investors | Stake/unstake MEZO to amplify governance voting weight (no lockup) |
+| `depositToPool` | Investors | Permanently deposit MUSD into the patron pool — funds grants and Patron tiers, no longer grants votes |
+| `unstakeMezo` | Investors | Withdraw MEZO from the legacy staking pool (migration-only; `stakeMezo` was removed — voting weight now comes from veBTC, see below) |
 | `applyForGrant` | Creators | Submit a grant-funded Development task proposal |
-| `voteOnGrant` | Patrons | Cast a weighted vote for or against a grant |
+| `voteOnGrant` | Investors, approved voters only (pilot whitelist), weighted by live veBTC position on Mezo Earn | Cast a vote for or against a grant |
 | `executeGrant` | Anyone | Execute the grant decision after voting closes |
 
 #### Wave Rewards Module
 | Function | Who Can Call | Description |
 |---|---|---|
-| `advanceWave` | Contract owner | Close the current wave and snapshot it |
+| `advanceWave` | Anyone, once the epoch has elapsed | Close the current wave and snapshot it |
 | `claimWaveReward` | Creators | Claim proportional share of a completed wave pool |
 
 ### Task Lifecycle
@@ -239,13 +241,9 @@ Dead ends:                                   OPEN → CANCELLED
 | Gold | 1,000 MUSD |
 | Diamond | 5,000 MUSD |
 
-### Voting Weight Formula
+### Voting Weight
 
-```
-votingWeight = (musdDeposited / 1e13) + (mezoStaked / 1e14)
-```
-
-100 MUSD deposited ≈ 10 vote units; 1,000 MEZO staked ≈ 10 vote units.
+Not a formula Taskify computes — a live external read. `getProposalVotingWeight(taskId, account)` aggregates every veBTC NFT `account` holds via Mezo's own `IMezoVotingEscrow.getPastVotes`, as of the proposal's locked snapshot timestamp and escrow address (fixed at `applyForGrant` time so neither a later position change nor an escrow-address change can retroactively affect an open vote — see [`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md) finding H-1). MUSD deposited and Patron tier play no role in voting weight at all.
 
 ---
 
@@ -260,7 +258,7 @@ Posts Development tasks (locks MUSD, sets an experience range) or Community task
 Finds Development work via the experience-matched task feed, applies on-chain, and earns MUSD when the creator approves. GitHub verification is expected for this path. Can *also* join Community tasks if X-linked — same wallet, no re-registration.
 
 ### Investor (Patron)
-Deposits MUSD permanently into the grant pool and stakes MEZO to amplify governance weight. Votes on grant proposals. Earns a patron tier based on cumulative deposits. Deposits are non-withdrawable — this is ecosystem patronage, not a loan. MEZO stake has no lockup.
+Deposits MUSD permanently into the grant pool — this is ecosystem patronage, not a loan, and earns a patron tier based on cumulative deposits, but grants no voting power on its own. Votes on grant proposals using the veBTC position already held on Mezo Earn, read live and never custodied by Taskify. Voting currently requires being on the pilot approved-voter whitelist in addition to holding real veBTC weight.
 
 ### GitHub vs. X verification
 Both are self-declared booleans on `User` (`githubVerified`, `xVerified`) — the contract trusts whatever the frontend passes at registration (or later, for X, via `setXVerified`). GitHub verification is backed by real OAuth today (see `frontend/app/api/auth/github`); X verification is currently self-declared, a placeholder for real OAuth later.
@@ -290,13 +288,16 @@ For non-MUSD token tasks, 100% of the fee goes to the treasury (wave pool only a
 ## Token Roles
 
 ### MUSD (Primary)
-MUSD is Mezo's native Bitcoin-backed stablecoin. It is the default unit for all financial operations — task escrow, grant pool deposits, wave rewards, and governance weight. Contributors receive a stable, predictable payout with no price exposure.
+MUSD is Mezo's native Bitcoin-backed stablecoin. It is the default unit for task escrow, grant pool deposits, and wave rewards. Contributors receive a stable, predictable payout with no price exposure.
 
-### MEZO (Governance Amplifier)
-MEZO is Mezo's governance token. Patrons stake MEZO to amplify their grant voting weight. Staked MEZO is always withdrawable with no lockup or slashing.
+### MEZO (Payment Only)
+MEZO is Mezo's native token. Tasks can be posted and paid in MEZO the same way they can in MUSD — it has no governance role of its own on Taskify. Pairing a veMEZO lock with a veBTC position via Mezo's Matching Market can boost that veBTC position's voting weight (see below), but plain MEZO holdings contribute nothing.
 
-### Multi-Token Tasks
-The `token` field on each task stores an ERC-20 contract address. Tasks can escrow MEZO or any other ERC-20 without a contract upgrade. For non-MUSD tasks, wave pool tracking is disabled.
+### veBTC (Governance — read live, not custodied)
+Grant voting weight comes entirely from a patron's veBTC position on Mezo Earn — Mezo's own vote-escrow product, external to Taskify. Lock BTC there to mint veBTC; Taskify reads that weight live via `getVotingWeight`/`getProposalVotingWeight`, never custodying it. Deposits into Taskify's own grant pool (MUSD) are fully decoupled from voting weight — funding and governance are separate systems. Voting is currently limited to a pilot whitelist of approved veBTC holders (`approvedVoters`/`setApprovedVoters`) while the platform bootstraps. See [`VOTING_SYSTEM_REDESIGN.md`](VOTING_SYSTEM_REDESIGN.md) for the full design.
+
+### Task Tokens
+The `token` field on each task stores an ERC-20 contract address, restricted to MUSD or MEZO (`InvalidToken()` otherwise — see [`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md) finding M-1). For non-MUSD tasks, wave pool tracking is disabled.
 
 ---
 
@@ -359,7 +360,7 @@ forge fmt --check
 
 ### 5. Deploy Contracts
 
-Already deployed to Mezo testnet at `0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb` (see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To redeploy your own instance:
+Already deployed to Mezo testnet at `0x0ceC7A61B12d801a37143e6E223Cab907839cE3f` (see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To redeploy your own instance:
 
 ```bash
 cd contracts
@@ -404,7 +405,7 @@ NEXT_PUBLIC_MEZO_CONTRACT=0x7B7c000000000000000000000000000000000001
 
 # Taskify contract (see Contract Addresses) — required for every on-chain
 # read/write in the app; leave unset only if you haven't deployed yet.
-NEXT_PUBLIC_TASKIFY_CONTRACT=0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb
+NEXT_PUBLIC_TASKIFY_CONTRACT=0x0ceC7A61B12d801a37143e6E223Cab907839cE3f
 ```
 
 ---
@@ -415,7 +416,7 @@ NEXT_PUBLIC_TASKIFY_CONTRACT=0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb
 
 | Contract | Address |
 |---|---|
-| Taskify | `0x6DBca3d5bC3dE26741c80a5A284483BBb8EDACCb` |
+| Taskify | `0x0ceC7A61B12d801a37143e6E223Cab907839cE3f` |
 | MUSD (official) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
 | MEZO (official) | `0x7B7c000000000000000000000000000000000001` — same address as mainnet, live on testnet too |
 
@@ -438,9 +439,9 @@ Sourced from [mezo.org/docs/users/resources/contracts-reference](https://mezo.or
 - **Experience gating is on-chain** — `applyForTask` enforces the range at the contract level for Development tasks; a non-conforming call reverts with `ExperienceMismatch()`. Community tasks intentionally have no such gate.
 - **Task-kind isolation** — `applyForTask`/`assignTask` revert `TaskKindMismatch()` on a Community task and vice versa for `joinCommunityTask`/`selectWinners`, so the two lifecycles can't cross-contaminate shared storage.
 - **Double-claim / double-vote protection** — `grantVoters` and `waveClaims` mappings prevent double voting and double claiming.
-- **Owner-only controls** — `advanceWave` and `setTreasuryAddress` are restricted to `CONTRACT_OWNER` (the deployer). No other privileged operations exist.
+- **Owner-only controls** — `setTreasuryAddress`, `setVeBTCEscrow`, `setVeMEZOEscrow`, `setApprovedVoters`, and `transferOwnership` are restricted to `CONTRACT_OWNER`. `CONTRACT_OWNER` is mutable (not `immutable`) specifically so it can be rotated to a multisig or recovered from a compromised key via `transferOwnership` without a redeploy — see `TASKIFY_SECURITY_AUDIT.md` finding L-2. `advanceWave` is intentionally permissionless (pure time-check, no economic decision in it) so wave rewards can never get stuck on an inactive owner.
 - **Deployment requires the optimizer enabled** (`optimizer = true`, `via_ir = true` in `foundry.toml`) — with it off, the contract's runtime bytecode exceeds the EIP-170 24,576-byte limit and cannot be deployed to any EVM chain. Always confirm with `forge build --sizes` before deploying.
 
-**`Tasked_Contract_Security_Audit.docx` covers the legacy Clarity contract in `contract/`, not `contracts/Taskify.sol`.** The current Solidity contract has a Foundry test suite (`forge coverage` to check current numbers) but has not been independently audited — treat accordingly before deploying with real funds.
+**`Tasked_Contract_Security_Audit.docx` covers the legacy Clarity contract in `contract/`, not `contracts/Taskify.sol`.** For the current Solidity contract, see [`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md) — an internal review (one High, one Medium, two Low findings, all fixed and covered by regression tests in `contracts/test/SecurityAudit.t.sol`). That review is **not a substitute for a professional third-party audit**, which is still needed before deploying with real funds.
 
 For the full protocol specification including architecture decision records and ecosystem impact analysis, see [TASKIFY.md](TASKIFY.md).

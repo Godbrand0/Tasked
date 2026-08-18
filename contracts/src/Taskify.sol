@@ -52,6 +52,7 @@ contract Taskify is ReentrancyGuard {
     error InvalidWinnerCount();
     error WinnerNotJoined();
     error DuplicateWinner();
+    error InvalidOwner();
 
     // ----- Enums -----
     enum Role {
@@ -109,7 +110,12 @@ contract Taskify is ReentrancyGuard {
     uint8 public constant TIER_SENIOR = 3;
     uint8 public constant TIER_EXPERT = 4;
 
-    address public immutable CONTRACT_OWNER;
+    // Not immutable — see transferOwnership() and TASKIFY_SECURITY_AUDIT.md
+    // finding L-2. An immutable owner with no recovery path means losing
+    // the deployer key permanently freezes setTreasuryAddress/setVeBTCEscrow/
+    // setVeMEZOEscrow/setApprovedVoters forever; this at least allows
+    // recovery/rotation (e.g. to a multisig) without a redeploy.
+    address public CONTRACT_OWNER;
     address public immutable musd;
     address public immutable mezo;
 
@@ -153,6 +159,14 @@ contract Taskify is ReentrancyGuard {
         uint256 votesAgainst;
         uint256 deadline;
         uint256 snapshotTimestamp; // fixed at proposal creation; passed to every getPastVotes call for this proposal
+        // Fixed at proposal creation alongside snapshotTimestamp — see
+        // TASKIFY_SECURITY_AUDIT.md finding H-1. Without this, veBTCEscrow
+        // being owner-mutable at any time would let a malicious/compromised
+        // owner momentarily point it at a fabricated-weight contract, have
+        // a vote cast against it, then swap back — invisible after the
+        // fact. Locking the escrow address per-proposal, the same way the
+        // timestamp is locked, closes that window for any already-open vote.
+        address escrowAtSnapshot;
         bool executed;
     }
 
@@ -214,6 +228,7 @@ contract Taskify is ReentrancyGuard {
     event Deposited(address indexed patron, uint256 amount, uint8 newTier);
     event MezoUnstaked(address indexed patron, uint256 amount);
     event VoterApproved(address indexed voter, bool approved);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor(address _musd, address _mezo) {
         CONTRACT_OWNER = msg.sender;
@@ -234,13 +249,18 @@ contract Taskify is ReentrancyGuard {
     }
 
     /// @dev Aggregates voting weight across every veBTC NFT `account` holds,
-    /// as of `snapshotTimestamp` (fixed once per proposal — see
-    /// applyForGrant — never block.timestamp at vote-cast time, which would
-    /// give live weight instead of a real snapshot and reopen the
-    /// flash-position gaming getPastVotes exists to prevent).
-    function _votingWeight(address account, uint256 snapshotTimestamp) internal view returns (uint256 weight) {
-        if (veBTCEscrow == address(0)) return 0;
-        IMezoVotingEscrow ve = IMezoVotingEscrow(veBTCEscrow);
+    /// as of `snapshotTimestamp`, read from `escrow` specifically (never the
+    /// live veBTCEscrow variable directly — callers must pass whichever
+    /// escrow address is actually authoritative for their use case; see
+    /// getVotingWeight vs. getProposalVotingWeight/voteOnGrant below and
+    /// TASKIFY_SECURITY_AUDIT.md finding H-1).
+    function _votingWeight(address account, uint256 snapshotTimestamp, address escrow)
+        internal
+        view
+        returns (uint256 weight)
+    {
+        if (escrow == address(0)) return 0;
+        IMezoVotingEscrow ve = IMezoVotingEscrow(escrow);
         uint256 count = ve.balanceOf(account);
         uint256 iterations = count > MAX_VE_NFTS_PER_VOTE ? MAX_VE_NFTS_PER_VOTE : count;
         for (uint256 i = 0; i < iterations; i++) {
@@ -252,10 +272,23 @@ contract Taskify is ReentrancyGuard {
     // ----- Read helpers -----
 
     /// @notice Live veBTC-derived voting weight for `account` as of
-    /// `snapshotTimestamp`. Frontend should never re-implement this
+    /// `snapshotTimestamp`, read against the *current* veBTCEscrow. This is
+    /// a non-binding preview only — an actual vote on a specific proposal
+    /// uses that proposal's locked snapshot + escrow (see
+    /// getProposalVotingWeight), which can differ from this if veBTCEscrow
+    /// has changed since. Frontend should never re-implement this
     /// aggregation client-side — call this directly.
     function getVotingWeight(address account, uint256 snapshotTimestamp) external view returns (uint256) {
-        return _votingWeight(account, snapshotTimestamp);
+        return _votingWeight(account, snapshotTimestamp, veBTCEscrow);
+    }
+
+    /// @notice The exact voting weight `account` would use if they voted on
+    /// `taskId` right now — reads that proposal's locked snapshotTimestamp
+    /// and escrowAtSnapshot, not live values, so this always matches what
+    /// voteOnGrant() will actually record for them on this proposal.
+    function getProposalVotingWeight(uint256 taskId, address account) external view returns (uint256) {
+        GrantVote storage vote = grantVotes[taskId];
+        return _votingWeight(account, vote.snapshotTimestamp, vote.escrowAtSnapshot);
     }
 
     function getCurrentWave()
@@ -353,6 +386,7 @@ contract Taskify is ReentrancyGuard {
         if (user.role == Role.None) revert UserNotRegistered();
         if (user.role != Role.Creator) revert InvalidRole();
         if (amount < MIN_TASK_AMOUNT) revert InvalidAmount();
+        if (token != musd && token != mezo) revert InvalidToken();
         if (experienceMin > experienceMax) revert InvalidExperience();
         if (experienceMax > TIER_EXPERT) revert InvalidExperience();
         if (deadline <= block.timestamp) revert DeadlinePassed();
@@ -395,6 +429,7 @@ contract Taskify is ReentrancyGuard {
         if (user.role == Role.None) revert UserNotRegistered();
         if (user.role != Role.Creator) revert InvalidRole();
         if (amount < MIN_TASK_AMOUNT) revert InvalidAmount();
+        if (token != musd && token != mezo) revert InvalidToken();
         if (maxWinners == 0 || maxWinners > 20) revert InvalidWinnerCount();
         if (deadline <= block.timestamp) revert DeadlinePassed();
 
@@ -492,6 +527,7 @@ contract Taskify is ReentrancyGuard {
             votesAgainst: 0,
             deadline: deadline,
             snapshotTimestamp: block.timestamp,
+            escrowAtSnapshot: veBTCEscrow,
             executed: false
         });
 
@@ -512,7 +548,7 @@ contract Taskify is ReentrancyGuard {
         if (vote.executed) revert VotingClosed();
         if (grantVoters[taskId][msg.sender]) revert AlreadyVoted();
 
-        uint256 votingWeight = _votingWeight(msg.sender, vote.snapshotTimestamp);
+        uint256 votingWeight = _votingWeight(msg.sender, vote.snapshotTimestamp, vote.escrowAtSnapshot);
         if (votingWeight == 0) revert NoStake();
 
         grantVoters[taskId][msg.sender] = true;
@@ -549,13 +585,17 @@ contract Taskify is ReentrancyGuard {
             uint256 treasuryFee = (fee * TREASURY_SHARE) / 100;
             uint256 wavePoolFee = fee - treasuryFee;
 
-            IERC20(musd).safeTransfer(treasuryAddress, treasuryFee);
+            // All state written before the external transfer below —
+            // checks-effects-interactions, defense-in-depth alongside
+            // nonReentrant (see TASKIFY_SECURITY_AUDIT.md finding L-1).
             wavePoolAmount += wavePoolFee;
             // Grant-funded tasks do not count toward the creator leaderboard —
             // only self-funded tasks accumulate wave reward credits.
 
             task.status = Status.Open;
             task.deadline = block.timestamp + WAVE_EPOCH_DURATION;
+
+            IERC20(musd).safeTransfer(treasuryAddress, treasuryFee);
         } else {
             task.status = Status.GrantRejected;
         }
@@ -751,8 +791,13 @@ contract Taskify is ReentrancyGuard {
 
     // ----- Wave Rewards Module -----
 
+    /// @notice Permissionless — anyone can advance a wave once its epoch has
+    /// genuinely elapsed (see TASKIFY_SECURITY_AUDIT.md finding L-2). This is
+    /// a pure time-gated bookkeeping snapshot with no economic decision in
+    /// it, so there's no reason it needs to be owner-only; making it
+    /// permissionless means wave rewards can never get stuck just because
+    /// the owner goes inactive.
     function advanceWave() external {
-        if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
         if (block.timestamp < waveStartTime + WAVE_EPOCH_DURATION) revert WaveNotFinished();
 
         waveSnapshots[currentWaveId] = WaveSnapshot({poolAmount: wavePoolAmount, totalTasks: waveTotalTasks});
@@ -811,5 +856,16 @@ contract Taskify is ReentrancyGuard {
             approvedVoters[voters[i]] = approved;
             emit VoterApproved(voters[i], approved);
         }
+    }
+
+    /// @notice Moves ownership to a new address — e.g. to a multisig, or to
+    /// recover from a compromised/lost key without a full redeploy. See
+    /// TASKIFY_SECURITY_AUDIT.md finding L-2.
+    function transferOwnership(address newOwner) external {
+        if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
+        if (newOwner == address(0)) revert InvalidOwner();
+        address previousOwner = CONTRACT_OWNER;
+        CONTRACT_OWNER = newOwner;
+        emit OwnershipTransferred(previousOwner, newOwner);
     }
 }

@@ -386,6 +386,11 @@ export interface OnChainGrantVote {
   votesAgainst: bigint;
   deadline: number;
   snapshotTimestamp: number;
+  // Escrow address locked in at proposal-open time — voteOnGrant reads
+  // weight against this, never the live veBTCEscrow, so a later escrow
+  // change can't retroactively affect an already-open vote. See
+  // TASKIFY_SECURITY_AUDIT.md finding H-1.
+  escrowAtSnapshot: string;
   executed: boolean;
 }
 
@@ -398,20 +403,29 @@ export function useGrantVote(taskId: number | undefined) {
     query: { enabled: Boolean(taskId !== undefined && TASKIFY_ADDRESS) },
   });
 
-  const t = data as readonly [bigint, bigint, bigint, bigint, boolean] | undefined;
+  const t = data as readonly [bigint, bigint, bigint, bigint, string, boolean] | undefined;
   const vote: OnChainGrantVote | undefined = t
-    ? { votesFor: t[0], votesAgainst: t[1], deadline: Number(t[2]), snapshotTimestamp: Number(t[3]), executed: t[4] }
+    ? {
+        votesFor: t[0],
+        votesAgainst: t[1],
+        deadline: Number(t[2]),
+        snapshotTimestamp: Number(t[3]),
+        escrowAtSnapshot: t[4],
+        executed: t[5],
+      }
     : undefined;
 
   return { vote, isLoading, refetch };
 }
 
-// Live veBTC-derived voting weight for `address` as of `snapshotTimestamp` —
-// mirrors Taskify.sol's getVotingWeight() exactly rather than re-implementing
-// the veBTC NFT aggregation client-side. Pass a proposal's own
-// snapshotTimestamp (see OnChainGrantVote) when the weight matters for an
-// actual vote; a current-time value is fine for a non-binding "your voting
-// power right now" preview outside of any specific proposal.
+// Live veBTC-derived voting weight for `address` as of `snapshotTimestamp`,
+// read against the *current* veBTCEscrow — mirrors Taskify.sol's
+// getVotingWeight() exactly rather than re-implementing the veBTC NFT
+// aggregation client-side. This is a non-binding preview only ("your voting
+// power right now," outside of any specific proposal) — an actual vote on a
+// specific proposal uses that proposal's locked snapshot + escrow instead,
+// which can differ from this if veBTCEscrow has changed since. Use
+// useProposalVotingWeight for that.
 export function useVotingWeight(address: string | undefined, snapshotTimestamp: number | undefined) {
   const { data, isLoading, refetch } = useReadContract({
     address: TASKIFY_ADDRESS,
@@ -419,6 +433,22 @@ export function useVotingWeight(address: string | undefined, snapshotTimestamp: 
     functionName: "getVotingWeight",
     args: address && snapshotTimestamp !== undefined ? [address as `0x${string}`, BigInt(snapshotTimestamp)] : undefined,
     query: { enabled: Boolean(address && snapshotTimestamp !== undefined && TASKIFY_ADDRESS) },
+  });
+
+  return { weight: (data as bigint | undefined) ?? BigInt(0), isLoading, refetch };
+}
+
+// The exact weight `address` would use if they voted on `taskId` right now —
+// reads that proposal's locked snapshotTimestamp + escrowAtSnapshot via
+// Taskify.sol's getProposalVotingWeight(), so this always matches what
+// voteOnGrant() will actually record, unlike useVotingWeight above.
+export function useProposalVotingWeight(taskId: number | undefined, address: string | undefined) {
+  const { data, isLoading, refetch } = useReadContract({
+    address: TASKIFY_ADDRESS,
+    abi: TASKIFY_ABI,
+    functionName: "getProposalVotingWeight",
+    args: taskId !== undefined && address ? [BigInt(taskId), address as `0x${string}`] : undefined,
+    query: { enabled: Boolean(taskId !== undefined && address && TASKIFY_ADDRESS) },
   });
 
   return { weight: (data as bigint | undefined) ?? BigInt(0), isLoading, refetch };
@@ -462,8 +492,9 @@ export function useGrantVotesBatch(taskIds: number[], voterAddress: string | und
             abi: TASKIFY_ABI,
             functionName: "grantVotes",
             args: [BigInt(id)],
-          })) as readonly [bigint, bigint, bigint, bigint, boolean];
+          })) as readonly [bigint, bigint, bigint, bigint, string, boolean];
           const snapshotTimestamp = Number(t[3]);
+          const escrowAtSnapshot = t[4];
           const hasVoted = voterAddress
             ? ((await publicClient.readContract({
                 address: contractAddress,
@@ -472,12 +503,17 @@ export function useGrantVotesBatch(taskIds: number[], voterAddress: string | und
                 args: [BigInt(id), voterAddress as `0x${string}`],
               })) as boolean)
             : false;
+          // getProposalVotingWeight, not getVotingWeight — reads the
+          // proposal's locked escrowAtSnapshot, so this always matches what
+          // voteOnGrant() will actually record (see TASKIFY_SECURITY_AUDIT.md
+          // finding H-1; getVotingWeight alone would reflect the *live*
+          // veBTCEscrow, which can differ from what this proposal locked in).
           const myWeight = voterAddress
             ? ((await publicClient.readContract({
                 address: contractAddress,
                 abi: TASKIFY_ABI,
-                functionName: "getVotingWeight",
-                args: [voterAddress as `0x${string}`, BigInt(snapshotTimestamp)],
+                functionName: "getProposalVotingWeight",
+                args: [BigInt(id), voterAddress as `0x${string}`],
               })) as bigint)
             : BigInt(0);
           return [
@@ -487,7 +523,8 @@ export function useGrantVotesBatch(taskIds: number[], voterAddress: string | und
               votesAgainst: t[1],
               deadline: Number(t[2]),
               snapshotTimestamp,
-              executed: t[4],
+              escrowAtSnapshot,
+              executed: t[5],
               hasVoted,
               myWeight,
             },
