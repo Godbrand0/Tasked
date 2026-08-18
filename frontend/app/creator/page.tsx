@@ -295,7 +295,7 @@ export default function CreatorPage() {
                 {claiming ? "Confirming…" : prevWaveClaimed ? "Already Claimed" : canClaim ? "Claim Previous Wave Reward" : "No Reward to Claim Yet"}
               </button>
               {claimError && <div style={{ fontSize: 11, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{claimError}</div>}
-              <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>Wave advances when the owner calls advanceWave (~30 days)</div>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>Wave advances (~30 days) once anyone calls advanceWave — permissionless</div>
             </div>
 
             {/* Quick actions */}

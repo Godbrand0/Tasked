@@ -199,6 +199,12 @@ export interface OnChainTask {
   createdAt: number;
   kind: number;
   maxWinners: number;
+  // Grant-funded only: creator-chosen post-approval work window in seconds,
+  // applied to `deadline` at executeGrant() time. 0 for self-funded tasks.
+  workDuration: number;
+  // Wave a self-funded task's creation credit was recorded under — only
+  // used internally by cancelTask/markExpired's wave-credit reversal.
+  waveId: number;
 }
 
 function parseTaskTuple(id: number, t: readonly unknown[]): OnChainTask {
@@ -217,6 +223,8 @@ function parseTaskTuple(id: number, t: readonly unknown[]): OnChainTask {
     createdAt: Number(t[10]),
     kind: t[11] as number,
     maxWinners: t[12] as number,
+    workDuration: Number(t[13]),
+    waveId: Number(t[14]),
   };
 }
 

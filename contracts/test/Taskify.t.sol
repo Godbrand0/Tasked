@@ -157,7 +157,7 @@ contract TaskifyTest is Test {
         veEscrow.mint(charlie, 1, 501_000_000);
 
         vm.prank(alice);
-        uint256 taskId2 = taskify.applyForGrant("Build Taskify Rust Parser", 1000e18, 2, 4);
+        uint256 taskId2 = taskify.applyForGrant("Build Taskify Rust Parser", 1000e18, 2, 4, 30 days);
         assertEq(taskId2, 2);
 
         vm.prank(charlie);
@@ -185,7 +185,7 @@ contract TaskifyTest is Test {
         bool approved2 = taskify.executeGrant(taskId2);
         assertTrue(approved2);
 
-        (,,,,,, Taskify.Status status2,,,,,,) = taskify.tasks(taskId2);
+        (,,,,,, Taskify.Status status2,,,,,,,,) = taskify.tasks(taskId2);
         assertEq(uint8(status2), uint8(Taskify.Status.Open));
 
         assertEq(taskify.grantPoolBalance(), 4000e18);
@@ -202,7 +202,7 @@ contract TaskifyTest is Test {
         // Step 5: Grant Proposal Rejection
         // -------------------------------------------------------------
         vm.prank(alice);
-        uint256 taskId3 = taskify.applyForGrant("Rejectable Task", 1000e18, 2, 4);
+        uint256 taskId3 = taskify.applyForGrant("Rejectable Task", 1000e18, 2, 4, 30 days);
         assertEq(taskId3, 3);
 
         vm.prank(charlie);
@@ -215,7 +215,7 @@ contract TaskifyTest is Test {
         bool approved3 = taskify.executeGrant(taskId3);
         assertFalse(approved3);
 
-        (,,,,,, Taskify.Status status3,,,,,,) = taskify.tasks(taskId3);
+        (,,,,,, Taskify.Status status3,,,,,,,,) = taskify.tasks(taskId3);
         assertEq(uint8(status3), uint8(Taskify.Status.GrantRejected));
 
         assertEq(taskify.grantPoolBalance(), 4000e18);
@@ -357,7 +357,7 @@ contract TaskifyTest is Test {
         assertEq(daveTasksCompleted, 1);
         assertEq(daveTotalEarned, share);
 
-        (,,,,,, Taskify.Status finalStatus,,,,,,) = taskify.tasks(taskId);
+        (,,,,,, Taskify.Status finalStatus,,,,,,,,) = taskify.tasks(taskId);
         assertEq(uint8(finalStatus), uint8(Taskify.Status.FundsReleased));
 
         // Task is settled — no more joining or re-selecting winners.
@@ -377,7 +377,7 @@ contract TaskifyTest is Test {
 
         // Zero veBTC position: NoStake, same as the old zero-stake case.
         vm.prank(alice);
-        uint256 zeroTaskId = taskify.applyForGrant("Zero-weight probe", 100e18, 0, 4);
+        uint256 zeroTaskId = taskify.applyForGrant("Zero-weight probe", 100e18, 0, 4, 30 days);
         vm.prank(charlie);
         vm.expectRevert(Taskify.NoStake.selector);
         taskify.voteOnGrant(zeroTaskId, true);
@@ -413,7 +413,7 @@ contract TaskifyTest is Test {
         vm.warp(t0 + 1 hours);
 
         vm.prank(alice);
-        uint256 taskId = taskify.applyForGrant("Snapshot probe", 100e18, 0, 4);
+        uint256 taskId = taskify.applyForGrant("Snapshot probe", 100e18, 0, 4, 30 days);
         (,,, uint256 snapshotTimestamp,,) = taskify.grantVotes(taskId);
         vm.warp(t0 + 2 hours);
 
@@ -458,7 +458,7 @@ contract TaskifyTest is Test {
         vm.warp(t0 + 1 hours);
 
         vm.prank(alice);
-        uint256 taskId = taskify.applyForGrant("Transfer-during-vote probe", 100e18, 0, 4);
+        uint256 taskId = taskify.applyForGrant("Transfer-during-vote probe", 100e18, 0, 4, 30 days);
         (,,, uint256 snapshotTimestamp,,) = taskify.grantVotes(taskId);
         vm.warp(t0 + 2 hours);
 
@@ -512,7 +512,7 @@ contract TaskifyTest is Test {
         assertEq(taskify.getVotingWeight(frank, block.timestamp), 1_000_000);
 
         vm.prank(alice);
-        uint256 taskId = taskify.applyForGrant("Whitelist probe", 100e18, 0, 4);
+        uint256 taskId = taskify.applyForGrant("Whitelist probe", 100e18, 0, 4, 30 days);
 
         vm.prank(frank);
         vm.expectRevert(Taskify.NotApprovedVoter.selector);

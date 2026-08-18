@@ -10,7 +10,7 @@ Two kinds of task live side by side on one board:
 - **Community tasks** — open to any registered wallet (memes, bug write-ups, social bounties — no code required). Anyone joins with a proof-of-participation link; the creator picks up to *N* winners and the escrow splits evenly between them in one transaction. X-verified.
 
 **Live Demo:** [taskifybounties.vercel.app](https://taskifybounties.vercel.app/)
-**Contract (Mezo Testnet):** [`0x0ceC7A61B12d801a37143e6E223Cab907839cE3f`](https://explorer.test.mezo.org/address/0x0ceC7A61B12d801a37143e6E223Cab907839cE3f) — see [Contract Addresses](#contract-addresses)
+**Contract (Mezo Testnet):** [`0x1FeBFE69533A2207f45f98b44Eb6564a122665b8`](https://explorer.test.mezo.org/address/0x1FeBFE69533A2207f45f98b44Eb6564a122665b8) — see [Contract Addresses](#contract-addresses)
 
 ---
 
@@ -39,7 +39,7 @@ Two kinds of task live side by side on one board:
 2. MUSD transfers into the contract at creation via `createTask` — the funds are locked in escrow immediately.
 3. Contributors whose experience level falls within the task's range can `applyForTask` on-chain.
 4. The creator `assignTask`s one applicant; the assignee `startTask`s and then `submitTask`s.
-5. The creator calls `approveAndRelease` — MUSD transfers directly to the contributor's wallet. No intermediary, no delay.
+5. The creator calls `approveAndRelease` — MUSD transfers directly to the contributor's wallet. No intermediary, no delay. If the submitted work isn't acceptable, the creator can instead call `rejectSubmission` — the task reopens (assignee cleared, status back to `OPEN`) without refunding escrow, so a new contributor can pick it up.
 
 ### Community Tasks (Self-Funded, Multi-Winner)
 
@@ -49,9 +49,9 @@ Two kinds of task live side by side on one board:
 
 ### Grant-Funded Tasks (Development only, for now)
 
-1. A creator applies for a grant via `applyForGrant`, specifying the amount and experience range needed.
+1. A creator applies for a grant via `applyForGrant`, specifying the amount, experience range needed, and how long they'll have to complete the work if approved (7/14/30/60/90 days in the UI; enforced on-chain between 1 and 180 days).
 2. A 3-day on-chain voting window opens. Investors (patrons) vote for or against; weight comes live from each voter's veBTC position on Mezo Earn — MUSD deposited into the grant pool funds grants but grants no votes (see [Token Roles](#token-roles) and [`VOTING_SYSTEM_REDESIGN.md`](VOTING_SYSTEM_REDESIGN.md)). Voting is currently limited to a pilot whitelist of approved veBTC holders.
-3. If approved, MUSD moves from the patron pool into escrow and the task becomes `OPEN`, following the same lifecycle as a self-funded Development task.
+3. If approved, MUSD moves from the patron pool into escrow, the task becomes `OPEN`, and the creator-chosen work duration becomes the task's deadline — following the same lifecycle as a self-funded Development task from there.
 
 ### Wave Rewards
 
@@ -192,6 +192,7 @@ Voting weight has no divisor/formula of Taskify's own — it's a live, unscaled 
 | `assignTask` | Task creator | Assign an applicant |
 | `startTask` / `submitTask` | Assigned contributor | Move status to `IN_PROGRESS` / `SUBMITTED` |
 | `approveAndRelease` | Task creator | Release escrowed funds to the assignee |
+| `rejectSubmission` | Task creator | Reject unacceptable submitted work; reopens the task (status back to `OPEN`, assignee cleared) without refunding escrow |
 
 #### Community Task Module
 | Function | Who Can Call | Description |
@@ -203,15 +204,15 @@ Voting weight has no divisor/formula of Taskify's own — it's a live, unscaled 
 #### Shared Task Lifecycle
 | Function | Who Can Call | Description |
 |---|---|---|
-| `cancelTask` | Task creator | Cancel an `OPEN` self-funded task and refund net escrow |
-| `markExpired` | Anyone | Trigger expiry after deadline; refunds creator or grant pool |
+| `cancelTask` | Task creator | Cancel an `OPEN` self-funded task and refund net escrow; reverses this wave's creator task credit if the task was created in the still-live wave |
+| `markExpired` | Anyone | Trigger expiry after deadline, refunding the creator — only for tasks still at `OPEN`/`ASSIGNED`/`IN_PROGRESS`; a pending grant vote or a contributor's submitted work can never be swept by expiry (see `TASKIFY_SECURITY_AUDIT.md` F-233716/F-233658) |
 
 #### Grant Pool Module
 | Function | Who Can Call | Description |
 |---|---|---|
 | `depositToPool` | Investors | Permanently deposit MUSD into the patron pool — funds grants and Patron tiers, no longer grants votes |
 | `unstakeMezo` | Investors | Withdraw MEZO from the legacy staking pool (migration-only; `stakeMezo` was removed — voting weight now comes from veBTC, see below) |
-| `applyForGrant` | Creators | Submit a grant-funded Development task proposal |
+| `applyForGrant` | Creators | Submit a grant-funded Development task proposal, including the work duration if approved (1–180 days) |
 | `voteOnGrant` | Investors, approved voters only (pilot whitelist), weighted by live veBTC position on Mezo Earn | Cast a vote for or against a grant |
 | `executeGrant` | Anyone | Execute the grant decision after voting closes |
 
@@ -220,6 +221,7 @@ Voting weight has no divisor/formula of Taskify's own — it's a live, unscaled 
 |---|---|---|
 | `advanceWave` | Anyone, once the epoch has elapsed | Close the current wave and snapshot it |
 | `claimWaveReward` | Creators | Claim proportional share of a completed wave pool |
+| `claimStrandedWaveFunds` | Anyone | Sweep a closed wave's pool to the treasury, but only if it recorded zero self-funded tasks (i.e. its fees came entirely from approved grants, so no creator has a claim on it) |
 
 ### Task Lifecycle
 
@@ -360,7 +362,7 @@ forge fmt --check
 
 ### 5. Deploy Contracts
 
-Already deployed to Mezo testnet at `0x0ceC7A61B12d801a37143e6E223Cab907839cE3f` (see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To redeploy your own instance:
+Already deployed to Mezo testnet at `0x1FeBFE69533A2207f45f98b44Eb6564a122665b8` (see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To redeploy your own instance:
 
 ```bash
 cd contracts
@@ -405,7 +407,7 @@ NEXT_PUBLIC_MEZO_CONTRACT=0x7B7c000000000000000000000000000000000001
 
 # Taskify contract (see Contract Addresses) — required for every on-chain
 # read/write in the app; leave unset only if you haven't deployed yet.
-NEXT_PUBLIC_TASKIFY_CONTRACT=0x0ceC7A61B12d801a37143e6E223Cab907839cE3f
+NEXT_PUBLIC_TASKIFY_CONTRACT=0x1FeBFE69533A2207f45f98b44Eb6564a122665b8
 ```
 
 ---
@@ -416,7 +418,7 @@ NEXT_PUBLIC_TASKIFY_CONTRACT=0x0ceC7A61B12d801a37143e6E223Cab907839cE3f
 
 | Contract | Address |
 |---|---|
-| Taskify | `0x0ceC7A61B12d801a37143e6E223Cab907839cE3f` |
+| Taskify | `0x1FeBFE69533A2207f45f98b44Eb6564a122665b8` |
 | MUSD (official) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
 | MEZO (official) | `0x7B7c000000000000000000000000000000000001` — same address as mainnet, live on testnet too |
 
@@ -434,12 +436,14 @@ Sourced from [mezo.org/docs/users/resources/contracts-reference](https://mezo.or
 
 ## Security Model
 
-- **Reentrancy guard** — state-changing escrow functions (`createTask`, `createCommunityTask`, `approveAndRelease`, `cancelTask`, `markExpired`, `selectWinners`, `claimWaveReward`) are wrapped in OpenZeppelin's `ReentrancyGuard`.
+- **Reentrancy guard** — state-changing escrow functions (`createTask`, `createCommunityTask`, `approveAndRelease`, `rejectSubmission`, `cancelTask`, `markExpired`, `selectWinners`, `claimWaveReward`, `claimStrandedWaveFunds`) are wrapped in OpenZeppelin's `ReentrancyGuard`.
 - **SafeERC20** — all token transfers use `safeTransfer`/`safeTransferFrom`, tolerating non-standard ERC-20 return-value behavior.
+- **Token allowlist on task creation** — `createTask`/`createCommunityTask` revert `InvalidToken()` for anything other than `musd`/`mezo`, so escrow can't be opened in an arbitrary, potentially malicious ERC-20 — see `TASKIFY_SECURITY_AUDIT.md` finding M-1.
+- **Expiry can't touch in-flight work or votes** — `markExpired` only accepts `OPEN`/`ASSIGNED`/`IN_PROGRESS`; a pending grant proposal or a contributor's already-submitted work can never be refunded out from under them by expiry — see `TASKIFY_SECURITY_AUDIT.md` findings F-233716/F-233658.
 - **Experience gating is on-chain** — `applyForTask` enforces the range at the contract level for Development tasks; a non-conforming call reverts with `ExperienceMismatch()`. Community tasks intentionally have no such gate.
 - **Task-kind isolation** — `applyForTask`/`assignTask` revert `TaskKindMismatch()` on a Community task and vice versa for `joinCommunityTask`/`selectWinners`, so the two lifecycles can't cross-contaminate shared storage.
 - **Double-claim / double-vote protection** — `grantVoters` and `waveClaims` mappings prevent double voting and double claiming.
-- **Owner-only controls** — `setTreasuryAddress`, `setVeBTCEscrow`, `setVeMEZOEscrow`, `setApprovedVoters`, and `transferOwnership` are restricted to `CONTRACT_OWNER`. `CONTRACT_OWNER` is mutable (not `immutable`) specifically so it can be rotated to a multisig or recovered from a compromised key via `transferOwnership` without a redeploy — see `TASKIFY_SECURITY_AUDIT.md` finding L-2. `advanceWave` is intentionally permissionless (pure time-check, no economic decision in it) so wave rewards can never get stuck on an inactive owner.
+- **Owner-only controls** — `setTreasuryAddress` (also rejects the zero address, see finding F-233721), `setVeBTCEscrow`, `setVeMEZOEscrow`, `setApprovedVoters`, and `transferOwnership` are restricted to `CONTRACT_OWNER`. `CONTRACT_OWNER` is mutable (not `immutable`) specifically so it can be rotated to a multisig or recovered from a compromised key via `transferOwnership` without a redeploy — see `TASKIFY_SECURITY_AUDIT.md` finding L-2. `advanceWave` is intentionally permissionless (pure time-check, no economic decision in it) so wave rewards can never get stuck on an inactive owner.
 - **Deployment requires the optimizer enabled** (`optimizer = true`, `via_ir = true` in `foundry.toml`) — with it off, the contract's runtime bytecode exceeds the EIP-170 24,576-byte limit and cannot be deployed to any EVM chain. Always confirm with `forge build --sizes` before deploying.
 
 **`Tasked_Contract_Security_Audit.docx` covers the legacy Clarity contract in `contract/`, not `contracts/Taskify.sol`.** For the current Solidity contract, see [`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md) — an internal review (one High, one Medium, two Low findings, all fixed and covered by regression tests in `contracts/test/SecurityAudit.t.sol`). That review is **not a substitute for a professional third-party audit**, which is still needed before deploying with real funds.

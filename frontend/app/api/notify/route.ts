@@ -7,7 +7,7 @@ import { notify, type NotificationType } from "@/lib/notifications";
 // this right after the transaction confirms. Low-stakes by design: worst
 // case a malicious client fires a spurious notification, same off-chain
 // trust model as every other write path in this app pending real auth.
-const ALLOWED_TYPES: NotificationType[] = ["task_assigned", "work_submitted", "funds_released"];
+const ALLOWED_TYPES: NotificationType[] = ["task_assigned", "work_submitted", "funds_released", "submission_rejected"];
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);

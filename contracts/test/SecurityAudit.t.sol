@@ -113,7 +113,7 @@ contract SecurityAuditTest is Test {
         taskify.setVeBTCEscrow(address(malicious));
 
         vm.prank(alice);
-        uint256 taskId = taskify.applyForGrant("Reentrancy probe", 100e18, 0, 4);
+        uint256 taskId = taskify.applyForGrant("Reentrancy probe", 100e18, 0, 4, 30 days);
         assertEq(taskId, 1); // must match ReentrantEscrow's hardcoded reenterTaskId
 
         vm.prank(charlie);
@@ -142,7 +142,7 @@ contract SecurityAuditTest is Test {
         realEscrow.mint(charlie, 1, 1);
 
         vm.prank(alice);
-        uint256 taskId = taskify.applyForGrant("Escrow-swap probe", 100e18, 0, 4);
+        uint256 taskId = taskify.applyForGrant("Escrow-swap probe", 100e18, 0, 4, 30 days);
 
         uint256 weightBefore = taskify.getProposalVotingWeight(taskId, charlie);
         assertEq(weightBefore, 1);

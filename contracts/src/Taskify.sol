@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 /// @notice Minimal read interface onto Mezo's Tigris veBTC/veMEZO voting-escrow
 /// contracts. Patron voting weight is sourced live from here instead of a
@@ -53,6 +54,9 @@ contract Taskify is ReentrancyGuard {
     error WinnerNotJoined();
     error DuplicateWinner();
     error InvalidOwner();
+    error InvalidDuration();
+    error InvalidTreasury();
+    error NotStranded();
 
     // ----- Enums -----
     enum Role {
@@ -103,6 +107,12 @@ contract Taskify is ReentrancyGuard {
     // voting-power reason to fragment a position across many NFTs, so 20
     // comfortably covers real holders — revisit with real testnet gas numbers.
     uint256 public constant MAX_VE_NFTS_PER_VOTE = 20;
+    // Bounds on the creator-chosen post-approval work window for grant-funded
+    // tasks (see applyForGrant). Prevents a 0-length window (instantly
+    // expirable) and an unreasonably long one (funds effectively locked
+    // indefinitely if the work is never finished).
+    uint256 public constant MIN_WORK_DURATION = 1 days;
+    uint256 public constant MAX_WORK_DURATION = 180 days;
 
     uint8 public constant TIER_NEWCOMER = 0;
     uint8 public constant TIER_JUNIOR = 1;
@@ -146,6 +156,18 @@ contract Taskify is ReentrancyGuard {
         uint256 createdAt;
         TaskKind kind;
         uint8 maxWinners; // Community only; unused (0) for Development
+        // Grant-funded only: creator-specified work window, applied to
+        // `deadline` when executeGrant() approves the proposal (replaces the
+        // old hardcoded WAVE_EPOCH_DURATION). Unused (0) for self-funded
+        // tasks, which pass their own absolute deadline at creation instead.
+        uint256 workDuration;
+        // Self-funded MUSD tasks only: the wave this task's creation credit
+        // (waveTotalTasks/waveCreatorTasks) was recorded under, so
+        // cancelTask/markExpired can safely reverse that credit — but only
+        // if this wave hasn't already been snapshotted by advanceWave(),
+        // since a finalized snapshot can never be corrected retroactively.
+        // See TASKIFY_SECURITY_AUDIT.md's follow-up findings (F-233656).
+        uint256 waveId;
     }
 
     struct Patron {
@@ -185,6 +207,14 @@ contract Taskify is ReentrancyGuard {
     mapping(uint256 => WaveSnapshot) public waveSnapshots;
     mapping(uint256 => mapping(address => bool)) public waveClaims;
     mapping(uint256 => mapping(address => uint256)) public waveCreatorTasks;
+    // A wave's poolAmount includes fees from approved grants (executeGrant)
+    // as well as self-funded tasks, but only self-funded tasks ever
+    // increment waveTotalTasks/waveCreatorTasks. A wave that closes with
+    // zero self-funded tasks but a nonzero poolAmount (from grant approvals
+    // alone) has no possible legitimate claimant under claimWaveReward —
+    // see claimStrandedWaveFunds and TASKIFY_SECURITY_AUDIT.md's wave-fees
+    // follow-up finding, F-233719.
+    mapping(uint256 => bool) public waveStrandedFundsClaimed;
 
     address public treasuryAddress;
     // Mezo Tigris voting-escrow contracts patron voting weight is read from
@@ -223,8 +253,10 @@ contract Taskify is ReentrancyGuard {
     event TaskFundsReleased(uint256 indexed taskId, address indexed assignee, uint256 netAmount);
     event TaskCancelled(uint256 indexed taskId);
     event TaskExpired(uint256 indexed taskId);
+    event SubmissionRejected(uint256 indexed taskId, address indexed formerAssignee);
     event WaveAdvanced(uint256 indexed finishedWaveId, uint256 newWaveId);
     event WaveRewardClaimed(uint256 indexed waveId, address indexed creator, uint256 reward);
+    event StrandedWaveFundsClaimed(uint256 indexed waveId, uint256 amount);
     event Deposited(address indexed patron, uint256 amount, uint8 newTier);
     event MezoUnstaked(address indexed patron, uint256 amount);
     event VoterApproved(address indexed voter, bool approved);
@@ -374,6 +406,22 @@ contract Taskify is ReentrancyGuard {
         }
     }
 
+    /// @dev Reverses the wave-creation credit _escrowSelfFunded granted, for
+    /// a self-funded MUSD task that's being cancelled or expired without
+    /// ever completing — called from cancelTask/markExpired. Only safe to
+    /// do while task.waveId is still the live currentWaveId: once
+    /// advanceWave() has snapshotted a wave, that snapshot is immutable, so
+    /// a cancellation/expiry after the fact has no way to correct it
+    /// retroactively — the credit for that already-finalized wave is a
+    /// known, permanent (but no longer growing) discrepancy. See
+    /// TASKIFY_SECURITY_AUDIT.md's markExpired follow-up findings (F-233656).
+    function _reverseWaveCreditIfLive(Task storage task) private {
+        if (task.fundingType == FundingType.Self && task.token == musd && task.waveId == currentWaveId) {
+            waveTotalTasks -= 1;
+            waveCreatorTasks[currentWaveId][task.creator] -= 1;
+        }
+    }
+
     function createTask(
         string calldata title,
         uint256 amount,
@@ -407,7 +455,9 @@ contract Taskify is ReentrancyGuard {
             deadline: deadline,
             createdAt: block.timestamp,
             kind: TaskKind.Development,
-            maxWinners: 0
+            maxWinners: 0,
+            workDuration: 0,
+            waveId: currentWaveId
         });
 
         nextTaskId = taskId + 1;
@@ -449,7 +499,9 @@ contract Taskify is ReentrancyGuard {
             deadline: deadline,
             createdAt: block.timestamp,
             kind: TaskKind.Community,
-            maxWinners: maxWinners
+            maxWinners: maxWinners,
+            workDuration: 0,
+            waveId: currentWaveId
         });
 
         nextTaskId = taskId + 1;
@@ -492,16 +544,24 @@ contract Taskify is ReentrancyGuard {
 
     // ----- Grant Proposal & Voting Module -----
 
-    function applyForGrant(string calldata title, uint256 amount, uint8 experienceMin, uint8 experienceMax)
-        external
-        returns (uint256)
-    {
+    /// @param workDuration How long the creator gets to complete the work
+    /// once (if) the grant is approved — applied to task.deadline at
+    /// executeGrant() time, replacing the old hardcoded 30-day
+    /// WAVE_EPOCH_DURATION reuse. Creator-chosen, e.g. 7/14/30/60/90 days.
+    function applyForGrant(
+        string calldata title,
+        uint256 amount,
+        uint8 experienceMin,
+        uint8 experienceMax,
+        uint256 workDuration
+    ) external returns (uint256) {
         User storage user = users[msg.sender];
         if (user.role == Role.None) revert UserNotRegistered();
         if (user.role != Role.Creator) revert InvalidRole();
         if (amount < MIN_TASK_AMOUNT) revert InvalidAmount();
         if (experienceMin > experienceMax) revert InvalidExperience();
         if (experienceMax > TIER_EXPERT) revert InvalidExperience();
+        if (workDuration < MIN_WORK_DURATION || workDuration > MAX_WORK_DURATION) revert InvalidDuration();
 
         uint256 taskId = nextTaskId;
         uint256 deadline = block.timestamp + GRANT_VOTING_DURATION;
@@ -519,7 +579,9 @@ contract Taskify is ReentrancyGuard {
             deadline: deadline,
             createdAt: block.timestamp,
             kind: TaskKind.Development,
-            maxWinners: 0
+            maxWinners: 0,
+            workDuration: workDuration,
+            waveId: currentWaveId
         });
 
         grantVotes[taskId] = GrantVote({
@@ -575,7 +637,25 @@ contract Taskify is ReentrancyGuard {
         uint256 amount = task.amount;
         uint256 totalVotes = vote.votesFor + vote.votesAgainst;
 
-        bool approved = totalVotes > 0 && (vote.votesFor * 100) >= (totalVotes * GRANT_PASS_THRESHOLD);
+        // votesFor/votesAgainst are sums of externally-reported veBTC weight
+        // (see _votingWeight) — not fully trusted, and not bounded to any
+        // realistic magnitude. A plain `votesFor * 100 >= totalVotes * 70`
+        // comparison can overflow and revert here if either side gets large
+        // enough, and since vote.votesFor is already permanently stored,
+        // that revert would repeat on every future call — permanently
+        // stuck in GrantPending with no resolution path (see
+        // TASKIFY_SECURITY_AUDIT.md's executeGrant follow-up findings,
+        // F-233723). Math.mulDiv computes totalVotes * threshold / 100
+        // using a wide intermediate, so this can never overflow regardless
+        // of how large the vote weights get. Ceil rounding (not the
+        // default Floor) is required for this to stay exactly equivalent
+        // to the original `votesFor * 100 >= totalVotes * threshold`
+        // comparison at non-exact boundaries — e.g. votesFor=7,
+        // totalVotes=11 must still fail (7*100=700 < 11*70=770), which only
+        // holds with Ceil: votesFor(7) >= ceil(11*70/100)=8 is false, while
+        // Floor would wrongly give votesFor(7) >= floor(7.7)=7 → true.
+        bool approved =
+            totalVotes > 0 && vote.votesFor >= Math.mulDiv(totalVotes, GRANT_PASS_THRESHOLD, 100, Math.Rounding.Ceil);
 
         if (approved) {
             if (grantPoolBalance < amount) revert InsufficientFunds();
@@ -593,7 +673,7 @@ contract Taskify is ReentrancyGuard {
             // only self-funded tasks accumulate wave reward credits.
 
             task.status = Status.Open;
-            task.deadline = block.timestamp + WAVE_EPOCH_DURATION;
+            task.deadline = block.timestamp + task.workDuration;
 
             IERC20(musd).safeTransfer(treasuryAddress, treasuryFee);
         } else {
@@ -758,18 +838,30 @@ contract Taskify is ReentrancyGuard {
         address token = task.token;
 
         task.status = Status.Cancelled;
+        _reverseWaveCreditIfLive(task);
 
         IERC20(token).safeTransfer(creator, netAmount);
         emit TaskCancelled(taskId);
     }
 
+    /// @notice Expiry is only ever valid before real work exists to protect:
+    /// GrantPending is excluded because nothing was ever debited from the
+    /// pool for an unexecuted proposal — the only valid resolution for that
+    /// is executeGrant(), never an expiry-refund (see
+    /// TASKIFY_SECURITY_AUDIT.md's markExpired follow-up findings, F-233716).
+    /// Submitted is excluded because a contributor has already delivered
+    /// real work by that point — from there the creator must explicitly
+    /// approveAndRelease() or rejectSubmission(), never a silent
+    /// timeout-refund to the creator (F-233658). So expiry is only reachable
+    /// from Open/Assigned/InProgress — before a submission exists, or after
+    /// grant funds have already been legitimately committed via
+    /// executeGrant() and then abandoned.
     function markExpired(uint256 taskId) external nonReentrant {
         Task storage task = tasks[taskId];
         if (task.creator == address(0)) revert TaskNotFound();
         Status status = task.status;
         if (
-            status == Status.FundsReleased || status == Status.Cancelled || status == Status.Expired
-                || status == Status.GrantRejected
+            status != Status.Open && status != Status.Assigned && status != Status.InProgress
         ) revert InvalidStatus();
         if (block.timestamp <= task.deadline) revert DeadlineNotPassed();
 
@@ -778,6 +870,7 @@ contract Taskify is ReentrancyGuard {
         uint256 netAmount = task.amount - fee;
 
         task.status = Status.Expired;
+        _reverseWaveCreditIfLive(task);
 
         if (task.fundingType == FundingType.Self) {
             IERC20(task.token).safeTransfer(task.creator, netAmount);
@@ -787,6 +880,28 @@ contract Taskify is ReentrancyGuard {
         }
 
         emit TaskExpired(taskId);
+    }
+
+    /// @notice Creator-only alternative to approveAndRelease() for work that
+    /// isn't good enough to pay for. Does NOT refund the creator — that
+    /// would let a creator reject good work for free and keep the option to
+    /// just take the escrow back regardless of merit. Instead the task
+    /// reopens exactly as if nobody had been assigned: the escrowed funds
+    /// stay locked in the task, a new contributor (or the same one,
+    /// reassigned) can pick it up, or it becomes normally expirable again
+    /// from Open if nobody does. See TASKIFY_SECURITY_AUDIT.md's
+    /// markExpired follow-up findings (F-233658).
+    function rejectSubmission(uint256 taskId) external {
+        Task storage task = tasks[taskId];
+        if (task.creator == address(0)) revert TaskNotFound();
+        if (task.creator != msg.sender) revert NotAuthorized();
+        if (task.status != Status.Submitted) revert InvalidStatus();
+
+        address formerAssignee = task.assignee;
+        task.status = Status.Open;
+        task.assignee = address(0);
+
+        emit SubmissionRejected(taskId, formerAssignee);
     }
 
     // ----- Wave Rewards Module -----
@@ -830,10 +945,42 @@ contract Taskify is ReentrancyGuard {
         return reward;
     }
 
+    /// @notice Permissionless, same rationale as advanceWave() — a pure
+    /// mechanical sweep to a fixed destination (treasuryAddress) with no
+    /// economic decision in it, so there's no reason to gate it to the
+    /// owner. Only ever moves money that has no possible legitimate
+    /// claimant: a wave whose snapshot shows zero self-funded tasks (so
+    /// waveCreatorTasks is 0 for literally every address, forever) but a
+    /// nonzero poolAmount from grant-approval fees alone. Waves with any
+    /// real self-funded tasks are completely untouched by this — those
+    /// funds stay reachable only through claimWaveReward by the creators
+    /// who actually earned them. See TASKIFY_SECURITY_AUDIT.md's wave-fees
+    /// follow-up finding, F-233719.
+    function claimStrandedWaveFunds(uint256 waveId) external nonReentrant {
+        if (waveId >= currentWaveId) revert InvalidWave();
+        WaveSnapshot storage snapshot = waveSnapshots[waveId];
+        if (snapshot.totalTasks != 0) revert NotStranded();
+        if (waveStrandedFundsClaimed[waveId]) revert AlreadyClaimed();
+        if (snapshot.poolAmount == 0) revert NoReward();
+
+        waveStrandedFundsClaimed[waveId] = true;
+        uint256 amount = snapshot.poolAmount;
+
+        IERC20(musd).safeTransfer(treasuryAddress, amount);
+
+        emit StrandedWaveFundsClaimed(waveId, amount);
+    }
+
     // ----- Owner Settings -----
 
     function setTreasuryAddress(address newTreasury) external {
         if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
+        // A zero treasury bricks every fee-bearing flow — standard ERC20
+        // transfer() to address(0) reverts, so createTask,
+        // createCommunityTask, and grant approval would all start failing
+        // until fixed (see TASKIFY_SECURITY_AUDIT.md's setTreasuryAddress
+        // follow-up finding, F-233721).
+        if (newTreasury == address(0)) revert InvalidTreasury();
         treasuryAddress = newTreasury;
     }
 

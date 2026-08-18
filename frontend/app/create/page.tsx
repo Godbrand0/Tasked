@@ -58,6 +58,7 @@ export default function CreatePage() {
   const [expMin, setExpMin] = useState(0);
   const [expMax, setExpMax] = useState(4);
   const [deadline, setDeadline] = useState("");
+  const [workDurationDays, setWorkDurationDays] = useState(14);
   const [tags, setTags] = useState("");
   const [grantJustification, setGrantJustification] = useState("");
   const [images, setImages] = useState<ImagePreview[]>([]);
@@ -138,7 +139,8 @@ export default function CreatePage() {
       let taskId: number | undefined;
 
       if (fundingType === "grant") {
-        const receipt = await send("applyForGrant", [title, toRawMUSD(numAmount), expMin, expMax]);
+        const workDurationSeconds = BigInt(workDurationDays * 86400);
+        const receipt = await send("applyForGrant", [title, toRawMUSD(numAmount), expMin, expMax, workDurationSeconds]);
         taskId = extractTaskId(receipt, "GrantApplied");
       } else {
         await ensureApproval(token, address, TASKIFY_ADDRESS, toRawMUSD(numAmount));
@@ -489,6 +491,20 @@ export default function CreatePage() {
                 onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
                 onBlur={e => (e.target.style.borderColor = "var(--border)")}
               />
+            </Field>
+          )}
+
+          {/* Work duration — grant-funded only. The voting window is fixed
+              at 3 days on-chain; this is separate — how long the creator
+              gets to actually deliver *if* the grant is approved. */}
+          {fundingType === "grant" && (
+            <Field label="Time to Complete (if approved)" required hint="Starts counting from approval, not from today — the 3-day patron vote happens first">
+              <select value={workDurationDays} onChange={e => setWorkDurationDays(Number(e.target.value))}
+                style={{ ...inputStyle, cursor: "pointer" }}
+                onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--secondary-light) 31%, transparent)")}
+                onBlur={e => (e.target.style.borderColor = "var(--border)")}>
+                {[7, 14, 30, 60, 90].map(d => <option key={d} value={d}>{d} days</option>)}
+              </select>
             </Field>
           )}
 

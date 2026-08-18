@@ -95,6 +95,19 @@
   },
   {
     "type": "function",
+    "name": "MAX_WORK_DURATION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MIN_PATRON_DEPOSIT",
     "inputs": [],
     "outputs": [
@@ -109,6 +122,19 @@
   {
     "type": "function",
     "name": "MIN_TASK_AMOUNT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_WORK_DURATION",
     "inputs": [],
     "outputs": [
       {
@@ -266,6 +292,11 @@
         "name": "experienceMax",
         "type": "uint8",
         "internalType": "uint8"
+      },
+      {
+        "name": "workDuration",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -346,6 +377,19 @@
     "inputs": [
       {
         "name": "taskId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimStrandedWaveFunds",
+    "inputs": [
+      {
+        "name": "waveId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -791,6 +835,19 @@
   },
   {
     "type": "function",
+    "name": "rejectSubmission",
+    "inputs": [
+      {
+        "name": "taskId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "selectWinners",
     "inputs": [
       {
@@ -1026,6 +1083,16 @@
         "name": "maxWinners",
         "type": "uint8",
         "internalType": "uint8"
+      },
+      {
+        "name": "workDuration",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "waveId",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -1285,6 +1352,25 @@
   },
   {
     "type": "function",
+    "name": "waveStrandedFundsClaimed",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "waveTotalTasks",
     "inputs": [],
     "outputs": [
@@ -1471,6 +1557,44 @@
       },
       {
         "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StrandedWaveFundsClaimed",
+    "inputs": [
+      {
+        "name": "waveId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SubmissionRejected",
+    "inputs": [
+      {
+        "name": "taskId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "formerAssignee",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1794,6 +1918,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidDuration",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidExperience",
     "inputs": []
   },
@@ -1815,6 +1944,11 @@
   {
     "type": "error",
     "name": "InvalidToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTreasury",
     "inputs": []
   },
   {
@@ -1850,6 +1984,11 @@
   {
     "type": "error",
     "name": "NotAuthorized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotStranded",
     "inputs": []
   },
   {

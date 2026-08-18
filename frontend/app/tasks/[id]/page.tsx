@@ -342,7 +342,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
-  function notifyServer(recipient: string, type: "task_assigned" | "work_submitted" | "funds_released") {
+  function notifyServer(recipient: string, type: "task_assigned" | "work_submitted" | "funds_released" | "submission_rejected") {
     fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -436,6 +436,22 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       await refetchTask();
     } catch (err) {
       setTxError(err instanceof Error ? err.message : "Failed to release funds");
+    } finally {
+      setTxBusy(false);
+    }
+  }
+
+  async function handleRejectSubmission() {
+    if (!task) return;
+    if (!confirm("Reject this submission? The contributor won't be paid for this attempt, and the task reopens for someone to pick up — including possibly the same contributor if you reassign them.")) return;
+    setTxBusy(true);
+    setTxError("");
+    try {
+      await send("rejectSubmission", [BigInt(task.id)]);
+      if (task.assignee) notifyServer(task.assignee, "submission_rejected");
+      await refetchTask();
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : "Failed to reject submission");
     } finally {
       setTxBusy(false);
     }
@@ -1267,9 +1283,17 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     )}
                   </div>
                 )}
-                <button disabled={txBusy} onClick={handleApproveRelease} style={{ width: "100%", background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
-                  {txBusy ? "Confirming…" : "Approve & Release Funds →"}
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button disabled={txBusy} onClick={handleApproveRelease} style={{ flex: 1, background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                    {txBusy ? "Confirming…" : "Approve & Release →"}
+                  </button>
+                  <button disabled={txBusy} onClick={handleRejectSubmission} style={{ flex: 1, background: "transparent", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "1px solid var(--danger)", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                    Reject
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 8, lineHeight: 1.5 }}>
+                  Rejecting doesn&apos;t refund you — the escrow stays locked in the task so someone else (or the same contributor, reassigned) can still complete it.
+                </p>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
               </SideCard>
             )}

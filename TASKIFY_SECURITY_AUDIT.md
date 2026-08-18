@@ -1,13 +1,16 @@
-# Taskify Internal Security Review — `contracts/src/Taskify.sol`
+# Taskify Security Reviews — `contracts/src/Taskify.sol`
 
-**Date:** 2026-08-18 (findings), fixes applied and redeployed same day
+**Date:** 2026-08-18 (both rounds), fixes applied and redeployed same day
 **Scope:** `contracts/src/Taskify.sol` (current `main`, includes the veBTC voting redesign and pilot voter whitelist — see `VOTING_SYSTEM_REDESIGN.md`)
-**Reviewer:** Internal review (Claude, working session), not a licensed third-party audit firm
-**Methodology:** Full manual line-by-line review of every function, focused on: escrow/custody safety, access control, reentrancy, external-call trust boundaries, approve/transferFrom scoping, integer/rounding correctness, and denial-of-service bounds. Findings are backed by executable Foundry proof-of-concept tests (`contracts/test/SecurityAudit.t.sol`), not just reasoning.
+**Two independent rounds, same file:**
+1. **Internal review** (Claude, working session) — manual line-by-line pass, not a licensed third-party audit firm. Findings H-1/M-1/L-1/L-2.
+2. **External automated scan** — a separate tool surfaced 6 High + 5 Medium findings; this doc covers the ones verified as real against the actual code (F-233656, F-233658, F-233716, F-233717, F-233719, F-233721, F-233723). One (F-233677) was verified real but left as an accepted mitigation rather than fixed — see its section below.
 
-**✅ Status: all four findings (H-1, M-1, L-1, L-2) are fixed, tested, and redeployed to Mezo testnet at `0x0ceC7A61B12d801a37143e6E223Cab907839cE3f`.** Every regression test in `contracts/test/SecurityAudit.t.sol` was rewritten to assert the *fixed* behavior — the tests that used to prove the exploits worked now prove they don't. Run `forge test --match-contract SecurityAuditTest -vv` to reproduce (6/6 passing; 14/14 across the full suite).
+**Methodology (internal round):** escrow/custody safety, access control, reentrancy, external-call trust boundaries, approve/transferFrom scoping, integer/rounding correctness, denial-of-service bounds. **Methodology (external-scan round):** every finding was independently re-verified by reading the actual current contract before being accepted — titles alone were never trusted. All findings across both rounds are backed by executable Foundry proof-of-concept tests, not just reasoning.
 
-**⚠️ This is not a substitute for a professional third-party audit.** It's a rigorous internal pass, useful for catching real issues before they reach a real auditor and for giving you and your DevRel contacts an honest, evidence-based picture of where things stand today. Fixing everything found in an internal pass is a strong signal, not a certification — get the professional audit before real capital is at stake regardless.
+**✅ Status: every fixed finding across both rounds is tested and redeployed to Mezo testnet at `0x1FeBFE69533A2207f45f98b44Eb6564a122665b8`.** Regression tests were rewritten (internal round) or added fresh (external-scan round) to assert the *fixed* behavior — tests that used to prove an exploit worked now prove it doesn't. 26/26 tests pass across `Taskify.t.sol`, `SecurityAudit.t.sol`, and `TaskLifecycleAudit.t.sol`.
+
+**⚠️ This is not a substitute for a professional third-party audit.** It's a rigorous internal pass plus an automated scan, both independently verified — useful for catching real issues before they reach a real auditor and for giving you and your DevRel contacts an honest, evidence-based picture of where things stand today. Fixing everything found so far is a strong signal, not a certification — get the professional audit before real capital is at stake regardless.
 
 ---
 
@@ -138,6 +141,93 @@ At first read this looks concerning: `voteOnGrant` makes several external calls 
 
 ---
 
+## Round 2: external automated scan findings
+
+All seven titles below were independently re-verified against the actual contract before being accepted — see each finding for the specific line(s) that confirm it. All six that were fixed trace back to one root cause: `markExpired()`'s status-exclusion list only ever knew about *terminal* statuses (`FundsReleased`, `Cancelled`, `Expired`, `GrantRejected`); it had no concept of "in-flight but not something expiry should ever touch."
+
+| # | Severity | Title | Status |
+|---|---|---|---|
+| F-233716 | High | Expiry credits unfunded grant proposals as pool principal | **Fixed** |
+| F-233658 | High | Submitted work can be expired unpaid | **Fixed** |
+| F-233717 | High | Deadlines do not close task workflows | **Fixed** (resolved as a consequence of the markExpired fix) |
+| F-233656 | High | Cancelled tasks retain wave credits | **Fixed** |
+| F-233718 | High | Nominal token accounting can exceed actual custody | **Fixed** (consequence of F-233716) |
+| F-233723 | Medium | Unbounded escrow weights can permanently block grant execution | **Fixed** |
+| F-233721 | Medium | Zero treasury configuration blocks fee-bearing flows | **Fixed** |
+| F-233719 | Medium | Grant-only wave fees can be permanently stranded | **Fixed** |
+| F-233657 | Medium | Expiry can preempt grant vote finalization | **Fixed** (same root cause as F-233716) |
+| F-233677 | Medium | One unpayable winner blocks entire distribution | **Verified real, not fixed** — accepted mitigation exists (see below) |
+
+### F-233716 / F-233718 — the most severe of this round
+
+**Location:** `markExpired` (originally excluded only `FundsReleased`/`Cancelled`/`Expired`/`GrantRejected` — `GrantPending` was missing), `applyForGrant` (never debits `grantPoolBalance` at creation)
+
+A grant proposal's `task.deadline` was set to the same value as its voting deadline. The moment voting closed, **anyone** could call `markExpired` on it instead of `executeGrant` — routing to `grantPoolBalance += netAmount` for a proposal that was never funded from the pool in the first place. Since `applyForGrant` requires no deposit and no cap, this was a permissionless, zero-cost way to fabricate `grantPoolBalance`, which would later pass real `executeGrant` checks and release genuine patron MUSD. F-233718 ("nominal accounting can exceed actual custody") is the direct consequence of this.
+
+**Fixed:** `markExpired` now only accepts `Open`/`Assigned`/`InProgress` — `GrantPending` is excluded entirely. The only valid resolution for a pending proposal is `executeGrant`. Proof: `test_PendingGrantCannotBeExpired` (`contracts/test/TaskLifecycleAudit.t.sol`).
+
+### F-233658 — submitted work stolen from contributors
+
+**Location:** `markExpired` (same exclusion list — `Submitted` was also missing)
+
+If a contributor submitted real work but the creator hadn't approved before the deadline, *anyone* could call `markExpired`, refunding the **creator**, not the contributor who delivered.
+
+**Fixed:** `Submitted` is now also excluded from `markExpired`. From there the creator must explicitly resolve it — `approveAndRelease` (still works regardless of deadline) or the new `rejectSubmission` (below). Proof: `test_SubmittedWorkCannotBeExpired`.
+
+### F-233717 — resolved as a consequence, not separately
+
+`startTask`/`submitTask`/`approveAndRelease` have no deadline checks at all — `deadline` only ever mattered to `markExpired`. Rather than bolting hard deadline checks onto the happy path (which would create new edge cases — e.g. blocking a late-but-good-faith submission), the fix is entirely about narrowing what `markExpired` is allowed to touch, which is exactly what F-233716 and F-233658's fixes already do.
+
+### F-233656 — cancelled/expired tasks retaining wave credit
+
+**Location:** `_escrowSelfFunded` (grants wave credit at task creation), `cancelTask`/`markExpired` (never reversed it)
+
+A self-funded MUSD task earns wave credit (`waveTotalTasks`/`waveCreatorTasks`) the moment it's created — before any work happens. Neither cancellation nor expiry ever reversed that, letting a creator inflate their share of the wave-reward pool by create-then-cancel spamming (at the cost of the 3% fee each cycle).
+
+**Fixed:** both `cancelTask` and `markExpired` now call a shared `_reverseWaveCreditIfLive` helper — but only when the task's `waveId` still matches the live `currentWaveId`. A wave that's already been snapshotted by `advanceWave()` is immutable; a cancellation after the fact has no way to retroactively correct it, so the guard correctly does nothing rather than corrupting the *new* wave's counters. That specific edge case (cancel/expire after your own wave's snapshot) is a known, accepted, no-longer-growing limitation. Proof: `test_CancelTaskReversesWaveCreditWithinSameWave`, `test_MarkExpiredAlsoReversesWaveCreditWithinSameWave`, `test_CancelTaskDoesNotCorruptANewerWaveAfterAdvance`.
+
+### New: `rejectSubmission` — the creator's real alternative
+
+Excluding `Submitted` from `markExpired` (F-233658's fix) removes a *bad* resolution path but doesn't add a good one — a creator with genuinely unacceptable submitted work needs a way to say so. `rejectSubmission(taskId)` (creator-only, requires `Submitted`) resets the task to `Open` and clears the assignee. **It does not refund the creator** — that would let a creator reject good work for free and keep the option to take the escrow back regardless of merit. The funds stay locked in the task; a new contributor (or the same one, reassigned) can still complete it. Proof: `test_RejectSubmissionReopensTaskWithoutRefundingCreator`.
+
+### New: creator-chosen work duration for grant-funded tasks
+
+`executeGrant`'s approved path used to hardcode the post-approval work deadline to `WAVE_EPOCH_DURATION` (30 days) — an unrelated constant borrowed for convenience. `applyForGrant` now takes a `workDuration` parameter (bounded `MIN_WORK_DURATION` (1 day) to `MAX_WORK_DURATION` (180 days), enforced via `InvalidDuration`), stored on the task and applied at approval time. The frontend's grant-application form now has a real "time to complete" selector (7/14/30/60/90 days) instead of this being invisible/fixed. Proof: `test_GrantApprovalUsesCreatorChosenWorkDuration`.
+
+### F-233723 — integer overflow could permanently brick grant resolution
+
+**Location:** `executeGrant`, the pass/fail comparison
+
+`(vote.votesFor * 100) >= (totalVotes * GRANT_PASS_THRESHOLD)` uses Solidity's checked arithmetic. `votesFor`/`votesAgainst` are sums of externally-reported veBTC weight (`_votingWeight`) — not fully trusted, not bounded to any realistic magnitude. A large enough value overflows the multiplication and reverts — and since `vote.votesFor` is already permanently stored, every future call to `executeGrant` hits the identical overflow. Combined with F-233716's fix (which correctly closed off `markExpired` as a fallback for `GrantPending`), an affected proposal would have had **no resolution path left at all.**
+
+**Fixed:** replaced with `Math.mulDiv(totalVotes, GRANT_PASS_THRESHOLD, 100, Math.Rounding.Ceil)` (OpenZeppelin), which computes the same threshold without ever overflowing regardless of magnitude. Getting the rounding mode right mattered here — an earlier draft of this fix using the default `Floor` rounding was verified, by hand, to be **not** exactly equivalent to the original comparison at non-exact boundaries (e.g. `votesFor=7, totalVotes=11`: `Floor` would incorrectly approve; the original and `Ceil` both correctly reject). Proof: `test_ExecuteGrantHandlesOverflowMagnitudeWeight` (a weight deliberately chosen to overflow the old code), `test_ExecuteGrantBoundaryRoundingMatchesOriginalSemantics` (the exact boundary case that exposed the rounding bug).
+
+### F-233721 — zero treasury bricks fee-bearing flows
+
+**Location:** `setTreasuryAddress`
+
+No zero-address check. Standard ERC20 `transfer()` to `address(0)` reverts, so setting `treasuryAddress` to zero — accident or malice — would break `createTask`, `createCommunityTask`, and grant approval entirely until corrected.
+
+**Fixed:** `setTreasuryAddress` now reverts `InvalidTreasury()` for the zero address. Proof: `test_SetTreasuryAddressRejectsZeroAddress`.
+
+### F-233719 — grant-only wave fees permanently stranded
+
+**Location:** `_escrowSelfFunded` / `executeGrant` (both feed `wavePoolAmount`) vs. `waveTotalTasks`/`waveCreatorTasks` (only `_escrowSelfFunded` increments them)
+
+A wave's `poolAmount` accumulates fees from both self-funded tasks *and* approved grants, but only self-funded tasks ever increment the task-count fields `claimWaveReward` depends on. A wave that closes with zero self-funded tasks but at least one approved grant has real money in `poolAmount` and **no possible claimant** — `waveCreatorTasks` is 0 for every address, forever, and `claimWaveReward` requires it to be nonzero.
+
+**Fixed (per explicit direction: let treasury claim it):** new permissionless `claimStrandedWaveFunds(waveId)` — same permissionless rationale as `advanceWave` (pure mechanical sweep, fixed destination, no economic decision). Only works when a wave's snapshot shows `totalTasks == 0`; reverts `NotStranded()` otherwise, so a wave with real creator claims is never touched by this path. One-time per wave (`waveStrandedFundsClaimed`). Proof: `test_StrandedGrantOnlyWaveFundsAreClaimableByTreasury`, `test_ClaimStrandedWaveFundsRejectsWaveWithRealClaimants`.
+
+### F-233677 — one unpayable winner blocks the whole distribution (verified real, left as-is)
+
+**Location:** `selectWinners`, the payout loop
+
+No per-transfer fallback — one failing `safeTransfer` (e.g. a compliance-blacklisted address on a real stablecoin) reverts the whole call, including the `task.status` write, so nobody in that batch gets paid in that transaction.
+
+**Not fixed, by explicit decision.** The revert is atomic — it undoes the status change too, so the task is left exactly as it was before the attempt. The creator can immediately retry `selectWinners` with a new `winners` array excluding the problematic address, and that succeeds normally. The actual cost isn't stuck funds; it's that the excluded winner gets nothing for that attempt. A fuller fix (per-transfer try/catch, or a pull-payment pattern) was considered and explicitly deferred — the manual-retry mitigation was judged sufficient for now.
+
+---
+
 ## What this review did not cover
 
 - No fuzzing or invariant/property-based testing (Foundry supports both; not attempted here).
@@ -150,10 +240,11 @@ At first read this looks concerning: `voteOnGrant` makes several external calls 
 
 ## Post-fix status
 
-All four findings are fixed and redeployed to Mezo testnet: `0x0ceC7A61B12d801a37143e6E223Cab907839cE3f` (`veBTCEscrow` already set to the verified testnet veBTC address; `approvedVoters` is empty — nobody can vote yet until the owner calls `setApprovedVoters` for the pilot holders). 14/14 tests pass across `Taskify.t.sol` and `SecurityAudit.t.sol`, including six regression tests specifically proving each fix holds.
+Every fixed finding across both rounds is redeployed to Mezo testnet: `0x1FeBFE69533A2207f45f98b44Eb6564a122665b8` (`veBTCEscrow` already set to the verified testnet veBTC address; `approvedVoters` is empty — nobody can vote yet until the owner calls `setApprovedVoters` for the pilot holders). 26/26 tests pass across `Taskify.t.sol`, `SecurityAudit.t.sol`, and `TaskLifecycleAudit.t.sol`, including thirteen regression tests specifically proving each fix (six from Round 1, seven from Round 2 — `test_ExecuteGrantBoundaryRoundingMatchesOriginalSemantics` counted separately from `test_ExecuteGrantHandlesOverflowMagnitudeWeight` since it caught a distinct bug in the first fix attempt).
 
 **What's still genuinely open, and true regardless of anything in this document:**
-- **Get a professional third-party audit before real capital is at stake.** This was true before these fixes and remains true after — an internal review, however careful (and this one now has working exploit code for everything it found), is not a substitute for one. Treat this document as a head start for that audit, not a replacement for it.
+- **Get a professional third-party audit before real capital is at stake.** This was true before these fixes and remains true after — an internal review, however careful (and this one now has working exploit code for everything it found across two independent rounds), is not a substitute for one. Treat this document as a head start for that audit, not a replacement for it.
+- **F-233677 (unpayable winner blocks a `selectWinners` batch) is verified real and intentionally not fixed** — the accepted mitigation is manual retry with the problematic address excluded from the batch. Revisit this if `selectWinners` batches grow large enough that manual retry becomes impractical, or before onboarding any payment token known to blacklist addresses (e.g. centralized stablecoins with freeze functions).
 - The live Vercel deployment's `NEXT_PUBLIC_TASKIFY_CONTRACT` still needs updating to this new address, same open item as every previous redeploy this session.
 - Nothing here has been deployed to mainnet, and nothing in scope here covers the real Mezo Tigris contracts themselves (see "What this review did not cover" above).
 - The recommendation to move `CONTRACT_OWNER` to an actual multisig is now *possible* (via `transferOwnership`) but hasn't been *done* — the deployer is still a single EOA today.
