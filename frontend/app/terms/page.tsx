@@ -109,7 +109,7 @@ export default function TermsPage() {
         </div>
 
         <div style={{ borderTop: "1px solid var(--border)", marginTop: 48, paddingTop: 24 }}>
-          <Link href="/#faq" style={{ color: "var(--primary)", fontSize: 13, textDecoration: "none" }}>Have questions? See the FAQ →</Link>
+          <Link href="/faq" style={{ color: "var(--primary)", fontSize: 13, textDecoration: "none" }}>Have questions? See the FAQ →</Link>
         </div>
       </div>
     </div>

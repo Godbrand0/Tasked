@@ -819,102 +819,6 @@ function TokensSection() {
   );
 }
 
-// ─── FAQ ──────────────────────────────────────────────────────────────────────
-
-function IconChevron({ open }: { open: boolean }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-      style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
-const FAQ_ITEMS = [
-  {
-    q: "What is Taskify?",
-    a: "Taskify is an on-chain bounty board on Mezo. Owners post tasks and lock MUSD in escrow, contributors apply and get paid on approval, and Patrons fund a community grant pool and vote on which grant-funded tasks get built. Every step (escrow, experience gating, payment) is enforced by the Taskify smart contract, not by a central party.",
-  },
-  {
-    q: "What is MUSD and why does Taskify use it?",
-    a: "MUSD is Mezo's native Bitcoin-backed stablecoin. It's the default escrow and payout currency, so contributors know exactly what a bounty is worth with no price exposure between the day a task is posted and the day it's paid out.",
-  },
-  {
-    q: "What is MEZO used for on Taskify?",
-    a: "MEZO is Mezo's native token; tasks can be posted and paid in MEZO the same way they can in MUSD. It doesn't grant any voting power on its own — pair a veMEZO lock with a veBTC position via Mezo's Matching Market if you want to boost your governance weight (see \"How does grant voting work?\" below).",
-  },
-  {
-    q: "How does grant voting work?",
-    a: "Voting weight comes entirely from your veBTC position on Mezo Earn — lock BTC there to mint veBTC, and Taskify reads that weight live via Mezo's own contracts every time you vote. It's completely decoupled from MUSD deposits: depositing funds the grant pool and earns Patron tiers, but doesn't grant votes. Each proposal snapshots weight at the moment it opens, so locking veBTC after a vote has already started doesn't let you swing it. Grant voting is currently rolling out to an initial group of veBTC holders as the patron base grows.",
-  },
-  {
-    q: "How does experience matching work?",
-    a: "Owners set a minimum and maximum experience tier when posting a task. Contributors declare their own tier at registration. The contract itself checks the match when a contributor calls applyForTask, and it's enforced on-chain, not just filtered in the UI.",
-  },
-  {
-    q: "What kind of tasks should I post as an owner?",
-    a: "Three broad categories work well: code fixes or changes for developers (Development tasks, experience-tier gated — think \"fix a broken footer layout\" or \"add a loading skeleton to the tasks list\"), social media tasks for the community (Community tasks, open to anyone, no code required — a post, a thread, a meme), and bug bounties or testing for everyone (either type, depending on whether you want it dev-gated or open). Keep bounties small and tightly scoped either way — the amounts on Taskify are modest, so a task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
-  },
-  {
-    q: "Can I post a large, multi-week feature as one task?",
-    a: "You can, but it's not what the protocol is optimized for. Large scope is better split into several small self-funded tasks, each with its own escrow, applicant, and payout, or posted as a grant-funded task so the community can weigh in on whether the scope and requested amount make sense before any MUSD moves.",
-  },
-  {
-    q: "Is my money safe in escrow?",
-    a: "Funds move only through the Taskify contract: MUSD locks in at task creation and only leaves escrow when the owner approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no custodial intermediary holding funds at any point.",
-  },
-  {
-    q: "What fees does Taskify take?",
-    a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the protocol treasury and 40% goes into the wave pool, which is redistributed to active self-funded owners roughly every 30 days.",
-  },
-  {
-    q: "What wallets are supported?",
-    a: "Any standard Ethereum wallet via RainbowKit: MetaMask, Rabby, Rainbow, WalletConnect-compatible mobile wallets, or any browser-injected wallet.",
-  },
-  {
-    q: "Has the Taskify contract been audited?",
-    a: "The protocol is under active review. Check the repository for the latest audit status before depositing meaningful funds, and always start with amounts you're comfortable testing with.",
-  },
-];
-
-function FAQSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
-  return (
-    <section id="faq" style={{ padding: "96px 24px", background: "var(--bg-alt)" }}>
-      <div style={{ maxWidth: 800, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <SectionLabel>FAQ</SectionLabel>
-          <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
-            Frequently asked questions
-          </h2>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {FAQ_ITEMS.map((item, i) => {
-            const open = openIndex === i;
-            return (
-              <div key={item.q} style={{ background: "var(--surface)", border: `1px solid ${open ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "var(--border)"}`, borderRadius: 14, overflow: "hidden", transition: "border-color 0.15s" }}>
-                <button
-                  onClick={() => setOpenIndex(open ? null : i)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "18px 22px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: open ? "var(--primary)" : "var(--text)" }}>{item.q}</span>
-                  <span style={{ color: open ? "var(--primary)" : "var(--text-dim)" }}><IconChevron open={open} /></span>
-                </button>
-                {open && (
-                  <div style={{ padding: "0 22px 20px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.75 }}>
-                    {item.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function CTASection() {
@@ -971,7 +875,7 @@ function Footer() {
       { label: "Governance", href: "#tokens" },
     ],
     Legal: [
-      { label: "FAQ", href: "#faq" },
+      { label: "FAQ", href: "/faq" },
       { label: "Terms & Conditions", href: "/terms" },
     ],
   };
@@ -1053,7 +957,6 @@ export default function Home() {
       <RolesSection />
       <ProtocolSection />
       <TokensSection />
-      <FAQSection />
       <CTASection />
       <Footer />
     </div>
