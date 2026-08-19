@@ -78,7 +78,7 @@ export default function CreatorPage() {
     }
   }
 
-  async function handleApproveRelease(taskId: number, assignee?: string) {
+  async function handleApproveRelease(taskId: number, assignee: string | undefined, taskTitle: string, amount: number, token: string) {
     setApprovingTaskId(taskId);
     try {
       await send("approveAndRelease", [BigInt(taskId)]);
@@ -86,7 +86,7 @@ export default function CreatorPage() {
         fetch("/api/notify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipient: assignee, type: "funds_released", taskId }),
+          body: JSON.stringify({ recipient: assignee, type: "funds_released", taskId, taskTitle, amount: `${amount} ${token}` }),
         }).catch(() => {});
       }
     } catch {
@@ -160,7 +160,7 @@ export default function CreatorPage() {
                           {task.status === "SUBMITTED" && (
                             <button
                               disabled={approvingTaskId === task.id}
-                              onClick={(e) => { e.preventDefault(); handleApproveRelease(task.id, task.assignee); }}
+                              onClick={(e) => { e.preventDefault(); handleApproveRelease(task.id, task.assignee, task.title, task.amount, task.token); }}
                               style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: approvingTaskId === task.id ? "not-allowed" : "pointer", opacity: approvingTaskId === task.id ? 0.7 : 1 }}>
                               {approvingTaskId === task.id ? "Confirming…" : "Approve & Release"}
                             </button>

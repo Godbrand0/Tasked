@@ -23,7 +23,7 @@ export interface NotifyMeta {
 const COPY: Record<NotificationType, { subject: string; heading: string; verb: string }> = {
   task_assigned:          { subject: "You've been assigned a task",        heading: "You're assigned 🎯",      verb: "assigned you to" },
   work_submitted:         { subject: "Work submitted on your task",        heading: "Work submitted 📤",       verb: "submitted work on" },
-  funds_released:         { subject: "MUSD released to your wallet",       heading: "Funds released 💸",       verb: "approved and released funds for" },
+  funds_released:         { subject: "Funds released to your wallet",      heading: "Funds released 💸",       verb: "approved and released funds for" },
   submission_rejected:    { subject: "Your submission was not approved",   heading: "Submission rejected 🔁",   verb: "rejected your submission on" },
   grant_vote_opened:      { subject: "A new grant application is open for voting", heading: "Grant vote open 🗳️", verb: "opened voting on" },
   wave_reward_ready:      { subject: "Your wave reward is ready to claim", heading: "Wave reward ready 🌊",     verb: "made a reward claimable for" },
