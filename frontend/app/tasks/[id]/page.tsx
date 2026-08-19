@@ -352,7 +352,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         taskId,
         taskTitle: task?.title,
         actorAddress: address,
-        amount: type === "funds_released" && task ? `${task.amount} MUSD` : undefined,
+        amount: type === "funds_released" && task ? `${task.amount} ${task.token}` : undefined,
       }),
     }).catch(() => {});
   }
@@ -780,7 +780,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     </div>
                   </div>
                   <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "0 0 4px", lineHeight: 1.6 }}>
-                    Voting deadline: {formatTimestamp(grantVote.deadline)}. Only Patrons with MUSD deposited or MEZO staked can vote.
+                    Voting deadline: {formatTimestamp(grantVote.deadline)}. Voting weight comes from veBTC held on Mezo Earn, currently limited to an approved pilot group of veBTC holders.
                   </p>
                 </Section>
               );

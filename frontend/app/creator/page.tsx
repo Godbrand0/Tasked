@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
-import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
+import { formatMUSD, formatEarnedBreakdown, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import {
   useAllTasks,
@@ -46,9 +46,10 @@ export default function CreatorPage() {
   // section — without this a cancelled/expired/rejected task disappears
   // from the dashboard entirely, same class of gap as GRANT_PENDING above.
   const closedTasks = myTasks.filter((t) => ["CANCELLED", "EXPIRED", "GRANT_REJECTED"].includes(t.status));
-  const totalEscrowed = myTasks
-    .filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status))
-    .reduce((s, t) => s + t.amount, 0);
+  // Kept as a per-task list rather than a single summed number — MUSD and
+  // MEZO amounts can't be added together, so the display groups by token
+  // instead (see formatEarnedBreakdown's contributor-side rationale).
+  const escrowedTasks = myTasks.filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED"].includes(t.status));
 
   const { wave } = useCurrentWave();
   const { count: myWaveTasks } = useWaveCreatorTasks(wave.waveId, address);
@@ -124,7 +125,7 @@ export default function CreatorPage() {
             { label: "Tasks Posted",    value: String(myTasks.length),           color: "var(--primary)", icon: "📋" },
             { label: "Active Tasks",    value: String(activeTasks.length),        color: "var(--blue)", icon: "⚡" },
             { label: "Completed",       value: String(completedTasks.length),     color: "var(--success)", icon: "✓"  },
-            { label: "Total Escrowed",  value: `${formatMUSD(totalEscrowed)} MUSD`, color: "var(--primary)", icon: "🔒" },
+            { label: "Total Escrowed",  value: formatEarnedBreakdown(escrowedTasks), color: "var(--primary)", icon: "🔒" },
           ].map(({ label, value, color, icon }) => (
             <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
               <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
@@ -152,7 +153,7 @@ export default function CreatorPage() {
                         onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD · Task #{task.id}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token} · Task #{task.id}</div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                           <StatusBadge status={task.status} />
@@ -228,7 +229,7 @@ export default function CreatorPage() {
                       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, opacity: 0.7 }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD paid</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token} paid</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>
@@ -251,7 +252,7 @@ export default function CreatorPage() {
                       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, opacity: 0.7 }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD · Task #{task.id}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token} · Task #{task.id}</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>

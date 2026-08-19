@@ -129,7 +129,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                         onMouseLeave={(e) => { const el = e.currentTarget.querySelector(".ptask") as HTMLElement | null; if (el) el.style.color = "var(--text)"; }}>
                         <div>
                           <div className="ptask" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3, transition: "color 0.15s" }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>{formatMUSD(task.amount)} MUSD</div>
+                          <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>{formatMUSD(task.amount)} {task.token}</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>

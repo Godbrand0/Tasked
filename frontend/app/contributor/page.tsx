@@ -141,7 +141,7 @@ export default function ContributorPage() {
                 <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 14, padding: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <StatusBadge status={activeTask.status} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(activeTask.amount)} MUSD</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{formatMUSD(activeTask.amount)} {activeTask.token}</span>
                   </div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 16px" }}>{activeTask.title}</h3>
                   <div style={{ display: "flex", gap: 10 }}>
@@ -230,7 +230,7 @@ export default function ContributorPage() {
                         onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token}</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>

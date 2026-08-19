@@ -27,9 +27,11 @@ export default function DashboardPage() {
   );
   const activeTasks = myTasks.filter((t) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "GRANT_PENDING"].includes(t.status));
   const completedTasks = myTasks.filter((t) => t.status === "FUNDS_RELEASED");
-  const totalEscrowed = role === "creator"
-    ? myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status)).reduce((s, t) => s + t.amount, 0)
-    : 0;
+  // Kept as a per-task list rather than a summed number — MUSD and MEZO
+  // amounts can't be added together, so the stat groups by token instead.
+  const escrowedTasks = role === "creator"
+    ? myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status))
+    : [];
 
   const { wave } = useCurrentWave();
   const poolAmountHuman = Number(formatUnits(wave.poolAmount, MUSD_DECIMALS));
@@ -78,7 +80,7 @@ export default function DashboardPage() {
               {displayRole === "creator" && [
                 { label: "Tasks Posted",   value: String(myTasks.length),               color: "var(--primary)" },
                 { label: "Active",         value: String(activeTasks.length),            color: "var(--blue)" },
-                { label: "MUSD Escrowed", value: `${formatMUSD(totalEscrowed)}`,         color: "var(--success)" },
+                { label: "Escrowed",      value: formatEarnedBreakdown(escrowedTasks),   color: "var(--success)" },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
@@ -114,7 +116,7 @@ export default function DashboardPage() {
                         onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement | null) && (((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement).style.color = "var(--text)")}>
                         <div>
                           <div className="task-title" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2, transition: "color 0.15s" }}>{task.title}</div>
-                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD</div>
+                          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token}</div>
                         </div>
                         <StatusBadge status={task.status} />
                       </div>
