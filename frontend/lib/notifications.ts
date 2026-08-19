@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, LOGO_CID } from "@/lib/email";
 
 export type NotificationType =
   | "task_assigned"
@@ -49,7 +49,8 @@ function emailHtml(type: NotificationType, taskId: number | undefined, meta: Not
   return `
   <div style="background:#F3F0E9; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
     <div style="max-width: 480px; margin: 0 auto; background: #FFFFFF; border: 1px solid #E3DFD6; border-radius: 16px; overflow: hidden;">
-      <div style="background: linear-gradient(135deg, #E0003F, #990070); padding: 20px 28px;">
+      <div style="background: linear-gradient(135deg, #E0003F, #990070); padding: 20px 28px; display: flex; align-items: center; gap: 10px;">
+        <img src="cid:${LOGO_CID}" width="28" height="28" alt="" style="width: 28px; height: 28px; border-radius: 7px; display: block;" />
         <span style="color: #FFFFFF; font-weight: 800; font-size: 18px; letter-spacing: -0.02em;">Taskify</span>
       </div>
       <div style="padding: 28px;">

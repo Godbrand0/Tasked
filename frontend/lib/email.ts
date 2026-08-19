@@ -1,5 +1,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // Generic SMTP transport — works with Gmail (host smtp.gmail.com + an App
 // Password), a transactional provider's SMTP endpoint (Resend, SendGrid,
@@ -27,9 +29,29 @@ function getTransporter() {
   return transporter;
 }
 
+// Embedded (not linked) so the logo renders even for recipients whose mail
+// client blocks remote images by default — referenced in template HTML via
+// `<img src="cid:${LOGO_CID}">`.
+export const LOGO_CID = "taskify-logo";
+let logoAttachment: { filename: string; path: string; cid: string } | null | undefined;
+
+function getLogoAttachment() {
+  if (logoAttachment !== undefined) return logoAttachment;
+  try {
+    const path = join(process.cwd(), "public", "logo-email.png");
+    readFileSync(path); // confirms the asset exists before nodemailer lazily reads it per-send
+    logoAttachment = { filename: "logo.png", path, cid: LOGO_CID };
+  } catch {
+    logoAttachment = null;
+  }
+  return logoAttachment;
+}
+
 export async function sendEmail(to: string, subject: string, html: string) {
   const t = getTransporter();
   if (!t) return;
+
+  const logo = getLogoAttachment();
 
   try {
     await t.sendMail({
@@ -37,6 +59,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
       to,
       subject,
       html,
+      attachments: logo ? [logo] : undefined,
     });
   } catch {
     // best-effort — a failed email should never fail the request that
