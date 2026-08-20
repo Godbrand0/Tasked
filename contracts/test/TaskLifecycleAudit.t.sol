@@ -34,7 +34,7 @@ contract TaskLifecycleAuditTest is Test {
     address deployer = address(this);
     address alice = makeAddr("alice"); // creator
     address bob = makeAddr("bob"); // contributor
-    address charlie = makeAddr("charlie"); // investor / patron+voter
+    address charlie = makeAddr("charlie"); // contributor / patron+voter
 
     function setUp() public {
         musd = new MockMUSD();
@@ -52,7 +52,7 @@ contract TaskLifecycleAuditTest is Test {
         vm.prank(bob);
         taskify.registerUser("bob", Taskify.Role.Contributor, 0, true, false);
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
     }
 
     function _getStatus(uint256 taskId) internal view returns (Taskify.Status) {
@@ -351,7 +351,7 @@ contract TaskLifecycleAuditTest is Test {
     function test_ExecuteGrantBoundaryRoundingMatchesOriginalSemantics() public {
         address dave = makeAddr("daveVoter");
         vm.prank(dave);
-        taskify.registerUser("dave", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("dave", Taskify.Role.Contributor, 0, false, false);
         address[] memory approved = new address[](1);
         approved[0] = dave;
         taskify.setApprovedVoters(approved, true);

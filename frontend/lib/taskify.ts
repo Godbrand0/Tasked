@@ -56,9 +56,9 @@ export const ERC20_ABI = [
   },
 ] as const;
 
-// Mirrors Taskify.sol's Role enum (0=None, 1=Creator, 2=Contributor, 3=Investor).
-export const ROLE_ID = { creator: 1, contributor: 2, investor: 3 } as const;
-export const ROLE_NAME = ["none", "creator", "contributor", "investor"] as const;
+// Mirrors Taskify.sol's Role enum (0=None, 1=Creator, 2=Contributor).
+export const ROLE_ID = { creator: 1, contributor: 2 } as const;
+export const ROLE_NAME = ["none", "creator", "contributor"] as const;
 
 // Mirrors Taskify.sol's Status enum — keys match TASK_STATUSES in lib/constants.ts.
 export const STATUS_NAME = [
@@ -78,6 +78,6 @@ export function statusToString(status: number): string {
   return STATUS_NAME[status] ?? "NONE";
 }
 
-export function roleToString(role: number): "none" | "creator" | "contributor" | "investor" {
+export function roleToString(role: number): "none" | "creator" | "contributor" {
   return ROLE_NAME[role] ?? "none";
 }

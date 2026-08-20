@@ -63,7 +63,7 @@ const mezoChain = defineChain({
 const client = createPublicClient({ chain: mezoChain, transport: http(RPC_URL) });
 
 // ── Roles/status/kind enums, matching Taskify.sol exactly ──────────────────
-const ROLE = ["None", "Creator", "Contributor", "Investor"] as const;
+const ROLE = ["None", "Creator", "Contributor"] as const;
 const STATUS = [
   "None", "Open", "Assigned", "InProgress", "Submitted", "FundsReleased",
   "Cancelled", "Expired", "GrantPending", "GrantRejected",
@@ -144,17 +144,16 @@ async function syncTask(taskId: bigint, createdAtBlock: bigint, txHash: string) 
 }
 
 async function syncPatron(address: string) {
-  const [totalDeposited, mezoStaked, tier] = (await client.readContract({
+  const [totalDeposited, tier] = (await client.readContract({
     address: CONTRACT_ADDRESS!,
     abi: taskifyAbi,
     functionName: "patrons",
     args: [address],
-  })) as [bigint, bigint, number];
+  })) as [bigint, number];
 
   await supabase.from("patrons_onchain").upsert({
     address: address.toLowerCase(),
     total_deposited: totalDeposited.toString(),
-    mezo_staked: mezoStaked.toString(),
     tier,
     last_synced_at: new Date().toISOString(),
   }, { onConflict: "address" });
@@ -310,9 +309,7 @@ async function handleLog(log: Log & { eventName?: string; args?: Record<string, 
       }, { onConflict: "wave_id,creator_address" });
       break;
     }
-    case "Deposited":
-    case "MezoStaked":
-    case "MezoUnstaked": {
+    case "Deposited": {
       await syncPatron(args.patron as string);
       break;
     }

@@ -16,13 +16,12 @@ interface IMezoVotingEscrow {
 }
 
 /// @title Taskify — on-chain bounty board for the Mezo / Bitcoin ecosystem
-/// @notice Solidity port of taskify.clar. Same modules, same fee math, same
-/// wave-reward and grant-voting logic — MUSD plays the role USDX plays on
-/// Stacks, MEZO plays the role STX plays for governance-weight staking.
+/// @notice MUSD is the escrow and grant-pool currency; MEZO amplifies
+/// governance-weight staking.
 contract Taskify is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    // ----- Errors (mirror the ERR-* constants in taskify.clar) -----
+    // ----- Errors -----
     error NotAuthorized();
     error UserAlreadyRegistered();
     error UserNotRegistered();
@@ -62,8 +61,7 @@ contract Taskify is ReentrancyGuard {
     enum Role {
         None,
         Creator,
-        Contributor,
-        Investor
+        Contributor
     }
 
     enum FundingType {
@@ -172,7 +170,6 @@ contract Taskify is ReentrancyGuard {
 
     struct Patron {
         uint256 totalDeposited;
-        uint256 mezoStaked;
         uint8 tier; // 99 = none, 0=Bronze 1=Silver 2=Gold 3=Diamond
     }
 
@@ -222,11 +219,14 @@ contract Taskify is ReentrancyGuard {
     // unused until Mezo deploys veMEZO boost support (see VOTING_SYSTEM_REDESIGN.md).
     address public veBTCEscrow;
     address public veMEZOEscrow;
-    // Pilot-phase voter whitelist — voteOnGrant additionally requires
-    // approvedVoters[msg.sender] on top of the existing role + veBTC-weight
-    // checks. Deliberately narrows the otherwise-permissionless voting model
+    // Pilot-phase voter whitelist — voteOnGrant requires
+    // approvedVoters[msg.sender] on top of the veBTC-weight check.
+    // Deliberately narrows the otherwise-permissionless voting model
     // while the platform is bootstrapping with a small, DevRel-sourced set
-    // of real veBTC holders — see VOTING_SYSTEM_REDESIGN.md.
+    // of real veBTC holders — see VOTING_SYSTEM_REDESIGN.md. Independent of
+    // registration role: any registered wallet (Creator or Contributor) can
+    // be approved to vote, and any registered wallet can also deposit into
+    // the grant pool — see depositToPool.
     mapping(address => bool) public approvedVoters;
     uint256 public nextTaskId = 1;
 
@@ -258,7 +258,6 @@ contract Taskify is ReentrancyGuard {
     event WaveRewardClaimed(uint256 indexed waveId, address indexed creator, uint256 reward);
     event StrandedWaveFundsClaimed(uint256 indexed waveId, uint256 amount);
     event Deposited(address indexed patron, uint256 amount, uint8 newTier);
-    event MezoUnstaked(address indexed patron, uint256 amount);
     event VoterApproved(address indexed voter, bool approved);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -341,7 +340,7 @@ contract Taskify is ReentrancyGuard {
         bool xVerified
     ) external {
         if (users[msg.sender].role != Role.None) revert UserAlreadyRegistered();
-        if (role != Role.Creator && role != Role.Contributor && role != Role.Investor) revert InvalidRole();
+        if (role != Role.Creator && role != Role.Contributor) revert InvalidRole();
         if (experienceLevel > TIER_EXPERT) revert InvalidExperience();
 
         users[msg.sender] = User({
@@ -356,9 +355,11 @@ contract Taskify is ReentrancyGuard {
             xVerified: xVerified
         });
 
-        if (role == Role.Investor) {
-            patrons[msg.sender] = Patron({totalDeposited: 0, mezoStaked: 0, tier: 99});
-        }
+        // Every registered wallet, regardless of role, can support the grant
+        // pool (depositToPool) — initialize Patron state up front so tier
+        // reads "None" (99) rather than Solidity's zero-value default, which
+        // would otherwise collide with tier 0 ("Bronze").
+        patrons[msg.sender] = Patron({totalDeposited: 0, tier: 99});
 
         emit UserRegistered(msg.sender, role, experienceLevel);
     }
@@ -511,8 +512,12 @@ contract Taskify is ReentrancyGuard {
 
     // ----- Grant Pool & Staking Module -----
 
+    /// @notice Deposit MUSD into the shared grant pool. Open to any
+    /// registered wallet regardless of role — supporting the pool and voting
+    /// on grants (see voteOnGrant) are independent capabilities, not tied to
+    /// a specific role.
     function depositToPool(uint256 amount) external nonReentrant {
-        if (users[msg.sender].role != Role.Investor) revert UserNotRegistered();
+        if (users[msg.sender].role == Role.None) revert UserNotRegistered();
         Patron storage patron = patrons[msg.sender];
         if (amount < MIN_PATRON_DEPOSIT) revert InvalidAmount();
 
@@ -523,23 +528,6 @@ contract Taskify is ReentrancyGuard {
         patron.tier = _calculateTier(patron.totalDeposited);
 
         emit Deposited(msg.sender, amount, patron.tier);
-    }
-
-    /// @notice Deposit-only migration: new MEZO staking is closed now that
-    /// voting weight comes from external veBTC/veMEZO positions instead (see
-    /// VOTING_SYSTEM_REDESIGN.md). unstakeMezo is kept so no one's already-
-    /// staked MEZO from the old pool gets stranded — patrons should withdraw
-    /// during the announced migration window.
-    function unstakeMezo(uint256 amount) external nonReentrant {
-        User storage user = users[msg.sender];
-        if (user.role != Role.Investor) revert UserNotRegistered();
-        Patron storage patron = patrons[msg.sender];
-        if (patron.mezoStaked < amount) revert InsufficientFunds();
-
-        patron.mezoStaked -= amount;
-        IERC20(mezo).safeTransfer(msg.sender, amount);
-
-        emit MezoUnstaked(msg.sender, amount);
     }
 
     // ----- Grant Proposal & Voting Module -----
@@ -602,7 +590,7 @@ contract Taskify is ReentrancyGuard {
         Task storage task = tasks[taskId];
         if (task.creator == address(0)) revert TaskNotFound();
         GrantVote storage vote = grantVotes[taskId];
-        if (users[msg.sender].role != Role.Investor) revert NoStake();
+        if (users[msg.sender].role == Role.None) revert NoStake();
         if (!approvedVoters[msg.sender]) revert NotApprovedVoter();
 
         if (task.status != Status.GrantPending) revert InvalidStatus();

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPatronAddresses } from "@/lib/patrons";
+import { getApprovedVoterAddresses } from "@/lib/patrons";
 import { notify } from "@/lib/notifications";
 
 // Fired once when a grant application (applyForGrant) confirms on-chain —
-// every registered patron (investor role) gets notified that a new grant
-// application is open for their vote, in-app and by email.
+// every approved voter (see approvedVoters/setApprovedVoters in Taskify.sol)
+// gets notified that a new grant application is open for their vote,
+// in-app and by email.
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -17,12 +18,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "taskId is required" }, { status: 400 });
   }
 
-  const patrons = await getPatronAddresses();
+  const voters = await getApprovedVoterAddresses();
   await Promise.all(
-    patrons
-      .filter(p => p !== creatorAddress)
-      .map(p => notify(p, "grant_vote_opened", taskId, { taskTitle, amount, actorAddress: creatorAddress }))
+    voters
+      .filter(v => v !== creatorAddress)
+      .map(v => notify(v, "grant_vote_opened", taskId, { taskTitle, amount, actorAddress: creatorAddress }))
   );
 
-  return NextResponse.json({ notified: patrons.length });
+  return NextResponse.json({ notified: voters.length });
 }

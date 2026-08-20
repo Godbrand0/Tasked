@@ -19,7 +19,7 @@ contract TaskifyTest is Test {
     address deployer = address(this);
     address alice = makeAddr("alice"); // creator
     address bob = makeAddr("bob"); // contributor (tier 2 / mid)
-    address charlie = makeAddr("charlie"); // investor / patron
+    address charlie = makeAddr("charlie"); // contributor / patron
     address dave = makeAddr("dave"); // contributor (tier 0 / newcomer)
 
     function setUp() public {
@@ -50,7 +50,7 @@ contract TaskifyTest is Test {
         taskify.registerUser("dave", Taskify.Role.Contributor, 0, false, true);
 
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
 
         (, Taskify.Role bobRole, uint8 bobExp,,,,,,) = taskify.users(bob);
         assertEq(uint8(bobRole), uint8(Taskify.Role.Contributor));
@@ -126,7 +126,7 @@ contract TaskifyTest is Test {
         vm.prank(alice);
         taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
 
         // Self-funded task so alice earns wave-pool credit (waveCreatorTasks),
         // same role task1 played in test_FullProtocolLifecycle — grant-funded
@@ -147,7 +147,7 @@ contract TaskifyTest is Test {
         taskify.depositToPool(5000e18);
         vm.stopPrank();
 
-        (uint256 totalDeposited,, uint8 tier) = taskify.patrons(charlie);
+        (uint256 totalDeposited, uint8 tier) = taskify.patrons(charlie);
         assertEq(tier, 3); // Diamond
         assertEq(totalDeposited, 5000e18);
 
@@ -192,7 +192,7 @@ contract TaskifyTest is Test {
 
         // 5% fee on 1000 MUSD = 50 MUSD; 40% of that = 20 MUSD wave-pool credit
         // Wave pool: 12e18 (task 1) + 20e18 (task 2) = 32e18.
-        // Grant-funded tasks do not increment waveTotalTasks (matches taskify.clar comment).
+        // Grant-funded tasks do not increment waveTotalTasks.
         (, uint256 waveStart, uint256 poolAmount, uint256 totalTasks) = taskify.getCurrentWave();
         waveStart;
         assertEq(poolAmount, 32e18);
@@ -256,7 +256,7 @@ contract TaskifyTest is Test {
         vm.prank(dave);
         taskify.registerUser("dave", Taskify.Role.Contributor, 0, false, true); // X-verified
         vm.prank(erin);
-        taskify.registerUser("erin", Taskify.Role.Investor, 0, false, true);
+        taskify.registerUser("erin", Taskify.Role.Contributor, 0, false, true);
         vm.prank(frank);
         taskify.registerUser("frank", Taskify.Role.Contributor, 1, false, true);
 
@@ -287,7 +287,7 @@ contract TaskifyTest is Test {
         vm.expectRevert(Taskify.TaskKindMismatch.selector);
         taskify.applyForTask(taskId);
 
-        // Any registered role can join — Contributor, Investor, doesn't matter.
+        // Any registered role can join — Creator, Contributor, doesn't matter.
         vm.prank(bob);
         taskify.joinCommunityTask(taskId, "https://x.com/bob/status/1");
         vm.prank(dave);
@@ -373,7 +373,7 @@ contract TaskifyTest is Test {
         vm.prank(alice);
         taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
 
         // Zero veBTC position: NoStake, same as the old zero-stake case.
         vm.prank(alice);
@@ -407,7 +407,7 @@ contract TaskifyTest is Test {
         vm.prank(alice);
         taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
 
         veEscrow.mint(charlie, 1, 1000);
         vm.warp(t0 + 1 hours);
@@ -449,9 +449,9 @@ contract TaskifyTest is Test {
         vm.prank(alice);
         taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
         vm.prank(dave);
-        taskify.registerUser("dave", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("dave", Taskify.Role.Contributor, 0, false, false);
 
         veEscrow.mint(charlie, 10, 300);
         veEscrow.mint(charlie, 11, 700);
@@ -484,7 +484,7 @@ contract TaskifyTest is Test {
     /// applied, bounding worst-case gas, rather than being a dead constant.
     function test_VotingWeightCappedAtMaxNFTsPerVote() public {
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
 
         uint256 max = taskify.MAX_VE_NFTS_PER_VOTE();
         for (uint256 i = 0; i < max + 5; i++) {
@@ -495,9 +495,9 @@ contract TaskifyTest is Test {
         assertEq(taskify.getVotingWeight(charlie, block.timestamp), max);
     }
 
-    /// @notice The pilot-phase voter whitelist: a wallet with a real,
-    /// nonzero veBTC position and the correct Investor role still can't
-    /// vote unless the owner has explicitly approved it. getVotingWeight
+    /// @notice The pilot-phase voter whitelist: a registered wallet with a
+    /// real, nonzero veBTC position still can't vote unless the owner has
+    /// explicitly approved it. getVotingWeight
     /// itself is untouched by the whitelist — it's a pure read of external
     /// veBTC weight — only the ability to actually cast a vote is gated.
     function test_UnapprovedVoterCannotVoteDespiteRealWeight() public {
@@ -506,7 +506,7 @@ contract TaskifyTest is Test {
         vm.prank(alice);
         taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
         vm.prank(frank);
-        taskify.registerUser("frank", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("frank", Taskify.Role.Contributor, 0, false, false);
 
         veEscrow.mint(frank, 99, 1_000_000);
         assertEq(taskify.getVotingWeight(frank, block.timestamp), 1_000_000);
@@ -527,5 +527,50 @@ contract TaskifyTest is Test {
         taskify.voteOnGrant(taskId, true);
         (uint256 votesFor,,,,,) = taskify.grantVotes(taskId);
         assertEq(votesFor, 1_000_000);
+    }
+
+    /// @notice Supporting the grant pool and voting on grants are no longer
+    /// tied to a specific role — registerUser only accepts Creator or
+    /// Contributor now, and a Creator can do everything a patron/voter used
+    /// to need the (now-removed) Investor role for.
+    function test_CreatorCanSupportPoolAndVoteOnceApproved() public {
+        vm.prank(alice);
+        taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
+
+        musd.mint(1000e18, alice);
+        vm.startPrank(alice);
+        musd.approve(address(taskify), 1000e18);
+        taskify.depositToPool(1000e18);
+        vm.stopPrank();
+
+        (uint256 totalDeposited, uint8 tier) = taskify.patrons(alice);
+        assertEq(totalDeposited, 1000e18);
+        assertEq(tier, 2); // Gold
+
+        veEscrow.mint(alice, 1, 1_000_000);
+        vm.prank(alice);
+        uint256 taskId = taskify.applyForGrant("Creator-funded grant probe", 100e18, 0, 4, 30 days);
+
+        // Not yet on the whitelist.
+        vm.prank(alice);
+        vm.expectRevert(Taskify.NotApprovedVoter.selector);
+        taskify.voteOnGrant(taskId, true);
+
+        address[] memory newlyApproved = new address[](1);
+        newlyApproved[0] = alice;
+        taskify.setApprovedVoters(newlyApproved, true);
+
+        vm.prank(alice);
+        taskify.voteOnGrant(taskId, true);
+        (uint256 votesFor,,,,,) = taskify.grantVotes(taskId);
+        assertEq(votesFor, 1_000_000);
+    }
+
+    /// @notice registerUser now only accepts Creator or Contributor — the
+    /// Investor role was removed since support/voting became role-independent.
+    function test_RegisterUserRejectsRoleOutsideCreatorOrContributor() public {
+        vm.prank(alice);
+        vm.expectRevert(Taskify.InvalidRole.selector);
+        taskify.registerUser("alice", Taskify.Role.None, 0, false, false);
     }
 }

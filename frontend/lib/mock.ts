@@ -1,4 +1,4 @@
-export type UserRole = "creator" | "contributor" | "investor";
+export type UserRole = "creator" | "contributor";
 
 export interface UserProfile {
   address: string;

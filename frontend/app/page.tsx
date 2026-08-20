@@ -141,7 +141,6 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 const ROLE_DASHBOARD: Record<string, string> = {
   creator:     "/creator",
   contributor: "/contributor",
-  investor:    "/investor",
 };
 
 const LANDING_NAV_LINKS: [string, string][] = [["#how-it-works", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]];
@@ -587,17 +586,17 @@ function RolesSection() {
       icon: <IconVote />,
       color: "var(--success)",
       bg: "color-mix(in srgb, var(--success) 9%, transparent)",
-      title: "Investor",
-      subtitle: "Shape what gets built",
-      desc: "Deposit MUSD to fund the grant pool and earn Patron tiers. Vote on grant applications with the veBTC position you already hold on Mezo Earn — funding and voting power are fully decoupled.",
+      title: "Support & Vote",
+      subtitle: "Shape what gets built — any role",
+      desc: "Any registered wallet — Owner or Contributor — can deposit MUSD to fund the grant pool and earn Patron tiers. Voting on grant applications is separate: gated by the veBTC position you already hold on Mezo Earn, not by role or by depositing.",
       features: [
-        "Permanent MUSD deposits → patron tiers",
+        "Permanent MUSD deposits → patron tiers, open to any registered wallet",
         "Voting weight read live from your veBTC lock on Mezo Earn",
         "Vote For / Against grant applications (pilot access)",
         "Bronze → Silver → Gold → Diamond tiers",
         "Taskify never custodies your veBTC — it stays on Mezo Earn",
       ],
-      cta: "Become a Patron",
+      cta: "Support & Vote",
     },
   ];
 
@@ -607,7 +606,7 @@ function RolesSection() {
         <div style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>Who is Taskify for?</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
-            Three roles. One closed-loop economy.
+            Two roles. One closed-loop economy.
           </h2>
           <p style={{ fontSize: 16, color: "var(--text-dim)", marginTop: 12 }}>
             Every participant strengthens the protocol for everyone else.

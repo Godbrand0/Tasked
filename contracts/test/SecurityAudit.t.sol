@@ -74,7 +74,7 @@ contract SecurityAuditTest is Test {
 
     address deployer = address(this); // CONTRACT_OWNER
     address alice = makeAddr("alice"); // creator / grant applicant
-    address charlie = makeAddr("charlie"); // investor / voter
+    address charlie = makeAddr("charlie"); // contributor / patron+voter
 
     function setUp() public {
         musd = new MockMUSD();
@@ -90,7 +90,7 @@ contract SecurityAuditTest is Test {
         vm.prank(alice);
         taskify.registerUser("alice", Taskify.Role.Creator, 0, true, false);
         vm.prank(charlie);
-        taskify.registerUser("charlie", Taskify.Role.Investor, 0, false, false);
+        taskify.registerUser("charlie", Taskify.Role.Contributor, 0, false, false);
     }
 
     // ─────────────────────────────────────────────────────────────────────

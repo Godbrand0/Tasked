@@ -52,7 +52,7 @@ export default function DashboardPage() {
               <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 6 }}>Welcome back</div>
               <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{displayUsername}</h1>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Badge color={displayRole === "creator" ? "orange" : displayRole === "contributor" ? "purple" : "green"}>
+                <Badge color={displayRole === "creator" ? "orange" : "purple"}>
                   {ROLE_LABELS[displayRole]}
                 </Badge>
                 {githubVerified && <Badge color="green">GitHub Verified</Badge>}
@@ -65,9 +65,6 @@ export default function DashboardPage() {
               )}
               {displayRole === "contributor" && (
                 <Link href="/contributor" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Contributor Dashboard</Link>
-              )}
-              {displayRole === "investor" && (
-                <Link href="/investor" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Patron Dashboard</Link>
               )}
             </div>
           </div>
@@ -137,6 +134,16 @@ export default function DashboardPage() {
                 <div style={{ fontSize: 24 }}>🏆</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Leaderboard</div>
                 <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Top contributors by MUSD earned</div>
+              </Link>
+              <Link href="/support" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 24 }}>🏛</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Support the Pool</div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Deposit MUSD into the grant pool</div>
+              </Link>
+              <Link href="/vote" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 24 }}>🗳️</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Vote on Grants</div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Weigh in on grant applications</div>
               </Link>
             </div>
           </div>

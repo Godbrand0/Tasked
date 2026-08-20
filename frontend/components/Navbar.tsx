@@ -19,13 +19,11 @@ const NAV_LINKS = [
 const ROLE_COLOR: Record<string, string> = {
   creator:     "var(--primary)",
   contributor: "var(--secondary-light)",
-  investor:    "var(--success)",
 };
 
 const ROLE_DASHBOARD: Record<string, string> = {
   creator:     "/creator",
   contributor: "/contributor",
-  investor:    "/investor",
 };
 
 function TaskedLogo() {
@@ -97,6 +95,19 @@ export default function Navbar() {
               style={{ color: pathname === "/create" ? "var(--primary)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === "/create" ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
               Post Task
             </Link>
+          )}
+          {/* Support + Vote: available to any registered wallet, regardless of role */}
+          {isRegistered && (
+            <>
+              <Link href="/support" className="nav-link"
+                style={{ color: pathname === "/support" ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === "/support" ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
+                Support
+              </Link>
+              <Link href="/vote" className="nav-link"
+                style={{ color: pathname === "/vote" ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === "/vote" ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
+                Vote
+              </Link>
+            </>
           )}
         </div>
 
@@ -253,6 +264,18 @@ export default function Navbar() {
               style={{ padding: "10px 12px", borderRadius: 8, color: pathname === "/create" ? "var(--primary)" : "var(--text-muted)", background: pathname === "/create" ? "var(--surface)" : "transparent", fontSize: 15, fontWeight: pathname === "/create" ? 600 : 500, textDecoration: "none" }}>
               Post Task
             </Link>
+          )}
+          {isRegistered && (
+            <>
+              <Link href="/support"
+                style={{ padding: "10px 12px", borderRadius: 8, color: pathname === "/support" ? "var(--text)" : "var(--text-muted)", background: pathname === "/support" ? "var(--surface)" : "transparent", fontSize: 15, fontWeight: pathname === "/support" ? 600 : 500, textDecoration: "none" }}>
+                Support
+              </Link>
+              <Link href="/vote"
+                style={{ padding: "10px 12px", borderRadius: 8, color: pathname === "/vote" ? "var(--text)" : "var(--text-muted)", background: pathname === "/vote" ? "var(--surface)" : "transparent", fontSize: 15, fontWeight: pathname === "/vote" ? 600 : 500, textDecoration: "none" }}>
+                Vote
+              </Link>
+            </>
           )}
           {connected && !isRegistered && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "10px 12px" }}>

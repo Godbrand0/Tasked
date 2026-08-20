@@ -47,7 +47,7 @@ create extension if not exists "pgcrypto"; -- gen_random_uuid()
 
 -- ── Enums ───────────────────────────────────────────────────────────────────
 
-create type user_role as enum ('creator', 'contributor', 'investor');
+create type user_role as enum ('creator', 'contributor');
 create type task_status as enum (
   'GRANT_PENDING', 'OPEN', 'ASSIGNED', 'IN_PROGRESS', 'SUBMITTED',
   'FUNDS_RELEASED', 'CANCELLED', 'EXPIRED', 'GRANT_REJECTED'
@@ -232,7 +232,6 @@ create index community_submissions_task_idx on community_submissions(task_id);
 create table patrons_onchain (
   address          text primary key references users_onchain(address),
   total_deposited  text not null default '0',
-  mezo_staked      text not null default '0',
   tier             smallint not null default 99,
   last_synced_at   timestamptz not null default now()
 );

@@ -250,7 +250,7 @@ export default function CreatePage() {
               ? `${numAmount.toLocaleString()} ${currency} is locked in escrow, open for anyone to join. Pick up to ${maxWinners} winners from the submissions whenever you're ready.`
               : fundingType === "self"
               ? `${numAmount.toLocaleString()} ${currency} is now locked in the Taskify contract. Your task is live in the bounty board.`
-              : "Your grant application enters a 3-day community voting period. Patrons will vote using their MUSD + MEZO governance weight."}
+              : "Your grant application enters a 3-day community voting period. Voting weight comes from patrons' veBTC position on Mezo Earn."}
           </p>
           {descriptionSaveFailed && (
             <div style={{ background: "var(--warning-tint, #fff3cd)", border: "1px solid var(--warning, #e0a100)", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-muted)", textAlign: "left" }}>
@@ -317,7 +317,7 @@ export default function CreatePage() {
 
             {fundingType === "grant" && (
               <div style={{ background: "color-mix(in srgb, var(--secondary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 28, fontSize: 13, color: "var(--secondary-light)", lineHeight: 1.7 }}>
-                Grant tasks enter a <strong>3-day community voting period</strong>. Patrons vote using their MUSD + MEZO stake weight. If approved, MUSD from the patron pool funds the escrow automatically.
+                Grant tasks enter a <strong>3-day community voting period</strong>. Voting weight comes from patrons&apos; veBTC position on Mezo Earn, currently limited to an approved pilot group of veBTC holders. If approved, MUSD from the patron pool funds the escrow automatically.
               </div>
             )}
           </>

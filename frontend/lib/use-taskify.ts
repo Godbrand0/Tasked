@@ -163,7 +163,6 @@ export function useTaskifyUser(address: string | undefined) {
 
 export interface OnChainPatron {
   totalDeposited: bigint;
-  mezoStaked: bigint;
   tier: number;
 }
 
@@ -176,10 +175,10 @@ export function usePatron(address: string | undefined) {
     query: { enabled: Boolean(address && TASKIFY_ADDRESS) },
   });
 
-  const t = data as readonly [bigint, bigint, number] | undefined;
+  const t = data as readonly [bigint, number] | undefined;
   const patron: OnChainPatron = t
-    ? { totalDeposited: t[0], mezoStaked: t[1], tier: t[2] }
-    : { totalDeposited: BigInt(0), mezoStaked: BigInt(0), tier: 99 };
+    ? { totalDeposited: t[0], tier: t[1] }
+    : { totalDeposited: BigInt(0), tier: 99 };
 
   return { patron, isLoading, refetch };
 }
@@ -463,7 +462,7 @@ export function useProposalVotingWeight(taskId: number | undefined, address: str
 }
 
 // Pilot-phase voter whitelist — voteOnGrant requires approvedVoters[voter]
-// in addition to role + veBTC weight (see Taskify.sol). Real weight alone
+// in addition to real veBTC weight (see Taskify.sol). Real weight alone
 // doesn't mean a wallet can actually vote yet.
 export function useIsApprovedVoter(address: string | undefined) {
   const { data, isLoading, refetch } = useReadContract({
@@ -478,7 +477,7 @@ export function useIsApprovedVoter(address: string | undefined) {
 }
 
 // Batched version of useGrantVote + grantVoters + per-proposal voting weight
-// for a set of task ids — used by the investor page, which lists every
+// for a set of task ids — used by the vote page, which lists every
 // GRANT_PENDING task at once and can't call one useReadContract per row (hook
 // count must stay fixed). myWeight is read against each proposal's own
 // snapshotTimestamp, not a blanket "current weight" — different proposals can
