@@ -393,7 +393,7 @@ function TrustBar() {
     { icon: <IconCoins />, label: "MUSD + MEZO native" },
   ];
   return (
-    <div style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "20px 24px" }}>
+    <div className="hidden md:block" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "20px 24px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "center", alignItems: "center", gap: 48, flexWrap: "wrap" }}>
         {items.map(({ icon, label }, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-dim)", fontSize: 13, fontWeight: 500 }}>
@@ -897,6 +897,7 @@ export default function Home() {
     <div className="font-(family-name:--font-geist-sans)">
       <LandingNavbar />
       <Hero />
+      <div className="block md:hidden" style={{ height: 40 }} />
       <TrustBar />
       <HowItWorks />
       <ExperienceSection />
