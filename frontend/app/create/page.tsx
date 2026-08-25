@@ -9,6 +9,7 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS, tokenAddress } from "@/lib/taskify";
 import { extractTaskId, toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 type FundingType = "self" | "grant";
 type Currency = "MUSD" | "MEZO";
@@ -195,7 +196,7 @@ export default function CreatePage() {
 
       setSubmitted(true);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Transaction failed. Please try again.");
+      setSubmitError(formatContractError(err, "Transaction failed. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -442,7 +443,7 @@ export default function CreatePage() {
           {taskKind === "development" && (
             <Field label="Experience Range" required>
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 16 }}>
                   {(["min", "max"] as const).map(bound => (
                     <div key={bound}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 8 }}>{bound === "min" ? "Minimum tier" : "Maximum tier"}</div>

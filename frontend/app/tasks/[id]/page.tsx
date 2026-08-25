@@ -16,6 +16,7 @@ import {
   useTaskifyTx,
   useTaskifyUser,
 } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -109,7 +110,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       setOffchainContent(data.content);
       setEditingDescription(false);
     } catch (err) {
-      setDescriptionSaveError(err instanceof Error ? err.message : "Failed to save description");
+      setDescriptionSaveError(formatContractError(err, "Failed to save description"));
     } finally {
       setSavingDescription(false);
     }
@@ -336,7 +337,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       await refetchApplied();
       await loadApplications();
     } catch (err) {
-      setApplyError(err instanceof Error ? err.message : "Failed to submit application");
+      setApplyError(formatContractError(err, "Failed to submit application"));
     } finally {
       setApplying(false);
     }
@@ -366,7 +367,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       notifyServer(applicant, "task_assigned");
       await refetchTask();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to assign task");
+      setTxError(formatContractError(err, "Failed to assign task"));
     } finally {
       setTxBusy(false);
     }
@@ -380,7 +381,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       await send("startTask", [BigInt(task.id)]);
       await refetchTask();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to start task");
+      setTxError(formatContractError(err, "Failed to start task"));
     } finally {
       setTxBusy(false);
     }
@@ -407,12 +408,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       } catch (err) {
         // Best-effort — the task is already marked Submitted on-chain
         // regardless of whether this off-chain write succeeds.
-        setSubmitWorkError(err instanceof Error ? err.message : "Work submitted on-chain, but saving the PR/issue links failed.");
+        setSubmitWorkError(formatContractError(err, "Work submitted on-chain, but saving the PR/issue links failed."));
       }
 
       await refetchTask();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to submit task");
+      setTxError(formatContractError(err, "Failed to submit task"));
     } finally {
       setTxBusy(false);
     }
@@ -435,7 +436,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         .catch(() => {});
       await refetchTask();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to release funds");
+      setTxError(formatContractError(err, "Failed to release funds"));
     } finally {
       setTxBusy(false);
     }
@@ -451,7 +452,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       if (task.assignee) notifyServer(task.assignee, "submission_rejected");
       await refetchTask();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to reject submission");
+      setTxError(formatContractError(err, "Failed to reject submission"));
     } finally {
       setTxBusy(false);
     }
@@ -465,7 +466,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       await send("cancelTask", [BigInt(task.id)]);
       await refetchTask();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to cancel task");
+      setTxError(formatContractError(err, "Failed to cancel task"));
     } finally {
       setTxBusy(false);
     }
@@ -480,7 +481,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       await refetchTask();
       await refetchGrantVote();
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to execute grant");
+      setTxError(formatContractError(err, "Failed to execute grant"));
     } finally {
       setTxBusy(false);
     }
@@ -510,7 +511,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       }]);
       return true;
     } catch (err) {
-      setCommentError(err instanceof Error ? err.message : "Failed to post comment");
+      setCommentError(formatContractError(err, "Failed to post comment"));
       return false;
     }
   }
@@ -552,7 +553,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         payoutTxHash: null,
       }]);
     } catch (err) {
-      setJoinError(err instanceof Error ? err.message : "Failed to join");
+      setJoinError(formatContractError(err, "Failed to join"));
     } finally {
       setJoining(false);
     }
@@ -588,7 +589,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       setSubmissions(prev => prev.map(s => winnerSet.has(s.address) ? { ...s, isWinner: true, payoutTxHash: receipt.transactionHash } : s));
       await refetchTask();
     } catch (err) {
-      setPayError(err instanceof Error ? err.message : "Failed to record winners");
+      setPayError(formatContractError(err, "Failed to record winners"));
     } finally {
       setPayingWinners(false);
     }

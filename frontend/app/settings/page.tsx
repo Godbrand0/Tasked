@@ -10,6 +10,7 @@ import { TIERS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
@@ -93,7 +94,7 @@ function SettingsPageInner() {
       setXConnecting(true);
       setXError("");
       linkX(handle, avatar ?? undefined).catch((err) => {
-        setXError(err instanceof Error ? err.message : "Failed to link X on-chain");
+        setXError(formatContractError(err, "Failed to link X on-chain"));
       }).finally(() => setXConnecting(false));
     }
     if (error) {
@@ -118,7 +119,7 @@ function SettingsPageInner() {
       setGithubConnecting(true);
       setGithubError("");
       linkGithub(handle, avatar ?? undefined).catch((err) => {
-        setGithubError(err instanceof Error ? err.message : "Failed to link GitHub");
+        setGithubError(formatContractError(err, "Failed to link GitHub"));
       }).finally(() => setGithubConnecting(false));
     }
     if (error) {
@@ -145,7 +146,7 @@ function SettingsPageInner() {
       setGoogleConnecting(true);
       setGoogleError("");
       linkGoogle(email, name ?? undefined, avatar ?? undefined).catch((err) => {
-        setGoogleError(err instanceof Error ? err.message : "Failed to link Google");
+        setGoogleError(formatContractError(err, "Failed to link Google"));
       }).finally(() => setGoogleConnecting(false));
     }
     if (error) {
@@ -177,7 +178,7 @@ function SettingsPageInner() {
     reader.onload = () => {
       setAvatarUploading(true);
       uploadAvatar(reader.result as string)
-        .catch((err) => setAvatarError(err instanceof Error ? err.message : "Failed to upload"))
+        .catch((err) => setAvatarError(formatContractError(err, "Failed to upload")))
         .finally(() => setAvatarUploading(false));
     };
     reader.onerror = () => setAvatarError("Failed to read image file.");
@@ -199,7 +200,7 @@ function SettingsPageInner() {
         await send("cancelTask", [BigInt(t.id)]);
       }
     } catch (err) {
-      setCancelError(err instanceof Error ? err.message : "Failed to cancel one or more tasks");
+      setCancelError(formatContractError(err, "Failed to cancel one or more tasks"));
     } finally {
       setCancelling(false);
     }
@@ -246,7 +247,7 @@ function SettingsPageInner() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save — check the 1-day cooldown on experience updates.");
+      setSaveError(formatContractError(err, "Failed to save — check the 1-day cooldown on experience updates."));
     } finally {
       setSaving(false);
     }

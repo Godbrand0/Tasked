@@ -43,6 +43,10 @@
 
   --background: var(--bg);
   --foreground: var(--text);
+
+  --radius-sm: 8px;  /* buttons, small controls */
+  --radius-md: 12px; /* cards, inputs */
+  --radius-lg: 16px; /* large panels, dropdowns */
 }
 
 [data-theme="dark"] {

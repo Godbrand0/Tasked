@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const { username, role, experienceLevel, tasksCompleted, githubVerified } = useWallet();
   const displayUsername = username || formatAddress(address ?? "");
 
-  const { data: onchainTasks } = useAllTasks();
+  const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
   const allTasks = useMemo(
     () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
@@ -33,7 +33,7 @@ export default function DashboardPage() {
     ? myTasks.filter((t) => !["FUNDS_RELEASED", "CANCELLED", "EXPIRED"].includes(t.status))
     : [];
 
-  const { wave } = useCurrentWave();
+  const { wave, isLoading: waveLoading } = useCurrentWave();
   const poolAmountHuman = Number(formatUnits(wave.poolAmount, MUSD_DECIMALS));
 
   const tier = TIERS[experienceLevel] ?? TIERS[0];
@@ -73,28 +73,35 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]" style={{ gap: 32, alignItems: "start" }}>
           <div>
             {/* Overview stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14, marginBottom: 36 }}>
-              {displayRole === "creator" && [
-                { label: "Tasks Posted",   value: String(myTasks.length),               color: "var(--primary)" },
-                { label: "Active",         value: String(activeTasks.length),            color: "var(--blue)" },
-                { label: "Escrowed",      value: formatEarnedBreakdown(escrowedTasks),   color: "var(--success)" },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
-                </div>
-              ))}
-              {displayRole === "contributor" && [
-                { label: "Tasks Done",    value: String(tasksCompleted),              color: "var(--success)" },
-                { label: "Total Earned",  value: formatEarnedBreakdown(completedTasks), color: "var(--primary)" },
-                { label: "Experience",    value: tier.label,                                       color: tier.color },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
-                </div>
-              ))}
-            </div>
+            {tasksLoading ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-dim)", marginBottom: 36 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)" }}>Loading your stats from Mezo…</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14, marginBottom: 36 }}>
+                {displayRole === "creator" && [
+                  { label: "Tasks Posted",   value: String(myTasks.length),               color: "var(--primary)" },
+                  { label: "Active",         value: String(activeTasks.length),            color: "var(--blue)" },
+                  { label: "Escrowed",      value: formatEarnedBreakdown(escrowedTasks),   color: "var(--success)" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
+                  </div>
+                ))}
+                {displayRole === "contributor" && [
+                  { label: "Tasks Done",    value: String(tasksCompleted),              color: "var(--success)" },
+                  { label: "Total Earned",  value: formatEarnedBreakdown(completedTasks), color: "var(--primary)" },
+                  { label: "Experience",    value: tier.label,                                       color: tier.color },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Recent activity */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 24 }}>
@@ -102,8 +109,22 @@ export default function DashboardPage() {
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>Recent Tasks</h2>
                 <Link href={displayRole === "creator" ? "/creator" : "/contributor"} style={{ fontSize: 13, color: "var(--primary)", textDecoration: "none" }}>View all →</Link>
               </div>
-              {myTasks.slice(0, 5).length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-dim)", fontSize: 14 }}>No tasks yet</div>
+              {tasksLoading ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-dim)" }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>⏳</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>Loading…</div>
+                </div>
+              ) : myTasks.slice(0, 5).length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 0" }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>No tasks yet</div>
+                  <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>
+                    {displayRole === "creator" ? "Post your first task to get started" : "Browse open tasks to get started"}
+                  </div>
+                  <Link href={displayRole === "creator" ? "/create" : "/tasks"} style={{ display: "inline-block", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 10, textDecoration: "none" }}>
+                    {displayRole === "creator" ? "Post a Task" : "Browse Tasks"}
+                  </Link>
+                </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {myTasks.slice(0, 5).map((task) => (
@@ -173,21 +194,30 @@ export default function DashboardPage() {
 
             {/* Wave info */}
             <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>Wave #{wave.waveId}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "var(--text-dim)" }}>Pool</span>
-                  <span style={{ color: "var(--primary)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
+              {waveLoading ? (
+                <div style={{ textAlign: "center", padding: "16px 0", color: "var(--text-dim)" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>Loading wave info…</div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "var(--text-dim)" }}>Tasks this wave</span>
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{wave.totalTasks}</span>
-                </div>
-              </div>
-              {displayRole === "creator" && (
-                <Link href="/creator" style={{ display: "block", textAlign: "center", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, textDecoration: "none" }}>
-                  Claim Reward
-                </Link>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>Wave #{wave.waveId}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--text-dim)" }}>Pool</span>
+                      <span style={{ color: "var(--primary)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--text-dim)" }}>Tasks this wave</span>
+                      <span style={{ color: "var(--text)", fontWeight: 600 }}>{wave.totalTasks}</span>
+                    </div>
+                  </div>
+                  {displayRole === "creator" && (
+                    <Link href="/creator" style={{ display: "block", textAlign: "center", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, textDecoration: "none" }}>
+                      Claim Reward
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </div>

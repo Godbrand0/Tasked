@@ -7,7 +7,7 @@ import Avatar from "./Avatar";
 export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creatorAvatarUrl?: string }) {
   return (
     <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px color-mix(in srgb, var(--primary) 8%, transparent)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>

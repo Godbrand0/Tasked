@@ -10,6 +10,7 @@ import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
 import { useAllTasks, useGrantVotesBatch, useIsApprovedVoter, useTaskifyTx, useTaskifyUser, useVotingWeight } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 // Where "get real voting weight" sends people to actually lock BTC or MEZO —
 // Taskify no longer custodies anything for voting purposes, see
@@ -51,7 +52,7 @@ export default function VotePage() {
       await send("voteOnGrant", [BigInt(taskId), support]);
       await refetchVotes();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Vote failed");
+      setActionError(formatContractError(err, "Vote failed"));
     } finally {
       setVotingTaskId(null);
     }
@@ -64,7 +65,7 @@ export default function VotePage() {
       await send("executeGrant", [BigInt(taskId)]);
       await refetchVotes();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Execute failed");
+      setActionError(formatContractError(err, "Execute failed"));
     } finally {
       setExecutingTaskId(null);
     }

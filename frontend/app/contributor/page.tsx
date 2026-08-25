@@ -10,6 +10,7 @@ import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 export default function ContributorPage() {
   const { username, experienceLevel, tasksCompleted, connected, isRegistered, avatarUrl } = useWallet();
@@ -71,7 +72,7 @@ export default function ContributorPage() {
     try {
       await send("updateExperience", [tierChoice]);
     } catch (err) {
-      setTierError(err instanceof Error ? err.message : "Failed to update tier — check the 1-day cooldown.");
+      setTierError(formatContractError(err, "Failed to update tier — check the 1-day cooldown."));
     } finally {
       setUpdatingTier(false);
     }

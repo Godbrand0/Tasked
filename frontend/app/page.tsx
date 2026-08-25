@@ -657,7 +657,7 @@ function ProtocolSection() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 32 }}>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
           {/* Task lifecycle */}
           <Card>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Task Lifecycle (Development)</div>
@@ -678,44 +678,6 @@ function ProtocolSection() {
               Community tasks skip ASSIGNED / IN_PROGRESS / SUBMITTED entirely: they go straight from OPEN to FUNDS_RELEASED once the owner selects winners.
             </div>
           </Card>
-
-          {/* Fee breakdown */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <Card>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Fee Collection</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[
-                  { label: "Self-funded task fee", rate: "3%", example: "300 MUSD on a 10k task" },
-                  { label: "Grant-funded task fee", rate: "5%", example: "500 MUSD on a 10k task" },
-                ].map(({ label, rate, example }) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{label}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{example}</div>
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: "var(--primary)" }}>{rate}</div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Fee Distribution</div>
-              <div style={{ display: "flex", gap: 16 }}>
-                <div style={{ flex: 6, background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 10, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "var(--primary)" }}>60%</div>
-                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>Platform treasury</div>
-                </div>
-                <div style={{ flex: 4, background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", borderRadius: 10, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "var(--secondary-light)" }}>40%</div>
-                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>Owner wave pool</div>
-                </div>
-              </div>
-              <div style={{ marginTop: 14, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                Wave pool distributes to active self-funded owners every ~30 days, proportional to tasks posted that epoch.
-              </div>
-            </Card>
-          </div>
         </div>
       </div>
     </section>
@@ -797,21 +759,6 @@ function TokensSection() {
               ))}
             </div>
           </Card>
-        </div>
-
-        {/* Voting weight source */}
-        <div style={{ marginTop: 24, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "24px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>Voting weight, on-chain</div>
-            <code style={{ fontSize: 15, color: "var(--text)", fontFamily: "var(--font-geist-mono), monospace" }}>
-              <span style={{ color: "var(--primary)" }}>getVotingWeight</span>
-              {"(patron, proposalSnapshot) → "}
-              <span style={{ color: "var(--secondary-light)" }}>veBTC.getPastVotes(...)</span>
-            </code>
-          </div>
-          <div style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 320 }}>
-            No formula, no multiplier owned by Taskify — a live read straight from Mezo&apos;s Tigris contracts, aggregated across every veBTC position a wallet holds.
-          </div>
         </div>
       </div>
     </section>

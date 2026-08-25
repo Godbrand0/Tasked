@@ -10,6 +10,7 @@ import { formatMUSD, PATRON_TIERS, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { MUSD_ADDRESS, TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useApproveIfNeeded, usePatron, useTaskifyTx, useTaskifyUser, toRawMUSD } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 export default function SupportPage() {
   const { connected, isRegistered, username } = useWallet();
@@ -42,7 +43,7 @@ export default function SupportPage() {
       setDepositAmt("");
       await refetchPatron();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Deposit failed");
+      setActionError(formatContractError(err, "Deposit failed"));
     } finally {
       setDepositing(false);
     }

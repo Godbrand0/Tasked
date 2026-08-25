@@ -24,7 +24,7 @@ export default function BackButton() {
       onClick={handleBack}
       aria-label="Go back"
       title="Go back"
-      style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color 0.15s, color 0.15s" }}
+      style={{ width: 34, height: 34, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color 0.15s, color 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 40%, transparent)"; e.currentTarget.style.color = "var(--text)"; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
     >

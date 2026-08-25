@@ -14,7 +14,7 @@ export default function ThemeToggle() {
       style={{
         width: 34,
         height: 34,
-        borderRadius: 8,
+        borderRadius: "var(--radius-sm)",
         border: "1px solid var(--border)",
         background: "var(--surface)",
         color: "var(--text-muted)",

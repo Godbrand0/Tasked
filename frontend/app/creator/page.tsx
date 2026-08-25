@@ -19,6 +19,7 @@ import {
   useWaveCreatorTasks,
   mapOnChainTask,
 } from "@/lib/use-taskify";
+import { formatContractError } from "@/lib/errors";
 
 export default function CreatorPage() {
   const { username, githubVerified, avatarUrl } = useWallet();
@@ -72,7 +73,7 @@ export default function CreatorPage() {
       await send("claimWaveReward", [BigInt(previousWaveId)]);
       await refetchClaimed();
     } catch (err) {
-      setClaimError(err instanceof Error ? err.message : "Claim failed");
+      setClaimError(formatContractError(err, "Claim failed"));
     } finally {
       setClaiming(false);
     }

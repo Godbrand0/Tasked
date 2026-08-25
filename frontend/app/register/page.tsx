@@ -7,6 +7,7 @@ import Link from "next/link";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
+import { formatContractError } from "@/lib/errors";
 
 type Step = "wallet" | "identity" | "role" | "confirm";
 
@@ -107,7 +108,7 @@ function RegisterPageInner() {
       await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), googleEmail, googleName, googleAvatar });
       router.push("/dashboard");
     } catch (err) {
-      setRegisterError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+      setRegisterError(formatContractError(err, "Registration failed. Please try again."));
     } finally {
       setSubmitting(false);
     }

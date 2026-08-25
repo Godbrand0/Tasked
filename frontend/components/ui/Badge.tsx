@@ -15,7 +15,7 @@ const COLORS: Record<Color, { bg: string; text: string; border: string }> = {
 export function Badge({ children, color = "gray" }: { children: React.ReactNode; color?: Color }) {
   const s = COLORS[color];
   return (
-    <span style={{ background: s.bg, color: s.text, border: `1px solid ${s.border}`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, letterSpacing: "0.02em", display: "inline-flex", alignItems: "center", gap: 5 }}>
+    <span style={{ background: s.bg, color: s.text, border: `1px solid ${s.border}`, borderRadius: "var(--radius-sm)", padding: "3px 10px", fontSize: 12, fontWeight: 600, letterSpacing: "0.02em", display: "inline-flex", alignItems: "center", gap: 5 }}>
       {children}
     </span>
   );
@@ -24,7 +24,7 @@ export function Badge({ children, color = "gray" }: { children: React.ReactNode;
 export function TierBadge({ tier }: { tier: number }) {
   const t = TIERS.find((x) => x.id === tier) ?? TIERS[0];
   return (
-    <span style={{ background: t.bg, color: t.color, border: `1px solid ${t.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+    <span style={{ background: t.bg, color: t.color, border: `1px solid ${t.color}30`, borderRadius: "var(--radius-sm)", padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
       Tier {t.id} · {t.label}
     </span>
   );
@@ -35,7 +35,7 @@ export function TierRangeBadge({ min, max }: { min: number; max: number }) {
   const hi = TIERS.find((x) => x.id === max) ?? TIERS[4];
   const sameColor = lo.id === hi.id;
   return (
-    <span style={{ background: lo.bg, color: lo.color, border: `1px solid ${lo.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+    <span style={{ background: lo.bg, color: lo.color, border: `1px solid ${lo.color}30`, borderRadius: "var(--radius-sm)", padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
       {sameColor ? lo.label : `${lo.label} – ${hi.label}`}
     </span>
   );
@@ -44,7 +44,7 @@ export function TierRangeBadge({ min, max }: { min: number; max: number }) {
 export function StatusBadge({ status }: { status: string }) {
   const s = TASK_STATUSES[status] ?? { label: status, color: "var(--text-muted)", bg: "var(--neutral-tint)" };
   return (
-    <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+    <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30`, borderRadius: "var(--radius-sm)", padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, display: "inline-block" }} />
       {s.label}
     </span>
@@ -55,7 +55,7 @@ export function PatronTierBadge({ tier }: { tier: number }) {
   const t = PATRON_TIERS.find((x) => x.id === tier);
   if (!t || t.id === 99) return null;
   return (
-    <span style={{ background: t.bg, color: t.color, border: `1px solid ${t.color}30`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+    <span style={{ background: t.bg, color: t.color, border: `1px solid ${t.color}30`, borderRadius: "var(--radius-sm)", padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
       {t.label}
     </span>
   );
