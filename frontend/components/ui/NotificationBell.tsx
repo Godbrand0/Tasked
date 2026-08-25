@@ -87,6 +87,17 @@ export default function NotificationBell() {
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .notif-panel {
+            position: fixed !important;
+            top: 74px !important;
+            left: 12px !important;
+            right: 12px !important;
+            width: auto !important;
+          }
+        }
+      `}</style>
       <button
         onClick={() => { setOpen(o => !o); if (!open) load(); }}
         aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
@@ -104,7 +115,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", width: 320, maxHeight: 400, overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.4)", zIndex: 100 }}>
+        <div className="notif-panel" style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", width: 320, maxHeight: 400, overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.4)", zIndex: 100 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Notifications</span>
             {unreadCount > 0 && (

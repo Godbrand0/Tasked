@@ -59,6 +59,8 @@ function SettingsPageInner() {
   const { data: onchainTasks } = useAllTasks();
   const searchParams = useSearchParams();
   const [active, setActive] = useState<Section>("profile");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const activeSection = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
   const [usernameInput, setUsernameInput] = useState(username);
   const [bio, setBio] = useState("");
   const [expTier, setExpTier] = useState(experienceLevel);
@@ -262,11 +264,47 @@ function SettingsPageInner() {
         <p style={{ fontSize: 14, color: "var(--text-dim)", margin: loadError ? "0 0 8px" : "0 0 36px" }}>Manage your profile, experience tier, and notification preferences.</p>
         {loadError && <p style={{ fontSize: 13, color: "var(--danger)", margin: "0 0 28px" }}>{loadError}</p>}
 
+        <style>{`
+          .settings-drawer-backdrop { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+          .settings-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+          .settings-drawer { transform: translateX(-100%); transition: transform 0.25s ease; }
+          .settings-drawer.open { transform: translateX(0); }
+        `}</style>
+
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]" style={{ gap: 28, alignItems: "start" }}>
-          {/* Nav */}
-          <nav style={{ display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 80 }}>
+          {/* Desktop sidebar nav */}
+          <nav className="hidden md:flex" style={{ flexDirection: "column", gap: 2, position: "sticky", top: 80 }}>
             {SECTIONS.map((s) => (
               <button key={s.id} onClick={() => setActive(s.id)}
+                style={{ background: active === s.id ? "color-mix(in srgb, var(--primary) 9%, transparent)" : "transparent", border: `1px solid ${active === s.id ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "transparent"}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", fontSize: 14, color: active === s.id ? "var(--primary)" : "var(--text-muted)", fontWeight: active === s.id ? 600 : 400, textAlign: "left", display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s" }}>
+                <span>{s.icon}</span> {s.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Mobile: trigger bar opens a slide-in drawer instead of a stacked/sticky nav */}
+          <button onClick={() => setMobileNavOpen(true)} className="flex md:hidden"
+            style={{ alignItems: "center", justifyContent: "space-between", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>{activeSection.icon} {activeSection.label}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+          </button>
+
+          {/* Mobile drawer backdrop */}
+          <div onClick={() => setMobileNavOpen(false)} className={`settings-drawer-backdrop ${mobileNavOpen ? "open" : ""}`}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200 }} />
+
+          {/* Mobile drawer, slides in from the left */}
+          <nav className={`settings-drawer ${mobileNavOpen ? "open" : ""}`}
+            style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: 260, maxWidth: "80vw", background: "var(--surface)", borderRight: "1px solid var(--border)", zIndex: 201, padding: 20, display: "flex", flexDirection: "column", gap: 2, overflowY: "auto", boxShadow: "4px 0 24px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>Settings</span>
+              <button onClick={() => setMobileNavOpen(false)} aria-label="Close menu"
+                style={{ width: 28, height: 28, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+            {SECTIONS.map((s) => (
+              <button key={s.id} onClick={() => { setActive(s.id); setMobileNavOpen(false); }}
                 style={{ background: active === s.id ? "color-mix(in srgb, var(--primary) 9%, transparent)" : "transparent", border: `1px solid ${active === s.id ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "transparent"}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", fontSize: 14, color: active === s.id ? "var(--primary)" : "var(--text-muted)", fontWeight: active === s.id ? 600 : 400, textAlign: "left", display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s" }}>
                 <span>{s.icon}</span> {s.label}
               </button>

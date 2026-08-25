@@ -74,6 +74,15 @@ export default function Navbar() {
         .nav-btn-outline:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; }
         .nav-btn-primary:hover { background: var(--primary-strong) !important; }
         .wallet-dropdown-item:hover { background: var(--border) !important; }
+        @media (max-width: 640px) {
+          .wallet-dropdown-panel {
+            position: fixed !important;
+            top: 74px !important;
+            left: 12px !important;
+            right: 12px !important;
+            min-width: 0 !important;
+          }
+        }
       `}</style>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -140,7 +149,7 @@ export default function Navbar() {
                 </button>
 
                 {addressDropdownOpen && (
-                  <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                  <div className="wallet-dropdown-panel" style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
                     <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
                       {address}
                     </div>
@@ -188,7 +197,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                  <div className="wallet-dropdown-panel" style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
                     {/* Identity header */}
                     <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
