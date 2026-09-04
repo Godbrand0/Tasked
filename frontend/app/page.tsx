@@ -143,7 +143,7 @@ const ROLE_DASHBOARD: Record<string, string> = {
   contributor: "/contributor",
 };
 
-const LANDING_NAV_LINKS: [string, string][] = [["#how-it-works", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]];
+const LANDING_NAV_LINKS: [string, string][] = [["/docs", "How it works"], ["#features", "Features"], ["/leaderboard", "Leaderboard"]];
 
 function LandingNavbar() {
   const router = useRouter();
@@ -803,15 +803,15 @@ function CTASection() {
 function Footer() {
   const links: Record<string, { label: string; href: string }[]> = {
     Protocol: [
-      { label: "How it works", href: "#how-it-works" },
-      { label: "Task escrow", href: "#how-it-works" },
-      { label: "Grant pool", href: "#features" },
-      { label: "Wave rewards", href: "#features" },
+      { label: "How it works", href: "/docs" },
+      { label: "Task escrow", href: "/docs#lifecycle" },
+      { label: "Grant pool", href: "/docs#patrons" },
+      { label: "Wave rewards", href: "/docs#patrons" },
     ],
     Builders: [
       { label: "Browse tasks", href: "/tasks" },
       { label: "Leaderboard", href: "/leaderboard" },
-      { label: "Docs", href: "#" },
+      { label: "Docs", href: "/docs" },
       { label: "GitHub", href: "#" },
     ],
     Tokens: [
