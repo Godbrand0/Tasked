@@ -4,12 +4,15 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
-import Navbar from "@/components/Navbar";
+import PageShell, { Container } from "@/components/ui/PageShell";
 import TaskCard from "@/components/ui/TaskCard";
 import Avatar from "@/components/ui/Avatar";
+import Button from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
+import EmptyState from "@/components/ui/EmptyState";
 import { formatMUSD, formatEarnedBreakdown, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
+import { IconClipboard, IconZap, IconCheck, IconLock, IconLandmark, IconUser } from "@/components/icons";
 import {
   useAllTasks,
   useCurrentWave,
@@ -98,10 +101,8 @@ export default function CreatorPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <Navbar />
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px" }}>
+    <PageShell>
+      <Container maxWidth={1200} style={{ padding: "40px 24px" }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -115,22 +116,20 @@ export default function CreatorPage() {
               <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{displayAddress.slice(0, 12)}…{displayAddress.slice(-6)}</div>
             </div>
           </div>
-          <Link href="/create" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-            + Post New Task
-          </Link>
+          <Button href="/create" size="md" style={{ padding: "12px 22px" }}>+ Post New Task</Button>
         </div>
 
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "Tasks Posted",    value: String(myTasks.length),           color: "var(--primary)", icon: "📋" },
-            { label: "Active Tasks",    value: String(activeTasks.length),        color: "var(--blue)", icon: "⚡" },
-            { label: "Completed",       value: String(completedTasks.length),     color: "var(--success)", icon: "✓"  },
-            { label: "Total Escrowed",  value: formatEarnedBreakdown(escrowedTasks), color: "var(--primary)", icon: "🔒" },
-          ].map(({ label, value, color, icon }) => (
+            { label: "Tasks Posted",    value: String(myTasks.length),           color: "var(--primary)", icon: IconClipboard },
+            { label: "Active Tasks",    value: String(activeTasks.length),        color: "var(--blue)", icon: IconZap },
+            { label: "Completed",       value: String(completedTasks.length),     color: "var(--success)", icon: IconCheck },
+            { label: "Total Escrowed",  value: formatEarnedBreakdown(escrowedTasks), color: "var(--primary)", icon: IconLock },
+          ].map(({ label, value, color, icon: Icon }) => (
             <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+              <div style={{ color, marginBottom: 10 }}><Icon size={20} /></div>
+              <div className="figure" style={{ fontSize: 22, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>{label}</div>
             </div>
           ))}
@@ -149,9 +148,7 @@ export default function CreatorPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {activeTasks.map((task) => (
                     <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, transition: "border-color 0.15s" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)")}
-                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
+                      <div className="border-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, transition: "border-color var(--duration-fast) ease" }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{task.title}</div>
                           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token} · Task #{task.id}</div>
@@ -162,6 +159,7 @@ export default function CreatorPage() {
                             <button
                               disabled={approvingTaskId === task.id}
                               onClick={(e) => { e.preventDefault(); handleApproveRelease(task.id, task.assignee, task.title, task.amount, task.token); }}
+                              className="btn-motion"
                               style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: approvingTaskId === task.id ? "not-allowed" : "pointer", opacity: approvingTaskId === task.id ? 0.7 : 1 }}>
                               {approvingTaskId === task.id ? "Confirming…" : "Approve & Release"}
                             </button>
@@ -189,9 +187,7 @@ export default function CreatorPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {grantPendingTasks.map((task) => (
                     <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, transition: "border-color 0.15s" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)")}
-                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
+                      <div className="border-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, transition: "border-color var(--duration-fast) ease" }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{task.title}</div>
                           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} MUSD requested · Task #{task.id} · awaiting patron vote</div>
@@ -264,11 +260,12 @@ export default function CreatorPage() {
             )}
 
             {myTasks.length === 0 && (
-              <div style={{ textAlign: "center", padding: "80px 0" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>No tasks posted yet</div>
-                <Link href="/create" style={{ color: "var(--primary)", fontSize: 14, textDecoration: "none" }}>Post your first task →</Link>
-              </div>
+              <EmptyState
+                size="lg"
+                icon={IconClipboard}
+                title="No tasks posted yet"
+                action={<Link href="/create" style={{ color: "var(--primary)", fontSize: 14, textDecoration: "none" }}>Post your first task →</Link>}
+              />
             )}
           </div>
 
@@ -277,7 +274,7 @@ export default function CreatorPage() {
             {/* Wave reward */}
             <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 14, padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Wave #{wave.waveId} Reward</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "var(--primary)", marginBottom: 4 }}>{formatMUSD(waveShare)} MUSD</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "var(--primary)", marginBottom: 4 }}><span className="figure">{formatMUSD(waveShare)}</span> MUSD</div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>Estimated share from {formatMUSD(poolAmountHuman)} MUSD pool</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
@@ -293,31 +290,34 @@ export default function CreatorPage() {
                   <span style={{ color: "var(--text)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
                 </div>
               </div>
-              <button disabled={!canClaim || claiming} onClick={handleClaimWave} style={{ width: "100%", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: (canClaim && !claiming) ? "pointer" : "not-allowed", opacity: canClaim ? 1 : 0.5 }}>
+              <button disabled={!canClaim || claiming} onClick={handleClaimWave} className="btn-motion" style={{ width: "100%", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: (canClaim && !claiming) ? "pointer" : "not-allowed", opacity: canClaim ? 1 : 0.5 }}>
                 {claiming ? "Confirming…" : prevWaveClaimed ? "Already Claimed" : canClaim ? "Claim Previous Wave Reward" : "No Reward to Claim Yet"}
               </button>
               {claimError && <div style={{ fontSize: 11, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{claimError}</div>}
-              <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>Wave advances (~30 days) once anyone calls advanceWave — permissionless</div>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>Wave advances (~30 days) once anyone calls advanceWave; permissionless</div>
+              <Link href="/wave" className="btn-motion" style={{ display: "block", textAlign: "center", color: "var(--primary)", fontSize: 12, fontWeight: 600, textDecoration: "none", marginTop: 10 }}>
+                View full wave history →
+              </Link>
             </div>
 
             {/* Quick actions */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Quick Actions</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <Link href="/create" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                <Link href="/create" className="btn-motion" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                   <span>+</span> Post a new task
                 </Link>
-                <Link href="/create?type=grant" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>🏛</span> Apply for grant
+                <Link href="/create?type=grant" className="btn-motion" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconLandmark size={15} /> Apply for grant
                 </Link>
-                <Link href={`/profile/${displayAddress}`} style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>👤</span> View public profile
+                <Link href={`/profile/${displayAddress}`} className="btn-motion" style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconUser size={15} /> View public profile
                 </Link>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Container>
+    </PageShell>
   );
 }

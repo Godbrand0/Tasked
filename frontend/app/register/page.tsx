@@ -8,13 +8,14 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 import { formatContractError } from "@/lib/errors";
+import { IconBriefcase, IconZap, IconLock } from "@/components/icons";
 
 type Step = "wallet" | "identity" | "role" | "confirm";
 
-const ROLE_OPTIONS: { id: UserRole; icon: string; title: string; subtitle: string; desc: string; color: string; bg: string }[] = [
-  { id: "creator",     icon: "🧩", title: "Owner",       subtitle: "Fund the work",        color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
+const ROLE_OPTIONS: { id: UserRole; icon: React.ComponentType<{ size?: number }>; title: string; subtitle: string; desc: string; color: string; bg: string }[] = [
+  { id: "creator",     icon: IconBriefcase, title: "Owner",       subtitle: "Fund the work",        color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
     desc: "Post tasks, lock MUSD in escrow, set experience requirements, and choose from matched applicants." },
-  { id: "contributor", icon: "⚡", title: "Contributor", subtitle: "Get paid to build",    color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)",
+  { id: "contributor", icon: IconZap, title: "Contributor", subtitle: "Get paid to build",    color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)",
     desc: "Browse experience-matched bounties, apply on-chain, complete work, and build your on-chain reputation." },
 ];
 
@@ -132,7 +133,7 @@ function RegisterPageInner() {
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           {step === "wallet" ? "Connect your wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
         </h1>
-        <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>
+        <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
           {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "identity" ? "This information is stored on the Mezo blockchain." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : ""}
         </p>
       </div>
@@ -153,17 +154,17 @@ function RegisterPageInner() {
       {step === "wallet" && (
         <div style={{ width: "100%", maxWidth: 440, textAlign: "center" }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: 32, marginBottom: 20 }}>
-            <div style={{ fontSize: 48, marginBottom: 20 }}>🔐</div>
+            <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconLock size={44} /></div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>No wallet connected</h2>
-            <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, margin: "0 0 24px" }}>
+            <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 24px" }}>
               Connect your Ethereum wallet to begin registration. Your wallet address becomes your permanent on-chain identity.
             </p>
-            <button onClick={connect} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
+            <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
               Connect Wallet →
             </button>
           </div>
           <div style={{ fontSize: 12, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", lineHeight: 1.6 }}>
-            Supports MetaMask, Rabby, and other Ethereum wallets via RainbowKit. No email required.
+            Supports MetaMask, Rabby, and other Ethereum wallets via RainbowKit. Next, you'll link a Google account too; it's what we use to email you about your tasks.
           </div>
         </div>
       )}
@@ -196,7 +197,7 @@ function RegisterPageInner() {
                     Connect Google <span style={{ color: "var(--danger)" }}>*</span>
                   </div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
-                    Required — your Google account becomes your Taskify identity. GitHub and X are optional and can be linked later from Settings.
+                    Required: your Google account becomes your Taskify identity. GitHub and X are optional and can be linked later from Settings.
                   </div>
                 </div>
                 {googleError && (
@@ -206,6 +207,7 @@ function RegisterPageInner() {
                 )}
                 <button
                   onClick={handleGoogleConnect}
+                  className="btn-motion"
                   style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}>
                   Continue with Google
                 </button>
@@ -232,6 +234,7 @@ function RegisterPageInner() {
             <button
               disabled={!hasIdentity}
               onClick={() => setStep("role")}
+              className="btn-motion"
               style={{ width: "100%", background: hasIdentity ? "var(--primary)" : "var(--border)", color: hasIdentity ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: hasIdentity ? "pointer" : "not-allowed" }}>
               Continue →
             </button>
@@ -243,15 +246,15 @@ function RegisterPageInner() {
       {step === "role" && (
         <div style={{ width: "100%", maxWidth: 680, display: "flex", flexDirection: "column", gap: 16 }}>
           {ROLE_OPTIONS.map(r => (
-            <button key={r.id} onClick={() => setRole(r.id)}
-              style={{ background: role === r.id ? r.bg : "var(--surface)", border: `1px solid ${role === r.id ? r.color + "50" : "var(--border)"}`, borderRadius: 16, padding: "20px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, border: `1px solid ${r.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{r.icon}</div>
+            <button key={r.id} onClick={() => setRole(r.id)} className="card-hover"
+              style={{ background: role === r.id ? r.bg : "var(--surface)", border: `1px solid ${role === r.id ? r.color + "50" : "var(--border)"}`, borderRadius: 16, padding: "20px 24px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, border: `1px solid ${r.color}30`, display: "flex", alignItems: "center", justifyContent: "center", color: r.color, flexShrink: 0 }}><r.icon size={22} /></div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                   <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>{r.title}</span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: r.color, background: r.bg, padding: "2px 8px", borderRadius: 4, border: `1px solid ${r.color}30` }}>{r.subtitle}</span>
                 </div>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0, lineHeight: 1.6 }}>{r.desc}</p>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", margin: 0, lineHeight: 1.6 }}>{r.desc}</p>
               </div>
               <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${role === r.id ? r.color : "var(--border-strong)"}`, background: role === r.id ? r.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 {role === r.id && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--bg)" }} />}
@@ -267,7 +270,7 @@ function RegisterPageInner() {
               </label>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {TIERS.map(tier => (
-                  <button key={tier.id} onClick={() => setExperienceLevel(tier.id)}
+                  <button key={tier.id} onClick={() => setExperienceLevel(tier.id)} className="btn-motion"
                     style={{ background: experienceLevel === tier.id ? tier.bg : "var(--surface)", border: `1px solid ${experienceLevel === tier.id ? tier.color + "50" : "var(--border)"}`, borderRadius: 10, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 30, height: 30, borderRadius: 8, background: tier.bg, border: `1px solid ${tier.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: tier.color }}>{tier.id}</div>
@@ -284,10 +287,11 @@ function RegisterPageInner() {
           )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <button onClick={() => setStep("identity")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
+            <button onClick={() => setStep("identity")} className="btn-motion" style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button
               disabled={!role || (role === "contributor" && experienceLevel < 0)}
               onClick={() => setStep("confirm")}
+              className="btn-motion"
               style={{ flex: 2, background: (role && (role !== "contributor" || experienceLevel >= 0)) ? "var(--primary)" : "var(--border)", color: (role && (role !== "contributor" || experienceLevel >= 0)) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (role && (role !== "contributor" || experienceLevel >= 0)) ? "pointer" : "not-allowed" }}>
               Review →
             </button>
@@ -319,8 +323,8 @@ function RegisterPageInner() {
           )}
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setStep("role")} style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
-            <button onClick={handleRegister} disabled={submitting}
+            <button onClick={() => setStep("role")} className="btn-motion" style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
+            <button onClick={handleRegister} disabled={submitting} className="btn-motion"
               style={{ flex: 2, background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: "pointer", opacity: submitting ? 0.7 : 1 }}>
               {submitting ? "Registering on-chain…" : "Register on Mezo →"}
             </button>

@@ -11,6 +11,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { IconUser, IconAward, IconBell, IconLock, IconAlertTriangle, IconCheck } from "@/components/icons";
 
 const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
@@ -29,12 +30,12 @@ const NOTIF_ITEMS: { key: NotifKey; label: string; desc: string }[] = [
 
 type Section = "profile" | "experience" | "notifications" | "wallet" | "danger";
 
-const SECTIONS: { id: Section; label: string; icon: string }[] = [
-  { id: "profile",       label: "Profile",       icon: "👤" },
-  { id: "experience",    label: "Experience",    icon: "🏅" },
-  { id: "notifications", label: "Notifications", icon: "🔔" },
-  { id: "wallet",        label: "Wallet",        icon: "🔐" },
-  { id: "danger",        label: "Danger Zone",   icon: "⚠️" },
+const SECTIONS: { id: Section; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+  { id: "profile",       label: "Profile",       icon: IconUser },
+  { id: "experience",    label: "Experience",    icon: IconAward },
+  { id: "notifications", label: "Notifications", icon: IconBell },
+  { id: "wallet",        label: "Wallet",        icon: IconLock },
+  { id: "danger",        label: "Danger Zone",   icon: IconAlertTriangle },
 ];
 
 export default function SettingsPage() {
@@ -173,7 +174,7 @@ function SettingsPageInner() {
       return;
     }
     if (file.size > 1_500_000) {
-      setAvatarError("Image is too large — please choose one under 1.5MB.");
+      setAvatarError("Image is too large. Please choose one under 1.5MB.");
       return;
     }
     const reader = new FileReader();
@@ -249,7 +250,7 @@ function SettingsPageInner() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setSaveError(formatContractError(err, "Failed to save — check the 1-day cooldown on experience updates."));
+      setSaveError(formatContractError(err, "Failed to save. Check the 1-day cooldown on experience updates."));
     } finally {
       setSaving(false);
     }
@@ -261,7 +262,7 @@ function SettingsPageInner() {
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Settings</h1>
-        <p style={{ fontSize: 14, color: "var(--text-dim)", margin: loadError ? "0 0 8px" : "0 0 36px" }}>Manage your profile, experience tier, and notification preferences.</p>
+        <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: loadError ? "0 0 8px" : "0 0 36px" }}>Manage your profile, experience tier, and notification preferences.</p>
         {loadError && <p style={{ fontSize: 13, color: "var(--danger)", margin: "0 0 28px" }}>{loadError}</p>}
 
         <style>{`
@@ -275,17 +276,17 @@ function SettingsPageInner() {
           {/* Desktop sidebar nav */}
           <nav className="hidden md:flex" style={{ flexDirection: "column", gap: 2, position: "sticky", top: 80 }}>
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => setActive(s.id)}
+              <button key={s.id} onClick={() => setActive(s.id)} className="btn-motion"
                 style={{ background: active === s.id ? "color-mix(in srgb, var(--primary) 9%, transparent)" : "transparent", border: `1px solid ${active === s.id ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "transparent"}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", fontSize: 14, color: active === s.id ? "var(--primary)" : "var(--text-muted)", fontWeight: active === s.id ? 600 : 400, textAlign: "left", display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s" }}>
-                <span>{s.icon}</span> {s.label}
+                <s.icon size={15} /> {s.label}
               </button>
             ))}
           </nav>
 
           {/* Mobile: trigger bar opens a slide-in drawer instead of a stacked/sticky nav */}
-          <button onClick={() => setMobileNavOpen(true)} className="flex md:hidden"
+          <button onClick={() => setMobileNavOpen(true)} className="flex md:hidden btn-motion"
             style={{ alignItems: "center", justifyContent: "space-between", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>{activeSection.icon} {activeSection.label}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><activeSection.icon size={15} /> {activeSection.label}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
           </button>
 
@@ -298,15 +299,15 @@ function SettingsPageInner() {
             style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: 260, maxWidth: "80vw", background: "var(--surface)", borderRight: "1px solid var(--border)", zIndex: 201, padding: 20, display: "flex", flexDirection: "column", gap: 2, overflowY: "auto", boxShadow: "4px 0 24px rgba(0,0,0,0.3)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>Settings</span>
-              <button onClick={() => setMobileNavOpen(false)} aria-label="Close menu"
+              <button onClick={() => setMobileNavOpen(false)} aria-label="Close menu" className="btn-motion"
                 style={{ width: 28, height: 28, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => { setActive(s.id); setMobileNavOpen(false); }}
+              <button key={s.id} onClick={() => { setActive(s.id); setMobileNavOpen(false); }} className="btn-motion"
                 style={{ background: active === s.id ? "color-mix(in srgb, var(--primary) 9%, transparent)" : "transparent", border: `1px solid ${active === s.id ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "transparent"}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", fontSize: 14, color: active === s.id ? "var(--primary)" : "var(--text-muted)", fontWeight: active === s.id ? 600 : 400, textAlign: "left", display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s" }}>
-                <span>{s.icon}</span> {s.label}
+                <s.icon size={15} /> {s.label}
               </button>
             ))}
           </nav>
@@ -335,7 +336,7 @@ function SettingsPageInner() {
                       {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                     </div>
                     {customAvatar && (
-                      <button onClick={() => removeAvatar().catch(() => {})} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, cursor: "pointer", padding: 0, marginTop: 6, textDecoration: "underline" }}>
+                      <button onClick={() => removeAvatar().catch(() => {})} className="btn-motion" style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, cursor: "pointer", padding: 0, marginTop: 6, textDecoration: "underline" }}>
                         Remove custom picture
                       </button>
                     )}
@@ -352,7 +353,7 @@ function SettingsPageInner() {
                       onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
                       onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
                     <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
-                      Changes how you're shown across the app. Your on-chain identity (<code style={{ fontFamily: "var(--font-geist-mono)" }}>{onchainUsername}</code>) never changes — Taskify.sol has no update function for it.
+                      Changes how you're shown across the app. Your on-chain identity (<code style={{ fontFamily: "var(--font-geist-mono)" }}>{onchainUsername}</code>) never changes; Taskify.sol has no update function for it.
                     </div>
                   </div>
                   <div>
@@ -378,7 +379,7 @@ function SettingsPageInner() {
                       </div>
                     </div>
                     {!googleVerified && (
-                      <button onClick={handleGoogleConnect} disabled={googleConnecting}
+                      <button onClick={handleGoogleConnect} disabled={googleConnecting} className="btn-motion"
                         style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: googleConnecting ? "not-allowed" : "pointer", opacity: googleConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
                         {googleConnecting ? "Connecting…" : "Continue with Google"}
                       </button>
@@ -389,18 +390,18 @@ function SettingsPageInner() {
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>GitHub <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional — for Development task credibility)</span></div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>GitHub <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional, for Development task credibility)</span></div>
                         <div style={{ fontSize: 12, color: githubVerified ? "var(--success)" : "var(--text-dim)" }}>
                           {githubConnecting ? "Connecting…" : githubVerified ? `@${githubHandle || onchainUsername}` : "Not connected"}
                         </div>
                       </div>
                     </div>
                     {githubVerified ? (
-                      <button onClick={unlinkGithub} style={{ background: "var(--border)", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
+                      <button onClick={unlinkGithub} className="btn-motion" style={{ background: "var(--border)", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
                         Disconnect
                       </button>
                     ) : (
-                      <button onClick={handleGithubConnect} disabled={githubConnecting}
+                      <button onClick={handleGithubConnect} disabled={githubConnecting} className="btn-motion"
                         style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: githubConnecting ? "not-allowed" : "pointer", opacity: githubConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
                         {githubConnecting ? "Connecting…" : "Continue with GitHub"}
                       </button>
@@ -418,11 +419,11 @@ function SettingsPageInner() {
                       </div>
                     </div>
                     {xVerified ? (
-                      <button onClick={unlinkX} style={{ background: "var(--border)", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
+                      <button onClick={unlinkX} className="btn-motion" style={{ background: "var(--border)", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
                         Disconnect
                       </button>
                     ) : (
-                      <button onClick={handleXConnect} disabled={xConnecting}
+                      <button onClick={handleXConnect} disabled={xConnecting} className="btn-motion"
                         style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: xConnecting ? "not-allowed" : "pointer", opacity: xConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
                         {xConnecting ? "Connecting…" : "Continue with X"}
                       </button>
@@ -437,12 +438,12 @@ function SettingsPageInner() {
             {active === "experience" && (
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 8px" }}>Experience Level</h2>
-                <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 24px", lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px", lineHeight: 1.6 }}>
                   Your experience tier is stored on-chain and gates which tasks you can apply to. Updates cost a small gas fee and have a ~1 day cooldown.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
                   {TIERS.map((tier) => (
-                    <button key={tier.id} onClick={() => setExpTier(tier.id)}
+                    <button key={tier.id} onClick={() => setExpTier(tier.id)} className="btn-motion"
                       style={{ background: expTier === tier.id ? tier.bg : "var(--surface-2)", border: `1px solid ${expTier === tier.id ? tier.color + "50" : "var(--border)"}`, borderRadius: 12, padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.15s" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: tier.bg, border: `1px solid ${tier.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: tier.color }}>{tier.id}</div>
@@ -467,11 +468,11 @@ function SettingsPageInner() {
             {active === "notifications" && (
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 8px" }}>Notifications</h2>
-                <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 24px" }}>Choose which on-chain events trigger notifications.</p>
+                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px" }}>Choose which on-chain events trigger notifications.</p>
 
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
-                    Email <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional — also sends the events below by email)</span>
+                    Email <span style={{ fontWeight: 400, color: "var(--text-dim)" }}>(optional, also sends the events below by email)</span>
                   </label>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
                     style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
@@ -486,7 +487,7 @@ function SettingsPageInner() {
                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{label}</div>
                         <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{desc}</div>
                       </div>
-                      <button onClick={() => setNotifs((n) => ({ ...n, [key]: !n[key] }))}
+                      <button onClick={() => setNotifs((n) => ({ ...n, [key]: !n[key] }))} className="btn-motion"
                         style={{ width: 44, height: 24, borderRadius: 12, background: notifs[key] ? "var(--primary)" : "var(--border)", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
                         <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: notifs[key] ? 23 : 3, transition: "left 0.2s" }} />
                       </button>
@@ -516,7 +517,7 @@ function SettingsPageInner() {
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 8 }}>Contract</div>
                     <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", wordBreak: "break-all" }}>{TASKIFY_ADDRESS ?? "not configured"}</div>
                   </div>
-                  <button onClick={() => disconnect()} style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, cursor: "pointer", marginTop: 4 }}>
+                  <button onClick={() => disconnect()} className="btn-motion" style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, cursor: "pointer", marginTop: 4 }}>
                     Disconnect Wallet
                   </button>
                 </div>
@@ -527,12 +528,12 @@ function SettingsPageInner() {
             {active === "danger" && (
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)", margin: "0 0 8px" }}>Danger Zone</h2>
-                <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 24px", lineHeight: 1.6 }}>These actions are irreversible. On-chain data cannot be deleted.</p>
+                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px", lineHeight: 1.6 }}>These actions are irreversible. On-chain data cannot be deleted.</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ background: "color-mix(in srgb, var(--danger-strong) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Cancel All Open Tasks</div>
                     <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14 }}>Refunds escrowed MUSD for all {myOpenSelfFundedTasks.length} of your open self-funded tasks. Cannot be undone.</div>
-                    <button disabled={cancelling || myOpenSelfFundedTasks.length === 0} onClick={handleCancelAll} style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px 20px", borderRadius: 8, cursor: (cancelling || myOpenSelfFundedTasks.length === 0) ? "not-allowed" : "pointer", opacity: (cancelling || myOpenSelfFundedTasks.length === 0) ? 0.6 : 1 }}>
+                    <button disabled={cancelling || myOpenSelfFundedTasks.length === 0} onClick={handleCancelAll} className="btn-motion" style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px 20px", borderRadius: 8, cursor: (cancelling || myOpenSelfFundedTasks.length === 0) ? "not-allowed" : "pointer", opacity: (cancelling || myOpenSelfFundedTasks.length === 0) ? 0.6 : 1 }}>
                       {cancelling ? "Cancelling…" : `Cancel ${myOpenSelfFundedTasks.length || "All"} Open Task${myOpenSelfFundedTasks.length !== 1 ? "s" : ""}`}
                     </button>
                     {cancelError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 10 }}>{cancelError}</div>}
@@ -545,7 +546,7 @@ function SettingsPageInner() {
             {(active === "profile" || active === "experience" || active === "notifications") && (
               <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                 {saveError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{saveError}</div>}
-                <button onClick={handleSave} disabled={saving} style={{ background: saved ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--primary)", border: saved ? "1px solid color-mix(in srgb, var(--success) 19%, transparent)" : "none", color: saved ? "var(--success)" : "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 28px", borderRadius: 10, cursor: saving ? "not-allowed" : "pointer", transition: "all 0.2s", opacity: saving ? 0.7 : 1 }}>
+                <button onClick={handleSave} disabled={saving} className="btn-motion" style={{ background: saved ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--primary)", border: saved ? "1px solid color-mix(in srgb, var(--success) 19%, transparent)" : "none", color: saved ? "var(--success)" : "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 28px", borderRadius: 10, cursor: saving ? "not-allowed" : "pointer", transition: "all 0.2s", opacity: saving ? 0.7 : 1 }}>
                   {saving ? "Saving…" : saved ? "✓ Saved" : active === "experience" ? "Update Experience On-Chain" : "Save Changes"}
                 </button>
               </div>

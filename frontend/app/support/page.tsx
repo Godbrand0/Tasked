@@ -11,6 +11,7 @@ import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { MUSD_ADDRESS, TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useApproveIfNeeded, usePatron, useTaskifyTx, useTaskifyUser, toRawMUSD } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { IconLandmark, IconCoins } from "@/components/icons";
 
 export default function SupportPage() {
   const { connected, isRegistered, username } = useWallet();
@@ -55,12 +56,12 @@ export default function SupportPage() {
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🏛</div>
+          <div style={{ display: "flex", justifyContent: "center", color: "var(--success)", marginBottom: 20 }}><IconLandmark size={44} /></div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Support the grant pool</h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 28 }}>
-            Connect your wallet and register to deposit MUSD into the grant pool. Any registered wallet — Owner or Contributor — can support.
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
+            Connect your wallet and register to deposit MUSD into the grant pool. Any registered wallet (Owner or Contributor) can support.
           </p>
-          <Link href="/register" style={{ background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
+          <Link href="/register" className="btn-motion" style={{ background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
             Register →
           </Link>
         </div>
@@ -75,14 +76,14 @@ export default function SupportPage() {
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 24px" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏛</div>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}><IconLandmark size={24} /></div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{user.username || username || formatAddress(address ?? "")}</h1>
               <PatronTierBadge tier={currentTier.id} />
             </div>
             <div style={{ fontSize: 13, color: "var(--text-dim)" }}>
-              Supporting the pool doesn&apos;t grant voting rights on its own — see{" "}
+              Supporting the pool doesn&apos;t grant voting rights on its own; see{" "}
               <Link href="/vote" style={{ color: "var(--primary)" }}>Vote</Link> for how grant voting works.
             </div>
           </div>
@@ -97,8 +98,8 @@ export default function SupportPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Total deposited stat */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
-            <div style={{ fontSize: 22, marginBottom: 10 }}>💰</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--success)", marginBottom: 4 }}>{formatMUSD(totalDepositedHuman)} MUSD</div>
+            <div style={{ color: "var(--success)", marginBottom: 10 }}><IconCoins size={20} /></div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--success)", marginBottom: 4 }}><span className="figure">{formatMUSD(totalDepositedHuman)}</span> MUSD</div>
             <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Total Deposited</div>
           </div>
 
@@ -130,14 +131,14 @@ export default function SupportPage() {
           {/* Deposit MUSD */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Support the Pool</div>
-            <p style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 14 }}>
-              Deposits are <strong style={{ color: "var(--text)" }}>permanent</strong> — this is ecosystem patronage, not a loan. Minimum 50 MUSD. Any registered wallet can support, regardless of role.
+            <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, marginBottom: 14 }}>
+              Deposits are <strong style={{ color: "var(--text)" }}>permanent</strong>; this is ecosystem patronage, not a loan. Minimum 50 MUSD. Any registered wallet can support, regardless of role.
             </p>
             <input type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} placeholder="Amount in MUSD" min="50"
               style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box", marginBottom: 10 }}
               onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--success) 25%, transparent)")}
               onBlur={e => (e.target.style.borderColor = "var(--border)")} />
-            <button disabled={numDeposit < 50 || depositing} onClick={handleDeposit}
+            <button disabled={numDeposit < 50 || depositing} onClick={handleDeposit} className="btn-motion"
               style={{ width: "100%", background: numDeposit >= 50 ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--border)", border: `1px solid ${numDeposit >= 50 ? "color-mix(in srgb, var(--success) 19%, transparent)" : "var(--border)"}`, color: numDeposit >= 50 ? "var(--success)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: numDeposit >= 50 ? "pointer" : "not-allowed" }}>
               {depositing ? "Depositing…" : "Deposit to Pool"}
             </button>

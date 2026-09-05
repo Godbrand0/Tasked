@@ -12,14 +12,14 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "2. Nature of the Protocol",
     body: [
-      "Taskify is non-custodial. No one — including the team that built it — holds, controls, or can unilaterally move funds you lock in the contract. Escrow, experience gating, fee splits, grant voting, and wave rewards are all enforced entirely by the deployed smart contract code.",
+      "Taskify is non-custodial. No one (including the team that built it) holds, controls, or can unilaterally move funds you lock in the contract. Escrow, experience gating, fee splits, grant voting, and wave rewards are all enforced entirely by the deployed smart contract code.",
       "Because the protocol is decentralized, transactions you submit are irreversible once confirmed on-chain. There is no support desk that can reverse a transfer, refund a mistaken deposit, or undo an approved release of funds.",
     ],
   },
   {
     title: "3. No Financial or Legal Advice",
     body: [
-      "Nothing on this site — including task descriptions, grant justifications, fee breakdowns, or FAQ content — constitutes financial, investment, legal, or tax advice. Depositing MUSD into the grant pool, staking MEZO, or posting a self-funded task are decisions you make at your own risk and discretion.",
+      "Nothing on this site (including task descriptions, grant justifications, fee breakdowns, or FAQ content) constitutes financial, investment, legal, or tax advice. Depositing MUSD into the grant pool, staking MEZO, or posting a self-funded task are decisions you make at your own risk and discretion.",
     ],
   },
   {
@@ -43,7 +43,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "7. Smart Contract and Market Risk",
     body: [
-      "Smart contracts can contain bugs, and audits — even completed ones — do not eliminate risk. By using Taskify you accept the risk of loss due to contract vulnerabilities, oracle or bridge failures affecting MUSD or MEZO, network congestion or outages on Mezo, and general volatility or de-pegging risk in any token you hold or deposit.",
+      "Smart contracts can contain bugs, and audits (even completed ones) do not eliminate risk. By using Taskify you accept the risk of loss due to contract vulnerabilities, oracle or bridge failures affecting MUSD or MEZO, network congestion or outages on Mezo, and general volatility or de-pegging risk in any token you hold or deposit.",
     ],
   },
   {
@@ -89,7 +89,7 @@ export default function TermsPage() {
         <h1 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           Terms &amp; Conditions
         </h1>
-        <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 40px" }}>Effective {EFFECTIVE_DATE}</p>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 40px" }}>Effective {EFFECTIVE_DATE}</p>
 
         <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", borderRadius: 14, padding: "18px 22px", marginBottom: 40, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
           Taskify is a non-custodial, decentralized protocol. Nothing here is financial or legal advice, and no one can reverse a confirmed on-chain transaction on your behalf. Read this in full before connecting a wallet.

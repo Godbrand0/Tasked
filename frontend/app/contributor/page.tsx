@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
-import Navbar from "@/components/Navbar";
+import PageShell, { Container } from "@/components/ui/PageShell";
 import TaskCard from "@/components/ui/TaskCard";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
+import EmptyState from "@/components/ui/EmptyState";
+import { IconCheck, IconCoins, IconAward, IconTarget } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
@@ -72,7 +74,7 @@ export default function ContributorPage() {
     try {
       await send("updateExperience", [tierChoice]);
     } catch (err) {
-      setTierError(formatContractError(err, "Failed to update tier — check the 1-day cooldown."));
+      setTierError(formatContractError(err, "Failed to update tier. Check the 1-day cooldown."));
     } finally {
       setUpdatingTier(false);
     }
@@ -96,10 +98,8 @@ export default function ContributorPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <Navbar />
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px" }}>
+    <PageShell>
+      <Container maxWidth={1200} style={{ padding: "40px 24px" }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -112,7 +112,8 @@ export default function ContributorPage() {
               <TierBadge tier={myTier} />
             </div>
           </div>
-          <Link href="/tasks" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none" }}>
+          {/* Solid fill matches the visual weight of the creator dashboard's primary CTA, kept in the contributor page's own secondary/purple accent rather than switching to the site-wide red primary */}
+          <Link href="/tasks" className="btn-motion" style={{ background: "var(--secondary)", color: "var(--on-primary)", border: "none", fontWeight: 700, fontSize: 14, padding: "12px 22px", borderRadius: 10, textDecoration: "none" }}>
             Browse All Tasks
           </Link>
         </div>
@@ -120,14 +121,14 @@ export default function ContributorPage() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "Tasks Completed", value: String(tasksCompleted), color: "var(--success)", icon: "✓" },
-            { label: "Total Earned",    value: formatEarnedBreakdown(completedTasks), color: "var(--primary)", icon: "💰" },
-            { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: "🏅" },
-            { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "var(--blue)", icon: "🎯" },
-          ].map(({ label, value, color, icon }) => (
+            { label: "Tasks Completed", value: String(tasksCompleted), color: "var(--success)", icon: IconCheck, figure: true },
+            { label: "Total Earned",    value: formatEarnedBreakdown(completedTasks), color: "var(--primary)", icon: IconCoins, figure: true },
+            { label: "Experience Tier", value: TIERS[myTier].label,                          color: TIERS[myTier].color, icon: IconAward, figure: false },
+            { label: "Matched Tasks",   value: String(matchedTasks.length),                  color: "var(--blue)", icon: IconTarget, figure: true },
+          ].map(({ label, value, color, icon: Icon, figure }) => (
             <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+              <div style={{ color, marginBottom: 10 }}><Icon size={20} /></div>
+              <div className={figure ? "figure" : undefined} style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>{label}</div>
             </div>
           ))}
@@ -147,11 +148,11 @@ export default function ContributorPage() {
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 16px" }}>{activeTask.title}</h3>
                   <div style={{ display: "flex", gap: 10 }}>
                     {activeTask.status === "IN_PROGRESS" && (
-                      <button disabled={submittingActive} onClick={handleSubmitActive} style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, border: "none", cursor: submittingActive ? "not-allowed" : "pointer", opacity: submittingActive ? 0.7 : 1 }}>
+                      <button disabled={submittingActive} onClick={handleSubmitActive} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, border: "none", cursor: submittingActive ? "not-allowed" : "pointer", opacity: submittingActive ? 0.7 : 1 }}>
                         {submittingActive ? "Confirming…" : "Submit Work"}
                       </button>
                     )}
-                    <Link href={`/tasks/${activeTask.id}`} style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
+                    <Link href={`/tasks/${activeTask.id}`} className="btn-motion" style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
                       View Task
                     </Link>
                   </div>
@@ -187,7 +188,7 @@ export default function ContributorPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>Matched for You</h2>
-                  <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>Tasks within your {TIERS[myTier].label} experience tier</p>
+                  <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>Tasks within your {TIERS[myTier].label} experience tier</p>
                 </div>
                 <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{matchedTasks.length} task{matchedTasks.length !== 1 ? "s" : ""}</span>
               </div>
@@ -196,10 +197,8 @@ export default function ContributorPage() {
                   {matchedTasks.map((task) => <TaskCard key={task.id} task={task} creatorAvatarUrl={profilesByAddress?.[task.creator.toLowerCase()]?.avatarUrl ?? undefined} />)}
                 </div>
               ) : (
-                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "40px 24px", textAlign: "center" }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>🎯</div>
-                  <div style={{ fontSize: 15, color: "var(--text-muted)", marginBottom: 8 }}>No matched tasks right now</div>
-                  <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Check back soon, or browse all tasks below</div>
+                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
+                  <EmptyState size="sm" icon={IconTarget} title="No matched tasks right now" description="Check back soon, or browse all tasks below" />
                 </div>
               )}
             </div>
@@ -207,7 +206,7 @@ export default function ContributorPage() {
             {/* Out of range toggle */}
             {outOfRangeTasks.length > 0 && (
               <div style={{ marginBottom: 36 }}>
-                <button onClick={() => setShowAll(!showAll)}
+                <button onClick={() => setShowAll(!showAll)} className="btn-motion"
                   style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-dim)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer", marginBottom: 16 }}>
                   {showAll ? "Hide" : "Show"} {outOfRangeTasks.length} tasks outside your tier
                 </button>
@@ -226,9 +225,7 @@ export default function ContributorPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {appliedTasks.map((task) => (
                     <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--secondary) 25%, transparent)")}
-                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
+                      <div className="border-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, transition: "border-color var(--duration-fast) ease" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{task.title}</div>
                           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token}</div>
@@ -272,19 +269,19 @@ export default function ContributorPage() {
             {/* Update experience */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Update Experience</div>
-              <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
+              <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
               <select value={tierChoice} onChange={e => setTierChoice(Number(e.target.value))}
                 style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", cursor: "pointer", marginBottom: 10 }}>
-                {TIERS.map((t) => <option key={t.id} value={t.id}>{t.label} — {t.years}</option>)}
+                {TIERS.map((t) => <option key={t.id} value={t.id}>{t.label} · {t.years}</option>)}
               </select>
-              <button disabled={updatingTier} onClick={handleUpdateTier} style={{ width: "100%", background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "10px", borderRadius: 10, cursor: updatingTier ? "not-allowed" : "pointer", opacity: updatingTier ? 0.7 : 1 }}>
+              <button disabled={updatingTier} onClick={handleUpdateTier} className="btn-motion" style={{ width: "100%", background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "10px", borderRadius: 10, cursor: updatingTier ? "not-allowed" : "pointer", opacity: updatingTier ? 0.7 : 1 }}>
                 {updatingTier ? "Confirming…" : "Update Tier"}
               </button>
               {tierError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{tierError}</div>}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Container>
+    </PageShell>
   );
 }

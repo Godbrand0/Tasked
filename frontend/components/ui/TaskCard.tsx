@@ -3,17 +3,16 @@ import { Task } from "@/lib/mock";
 import { formatMUSD } from "@/lib/constants";
 import { Badge, TierRangeBadge, StatusBadge } from "./Badge";
 import Avatar from "./Avatar";
+import { IconMegaphone } from "@/components/icons";
 
 export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creatorAvatarUrl?: string }) {
   return (
     <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, transition: "border-color 0.15s, box-shadow 0.15s", cursor: "pointer" }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}>
+      <div className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, boxShadow: "var(--shadow-sm)", cursor: "pointer" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <StatusBadge status={task.status} />
           <div style={{ display: "flex", gap: 6 }}>
-            {task.kind === "community" && <Badge color="blue">📣 Community</Badge>}
+            {task.kind === "community" && <Badge color="blue"><IconMegaphone size={12} /> Community</Badge>}
             {task.fundingType === "grant" && <Badge color="purple">Grant</Badge>}
           </div>
         </div>
@@ -24,7 +23,7 @@ export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creat
         </p>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <Badge color="orange">{formatMUSD(task.amount)} {task.token}</Badge>
+          <Badge color="orange"><span className="figure">{formatMUSD(task.amount)}</span> {task.token}</Badge>
           {task.kind === "community"
             ? <Badge color="gray">Up to {task.maxWinners ?? 1} winner{(task.maxWinners ?? 1) !== 1 ? "s" : ""}</Badge>
             : <TierRangeBadge min={task.experienceMin} max={task.experienceMax} />}

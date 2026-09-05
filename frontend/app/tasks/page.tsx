@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
 import TaskCard from "@/components/ui/TaskCard";
+import PageShell, { Container } from "@/components/ui/PageShell";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
+import Button from "@/components/ui/Button";
+import { IconSearch } from "@/components/icons";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { useAllTasks, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
@@ -85,16 +89,14 @@ export default function TasksPage() {
   const canJoinCommunity = connected && isRegistered && role !== "creator";
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <Navbar />
-
+    <PageShell>
       {/* Header */}
-      <div style={{ borderBottom: "1px solid var(--border)", padding: "40px 24px 32px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ padding: "40px 24px 32px", borderBottom: "1px solid transparent", borderImage: "linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent) 1" }}>
+        <Container style={{ padding: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
             <div>
               <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
-              <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>
+              <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
                 {tasks.filter(t => t.status === "OPEN").length} open tasks · experience-matched on-chain
               </p>
             </div>
@@ -102,23 +104,19 @@ export default function TasksPage() {
               {/* Role badge / hint */}
               {connected && isRegistered && (
                 <div style={{ fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8, background: role === "contributor" ? "color-mix(in srgb, var(--secondary) 9%, transparent)" : role === "creator" ? "color-mix(in srgb, var(--primary) 9%, transparent)" : "color-mix(in srgb, var(--success) 9%, transparent)", color: role === "contributor" ? "var(--secondary-light)" : role === "creator" ? "var(--primary)" : "var(--success)", border: `1px solid ${role === "contributor" ? "color-mix(in srgb, var(--secondary) 19%, transparent)" : role === "creator" ? "color-mix(in srgb, var(--primary) 19%, transparent)" : "color-mix(in srgb, var(--success) 19%, transparent)"}` }}>
-                  {role === "contributor" ? "You can apply" : role === "creator" ? "View only — post your own" : "Patron view"}
+                  {role === "contributor" ? "You can apply" : role === "creator" ? "View only, post your own" : "Patron view"}
                 </div>
               )}
-              {isCreator && (
-                <Link href="/create" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "10px 20px", borderRadius: 10, textDecoration: "none" }}>
-                  + Post a Task
-                </Link>
-              )}
+              {isCreator && <Button href="/create">+ Post a Task</Button>}
             </div>
           </div>
-        </div>
+        </Container>
       </div>
 
       {/* Role banner for non-contributors */}
       {connected && isRegistered && role !== "contributor" && (
-        <div style={{ borderBottom: "1px solid var(--border)", padding: "12px 24px", background: "var(--surface)" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-muted)" }}>
+        <div style={{ padding: "12px 24px", background: "var(--surface)", borderBottom: "1px solid transparent", borderImage: "linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent) 1" }}>
+          <Container style={{ padding: 0, display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-muted)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
@@ -126,7 +124,7 @@ export default function TasksPage() {
               ? "As an owner you can browse tasks for inspiration, but only contributors can apply to Development tasks. "
               : "Patrons can browse tasks to inform grant voting, but only contributors can apply to Development tasks. Community tasks are open to any registered role, including you. "}
             <Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none" }}>Learn more</Link>
-          </div>
+          </Container>
         </div>
       )}
 
@@ -157,8 +155,8 @@ export default function TasksPage() {
           <FilterGroup label="Task Type">
             <FilterSelect value={kindFilter} onChange={v => setKindFilter(v as typeof kindFilter)}>
               <option value="all">All Tasks</option>
-              <option value="development">💻 Development</option>
-              <option value="community">📣 Community</option>
+              <option value="development">Development</option>
+              <option value="community">Community</option>
             </FilterSelect>
           </FilterGroup>
 
@@ -183,16 +181,11 @@ export default function TasksPage() {
         {/* Task grid */}
         <main>
           {tasksLoading ? (
-            <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-dim)" }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-muted)" }}>Loading tasks from Mezo…</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-dim)" }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>No tasks match your filters</div>
-              <div style={{ fontSize: 14 }}>Try adjusting your search or filters</div>
-            </div>
+            <EmptyState size="lg" icon={IconSearch} title="No tasks match your filters" description="Try adjusting your search or filters" />
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
               {filtered.map(task => (
@@ -201,7 +194,7 @@ export default function TasksPage() {
                   {/* Quick-action badge on open tasks — apply (dev, contributors only) or join (community, any role) */}
                   {task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor)) && (
                     <div style={{ position: "absolute", bottom: 20, right: 20 }}>
-                      <Link href={`/tasks/${task.id}`}
+                      <Link href={`/tasks/${task.id}`} className="btn-motion"
                         style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 6, textDecoration: "none", display: "inline-block" }}>
                         {task.kind === "community" ? "Join →" : "Apply →"}
                       </Link>
@@ -213,7 +206,7 @@ export default function TasksPage() {
           )}
         </main>
       </div>
-    </div>
+    </PageShell>
   );
 }
 

@@ -29,7 +29,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "What is MEZO used for on Taskify?",
-        a: "MEZO is Mezo's native token; tasks can be posted and paid in MEZO the same way they can in MUSD. It doesn't grant any voting power on its own — pair a veMEZO lock with a veBTC position via Mezo's Matching Market if you want to boost your governance weight (see \"How does grant voting work?\" below).",
+        a: "MEZO is Mezo's native token; tasks can be posted and paid in MEZO the same way they can in MUSD. It doesn't grant any voting power on its own; pair a veMEZO lock with a veBTC position via Mezo's Matching Market if you want to boost your governance weight (see \"How does grant voting work?\" below).",
       },
       {
         q: "Is my money safe in escrow?",
@@ -58,7 +58,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "What kind of tasks should I post as a creator?",
-        a: "Three broad categories work well: code fixes or changes for developers (Development tasks, experience-tier gated — think \"fix a broken footer layout\" or \"add a loading skeleton to the tasks list\"), social media tasks for the community (Community tasks, open to anyone, no code required — a post, a thread, a meme), and bug bounties or testing for everyone (either type, depending on whether you want it dev-gated or open). Keep bounties small and tightly scoped either way — the amounts on Taskify are modest, so a task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
+        a: "Three broad categories work well: code fixes or changes for developers (Development tasks, experience-tier gated: think \"fix a broken footer layout\" or \"add a loading skeleton to the tasks list\"), social media tasks for the community (Community tasks, open to anyone, no code required: a post, a thread, a meme), and bug bounties or testing for everyone (either type, depending on whether you want it dev-gated or open). Keep bounties small and tightly scoped either way; the amounts on Taskify are modest, so a task a contributor can realistically finish in a few hours to a couple of days gets applicants faster and gets reviewed and paid faster than an open-ended multi-week feature.",
       },
       {
         q: "Can I post a large, multi-week feature as one task?",
@@ -71,10 +71,10 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "Do I need to connect GitHub or X? What are the benefits?",
-        a: "No — neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet. That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work — it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
+        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet. That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
       },
       {
-        q: "I linked GitHub/X but it's not showing as verified — what happened?",
+        q: "I linked GitHub/X but it's not showing as verified. What happened?",
         a: "GitHub verification is backed by a real OAuth flow, so it should update immediately after you authorize it in Settings; try disconnecting and reconnecting if it's stuck. X verification is currently self-declared rather than backed by live OAuth, so it's set the moment you link a handle in Settings.",
       },
     ],
@@ -84,11 +84,11 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "How does grant voting work?",
-        a: "Voting weight comes entirely from your veBTC position on Mezo Earn — lock BTC there to mint veBTC, and Taskify reads that weight live via Mezo's own contracts every time you vote. It's completely decoupled from MUSD deposits: depositing funds the grant pool and earns Patron tiers, but doesn't grant votes. Each proposal snapshots weight at the moment it opens, so locking veBTC after a vote has already started doesn't let you swing it.",
+        a: "Voting weight comes entirely from your veBTC position on Mezo Earn; lock BTC there to mint veBTC, and Taskify reads that weight live via Mezo's own contracts every time you vote. It's completely decoupled from MUSD deposits: depositing funds the grant pool and earns Patron tiers, but doesn't grant votes. Each proposal snapshots weight at the moment it opens, so locking veBTC after a vote has already started doesn't let you swing it.",
       },
       {
         q: "How can I become a voter?",
-        a: "Grant voting is currently in an invite-only pilot phase while the patron base grows. Holding real veBTC weight is necessary but not sufficient on its own — Taskify additionally maintains an approved-voter list, and only wallets on that list can cast a vote, even if they hold veBTC. If you hold veBTC and want to be considered for the pilot, reach out via X (@taskifyhq).",
+        a: "Grant voting is currently in an invite-only pilot phase while the patron base grows. Holding real veBTC weight is necessary but not sufficient on its own; Taskify additionally maintains an approved-voter list, and only wallets on that list can cast a vote, even if they hold veBTC. If you hold veBTC and want to be considered for the pilot, reach out via X (@taskifyhq).",
       },
     ],
   },
@@ -97,7 +97,7 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "How can I support Taskify?",
-        a: "A few ways, depending on what you have to offer: become a Patron by depositing MUSD into the grant pool (funds grant-approved tasks and unlocks Patron tiers), lock BTC into veBTC via Mezo Earn (grows real governance weight behind grant voting), post real tasks so there's work on the board, apply for and complete tasks as a contributor, or simply spread the word — follow @taskifyhq on X and share tasks you post or complete.",
+        a: "A few ways, depending on what you have to offer: become a Patron by depositing MUSD into the grant pool (funds grant-approved tasks and unlocks Patron tiers), lock BTC into veBTC via Mezo Earn (grows real governance weight behind grant voting), post real tasks so there's work on the board, apply for and complete tasks as a contributor, or simply spread the word; follow @taskifyhq on X and share tasks you post or complete.",
       },
     ],
   },
@@ -105,8 +105,8 @@ const FAQ_GROUPS: FaqGroup[] = [
     group: "Notifications & email",
     items: [
       {
-        q: "I'm not getting notification emails — what should I check?",
-        a: "First, check Settings → Notification Preferences to confirm email notifications are turned on for the event types you care about (they're on by default, but can be toggled off individually). If they're on and you still don't see anything, check your Spam/Junk folder — new senders, including Taskify's notification address, commonly land there the first few times a mail provider sees them. If you find one there, mark it \"Not spam\" (Gmail) or \"Not junk\" (Outlook) rather than just moving it to your inbox — that's what actually retrains your provider's filter for future emails, instead of only fixing this one. It also helps other people: mail providers weigh how often a sender gets reported as legitimate versus reported as spam when deciding whether to keep flagging that sender, so marking a genuine Taskify email as \"not spam\" helps keep it out of spam for other users at the same provider too, not just you.",
+        q: "I'm not getting notification emails. What should I check?",
+        a: "First, check Settings → Notification Preferences to confirm email notifications are turned on for the event types you care about (they're on by default, but can be toggled off individually). If they're on and you still don't see anything, check your Spam/Junk folder; new senders, including Taskify's notification address, commonly land there the first few times a mail provider sees them. If you find one there, mark it \"Not spam\" (Gmail) or \"Not junk\" (Outlook) rather than just moving it to your inbox; that's what actually retrains your provider's filter for future emails, instead of only fixing this one. It also helps other people: mail providers weigh how often a sender gets reported as legitimate versus reported as spam when deciding whether to keep flagging that sender, so marking a genuine Taskify email as \"not spam\" helps keep it out of spam for other users at the same provider too, not just you.",
       },
     ],
   },
@@ -125,7 +125,7 @@ export default function FaqPage() {
         <h1 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
           Frequently Asked Questions
         </h1>
-        <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 40px" }}>
+        <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 40px" }}>
           Still stuck? Reach out via <a href="https://x.com/taskifyhq" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>@taskifyhq on X</a>.
         </p>
 

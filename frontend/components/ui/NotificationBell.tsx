@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/lib/wallet-context";
+import DropdownPanel, { useOutsideClick } from "@/components/ui/DropdownPanel";
+import { IconTarget, IconSend, IconCoins, IconBallot, IconWaves, IconEdit, IconHandRaised, IconBell } from "@/components/icons";
 
 interface Notification {
   id: string;
@@ -12,14 +14,14 @@ interface Notification {
   created_at: string;
 }
 
-const META: Record<Notification["type"], { icon: string; label: string }> = {
-  task_assigned: { icon: "🎯", label: "Task assigned to you" },
-  work_submitted: { icon: "📤", label: "Work submitted" },
-  funds_released: { icon: "💸", label: "Funds released" },
-  grant_vote_opened: { icon: "🗳️", label: "Grant vote opened" },
-  wave_reward_ready: { icon: "🌊", label: "Wave reward ready to claim" },
-  task_applied: { icon: "📝", label: "New applicant on your task" },
-  community_task_joined: { icon: "🙋", label: "Someone joined your community task" },
+const META: Record<Notification["type"], { icon: React.ComponentType<{ size?: number }>; label: string }> = {
+  task_assigned: { icon: IconTarget, label: "Task assigned to you" },
+  work_submitted: { icon: IconSend, label: "Work submitted" },
+  funds_released: { icon: IconCoins, label: "Funds released" },
+  grant_vote_opened: { icon: IconBallot, label: "Grant vote opened" },
+  wave_reward_ready: { icon: IconWaves, label: "Wave reward ready to claim" },
+  task_applied: { icon: IconEdit, label: "New applicant on your task" },
+  community_task_joined: { icon: IconHandRaised, label: "Someone joined your community task" },
 };
 
 function timeAgo(iso: string): string {
@@ -39,7 +41,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useOutsideClick<HTMLDivElement>(() => setOpen(false));
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -58,14 +60,6 @@ export default function NotificationBell() {
     else setNotifications([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, connected, isRegistered]);
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   async function markRead(id?: string) {
     if (!address) return;
@@ -87,17 +81,6 @@ export default function NotificationBell() {
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <style>{`
-        @media (max-width: 640px) {
-          .notif-panel {
-            position: fixed !important;
-            top: 74px !important;
-            left: 12px !important;
-            right: 12px !important;
-            width: auto !important;
-          }
-        }
-      `}</style>
       <button
         onClick={() => { setOpen(o => !o); if (!open) load(); }}
         aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
@@ -115,7 +98,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="notif-panel" style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", width: 320, maxHeight: 400, overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.4)", zIndex: 100 }}>
+        <DropdownPanel width={320} maxHeight={400}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Notifications</span>
             {unreadCount > 0 && (
@@ -129,13 +112,15 @@ export default function NotificationBell() {
           ) : notifications.length === 0 ? (
             <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 13, color: "var(--text-dim)" }}>No notifications yet.</div>
           ) : (
-            notifications.map(n => (
+            notifications.map(n => {
+              const Icon = META[n.type]?.icon ?? IconBell;
+              return (
               <button
                 key={n.id}
                 onClick={() => handleClickNotification(n)}
                 style={{ display: "flex", gap: 10, width: "100%", padding: "12px 14px", background: n.read ? "transparent" : "color-mix(in srgb, var(--primary) 6%, transparent)", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}
               >
-                <span style={{ fontSize: 16, flexShrink: 0 }}>{META[n.type]?.icon ?? "🔔"}</span>
+                <span style={{ flexShrink: 0, color: "var(--text-muted)", marginTop: 1 }}><Icon size={16} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: n.read ? 500 : 700, color: "var(--text)" }}>{META[n.type]?.label ?? n.type}</div>
                   <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
@@ -144,9 +129,10 @@ export default function NotificationBell() {
                 </div>
                 {!n.read && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", flexShrink: 0, marginTop: 4 }} />}
               </button>
-            ))
+              );
+            })
           )}
-        </div>
+        </DropdownPanel>
       )}
     </div>
   );

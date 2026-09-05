@@ -47,6 +47,15 @@
   --radius-sm: 8px;  /* buttons, small controls */
   --radius-md: 12px; /* cards, inputs */
   --radius-lg: 16px; /* large panels, dropdowns */
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 550ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.16);
 }
 
 [data-theme="dark"] {
@@ -82,6 +91,12 @@
   --gold: #FFD700;
 
   --neutral-tint: rgba(255, 255, 255, 0.05);
+
+  /* Dark surfaces need darker, more opaque shadows to read as elevation —
+     the light-mode alpha values are nearly invisible against a near-black bg. */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -105,4 +120,137 @@ body {
 ::selection {
   background: color-mix(in srgb, var(--primary) 20%, transparent);
   color: var(--primary);
+}
+
+/* ── Shared component styles ────────────────────────────────────────────
+ * Real CSS hover/media rules for components/ui primitives, so behavior
+ * (dropdown positioning, hover color) is defined once instead of per
+ * page/instance with onMouseEnter handlers or duplicated <style> blocks.
+ * ------------------------------------------------------------------- */
+
+.btn-primary,
+.btn-outline,
+.btn-subtle {
+  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease, color var(--duration-fast) ease, transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) ease;
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-strong) !important; box-shadow: var(--shadow-md) !important; }
+.btn-outline:hover:not(:disabled) { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; }
+.btn-subtle:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 15%, transparent) !important; }
+.btn-primary:active:not(:disabled),
+.btn-outline:active:not(:disabled),
+.btn-subtle:active:not(:disabled) { transform: scale(0.97); }
+
+/* Reusable hover-lift for link-styled cards (task cards, dashboard tiles,
+   register role cards) — opt in with className="card-hover" instead of
+   reimplementing the effect with onMouseEnter/onMouseLeave per component. */
+.card-hover {
+  transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
+}
+.card-hover:hover {
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent) !important;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.task-row:hover .task-title {
+  color: var(--primary) !important;
+}
+
+.table-row:hover {
+  background: var(--surface-2);
+}
+
+.border-hover:hover {
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent) !important;
+}
+
+/* Color-agnostic press/hover motion for buttons that carry their own
+   bespoke background (can't reuse .btn-primary's hardcoded hover color) —
+   the landing page's CTAs each use a different accent color. */
+.btn-motion {
+  transition: transform var(--duration-fast) var(--ease-out), filter var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+.btn-motion:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.btn-motion:active {
+  transform: scale(0.97);
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.icon-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hero-in {
+  animation: fade-in-up var(--duration-slow) var(--ease-out) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.015); }
+}
+
+.float {
+  animation: float 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.skeleton {
+  background: var(--border);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Typographic identity for money/count figures — MUSD amounts, wave pools,
+   stat tiles, leaderboard numbers — so they read as records, not just bold
+   text. Tabular figures keep stacked amounts aligned; the mono face and
+   tight tracking give numbers their own visual register distinct from UI
+   labels and prose. */
+.figure {
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 640px) {
+  .dropdown-panel {
+    position: fixed !important;
+    top: 74px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+}
+
+.dropdown-panel {
+  animation: dropdown-in var(--duration-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

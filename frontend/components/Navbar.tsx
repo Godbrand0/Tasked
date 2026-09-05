@@ -3,13 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
 import { ROLE_LABELS } from "@/lib/constants";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "@/components/ui/NotificationBell";
 import BackButton from "@/components/ui/BackButton";
 import Avatar from "@/components/ui/Avatar";
+import DropdownPanel, { useOutsideClick } from "@/components/ui/DropdownPanel";
+import Button from "@/components/ui/Button";
+import { IconTarget, IconSettings } from "@/components/icons";
 
 const NAV_LINKS = [
   { href: "/tasks", label: "Browse Tasks" },
@@ -44,21 +47,8 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const addressDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-      if (addressDropdownRef.current && !addressDropdownRef.current.contains(e.target as Node)) {
-        setAddressDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const dropdownRef = useOutsideClick<HTMLDivElement>(() => setDropdownOpen(false));
+  const addressDropdownRef = useOutsideClick<HTMLDivElement>(() => setAddressDropdownOpen(false));
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -71,27 +61,16 @@ export default function Navbar() {
     <nav style={{ position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(16px)", background: "color-mix(in srgb, var(--bg) 92%, transparent)", borderBottom: "1px solid var(--border)" }}>
       <style>{`
         .nav-link:hover { color: var(--text) !important; }
-        .nav-btn-outline:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; }
-        .nav-btn-primary:hover { background: var(--primary-strong) !important; }
         .wallet-dropdown-item:hover { background: var(--border) !important; }
-        @media (max-width: 640px) {
-          .wallet-dropdown-panel {
-            position: fixed !important;
-            top: 74px !important;
-            left: 12px !important;
-            right: 12px !important;
-            min-width: 0 !important;
-          }
-        }
       `}</style>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: 64 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, justifySelf: "start" }}>
           <BackButton />
           <TaskedLogo />
         </div>
 
-        {/* Desktop nav links */}
-        <div style={{ alignItems: "center", gap: 32 }} className="hidden sm:flex">
+        {/* Desktop nav links — centered against the full bar width via the grid's auto middle column, not left/right sibling widths */}
+        <div style={{ alignItems: "center", gap: 32, justifySelf: "center" }} className="hidden sm:flex">
           {NAV_LINKS.map(({ href, label }) => (
             <Link key={href} href={href} className="nav-link"
               style={{ color: pathname === href ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === href ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
@@ -121,20 +100,20 @@ export default function Navbar() {
         </div>
 
         {/* Right side */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
           <ThemeToggle />
           {!connected ? (
             /* Not connected: connect + launch (Connect Wallet text button hidden on mobile — Launch App does the same thing) */
             <>
-              <button onClick={connect} className="nav-btn-outline hidden sm:flex"
-                style={{ color: "var(--text-muted)", fontSize: 14, fontWeight: 500, padding: "8px 16px", background: "transparent", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)", cursor: "pointer", transition: "all 0.15s" }}>
-                Connect Wallet
-              </button>
-              <button onClick={connect} className="nav-btn-primary"
-                style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: "var(--radius-sm)", border: "none", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="hidden sm:flex">
+                <Button onClick={connect} variant="outline" style={{ fontWeight: 500 }}>
+                  Connect Wallet
+                </Button>
+              </div>
+              <Button onClick={connect} variant="primary">
                 Launch App
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-              </button>
+              </Button>
             </>
           ) : !isRegistered ? (
             /* Connected, not registered */
@@ -149,7 +128,7 @@ export default function Navbar() {
                 </button>
 
                 {addressDropdownOpen && (
-                  <div className="wallet-dropdown-panel" style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                  <DropdownPanel padding={8}>
                     <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
                       {address}
                     </div>
@@ -164,13 +143,13 @@ export default function Navbar() {
                       </svg>
                       Disconnect & switch account
                     </button>
-                  </div>
+                  </DropdownPanel>
                 )}
               </div>
-              <Link href="/register" style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: "var(--radius-sm)", border: "none", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
+              <Button href="/register" variant="primary">
                 Launch App
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-              </Link>
+              </Button>
             </>
           ) : (
             /* Registered: MUSD + MEZO balances (desktop only), notifications, profile avatar */
@@ -197,7 +176,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="wallet-dropdown-panel" style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                  <DropdownPanel padding={8}>
                     {/* Identity header */}
                     <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -213,13 +192,13 @@ export default function Navbar() {
 
                     {/* Nav items */}
                     {[
-                      { label: "My Dashboard", href: dashboardHref, icon: "🎯" },
-                      { label: "Settings", href: "/settings", icon: "⚙️" },
-                    ].map(({ label, href, icon }) => (
+                      { label: "My Dashboard", href: dashboardHref, icon: IconTarget },
+                      { label: "Settings", href: "/settings", icon: IconSettings },
+                    ].map(({ label, href, icon: Icon }) => (
                       <Link key={href} href={href} className="wallet-dropdown-item"
                         onClick={() => setDropdownOpen(false)}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: "var(--radius-sm)", fontSize: 13, color: "var(--text-soft)", textDecoration: "none", transition: "background 0.1s" }}>
-                        <span>{icon}</span>{label}
+                        <Icon size={15} />{label}
                       </Link>
                     ))}
 
@@ -236,7 +215,7 @@ export default function Navbar() {
                         Disconnect
                       </button>
                     </div>
-                  </div>
+                  </DropdownPanel>
                 )}
               </div>
             </>

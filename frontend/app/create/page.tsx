@@ -10,6 +10,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS, tokenAddress } from "@/lib/taskify";
 import { extractTaskId, toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { IconLock, IconBriefcase, IconMegaphone, IconBallot, IconCode, IconLandmark, IconImage } from "@/components/icons";
 
 type FundingType = "self" | "grant";
 type Currency = "MUSD" | "MEZO";
@@ -208,12 +209,12 @@ export default function CreatePage() {
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🔐</div>
+          <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconLock size={44} /></div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Connect your wallet</h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 28 }}>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
             You need a connected Ethereum wallet and a registered Taskify account to post a task.
           </p>
-          <Link href="/register" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
+          <Link href="/register" className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
             Get Started →
           </Link>
         </div>
@@ -226,12 +227,12 @@ export default function CreatePage() {
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🧩</div>
+          <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconBriefcase size={44} /></div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Owner access only</h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 28 }}>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
             Task posting is restricted to Owner accounts. Your current role is <strong style={{ color: "var(--text)" }}>{role}</strong>.
           </p>
-          <Link href="/tasks" style={{ color: "var(--primary)", fontSize: 14, textDecoration: "none" }}>← Browse bounties instead</Link>
+          <Link href="/tasks" className="btn-motion" style={{ color: "var(--primary)", fontSize: 14, textDecoration: "none" }}>← Browse bounties instead</Link>
         </div>
       </div>
     );
@@ -242,11 +243,13 @@ export default function CreatePage() {
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>{taskKind === "community" ? "📣" : fundingType === "self" ? "🔒" : "🗳️"}</div>
+          <div style={{ display: "flex", justifyContent: "center", color: "var(--success)", marginBottom: 20 }}>
+            {taskKind === "community" ? <IconMegaphone size={52} /> : fundingType === "self" ? <IconLock size={52} /> : <IconBallot size={52} />}
+          </div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>
             {taskKind === "community" ? "Community task is live!" : fundingType === "self" ? "Task posted & escrow locked!" : "Grant application submitted!"}
           </h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 32 }}>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 32 }}>
             {taskKind === "community"
               ? `${numAmount.toLocaleString()} ${currency} is locked in escrow, open for anyone to join. Pick up to ${maxWinners} winners from the submissions whenever you're ready.`
               : fundingType === "self"
@@ -260,14 +263,14 @@ export default function CreatePage() {
           )}
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             {createdTaskId !== null && (
-              <Link href={`/tasks/${createdTaskId}`} style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>
+              <Link href={`/tasks/${createdTaskId}`} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>
                 View Your Task →
               </Link>
             )}
-            <Link href="/tasks" style={{ background: createdTaskId !== null ? "var(--neutral-tint)" : "var(--primary)", color: createdTaskId !== null ? "var(--text-muted)" : "var(--bg)", fontWeight: createdTaskId !== null ? 600 : 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none", border: createdTaskId !== null ? "1px solid var(--border)" : "none" }}>
+            <Link href="/tasks" className="btn-motion" style={{ background: createdTaskId !== null ? "var(--neutral-tint)" : "var(--primary)", color: createdTaskId !== null ? "var(--text-muted)" : "var(--bg)", fontWeight: createdTaskId !== null ? 600 : 700, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none", border: createdTaskId !== null ? "1px solid var(--border)" : "none" }}>
               View Bounty Board
             </Link>
-            <Link href="/creator" style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none", border: "1px solid var(--border)" }}>
+            <Link href="/creator" className="btn-motion" style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "12px 24px", borderRadius: 10, textDecoration: "none", border: "1px solid var(--border)" }}>
               My Dashboard
             </Link>
           </div>
@@ -286,22 +289,22 @@ export default function CreatePage() {
             <Link href="/creator" style={{ color: "var(--text-dim)", textDecoration: "none" }}>My Dashboard</Link> → Post Task
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Post a Task</h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", margin: 0 }}>Lock funds in escrow and match the right contributors on-chain.</p>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>Lock funds in escrow and match the right contributors on-chain.</p>
         </div>
 
         {/* Task kind toggle */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6, display: "flex", gap: 4, marginBottom: 12 }}>
           {(["development", "community"] as TaskKind[]).map(kind => (
-            <button key={kind} onClick={() => handleTaskKindChange(kind)}
-              style={{ flex: 1, background: taskKind === kind ? "var(--secondary)" : "transparent", color: taskKind === kind ? "var(--text)" : "var(--text-muted)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all 0.15s" }}>
-              {kind === "development" ? "💻 Development" : "📣 Community"}
+            <button key={kind} onClick={() => handleTaskKindChange(kind)} className="btn-motion"
+              style={{ flex: 1, background: taskKind === kind ? "var(--secondary)" : "transparent", color: taskKind === kind ? "var(--text)" : "var(--text-muted)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all var(--duration-fast) ease", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              {kind === "development" ? <IconCode size={15} /> : <IconMegaphone size={15} />} {kind === "development" ? "Development" : "Community"}
             </button>
           ))}
         </div>
         <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 28 }}>
           {taskKind === "development"
             ? "One contributor applies, you assign them, they get paid on approval."
-            : "Anyone can join with proof of participation — you pick up to N winners and the payout splits evenly between them."}
+            : "Anyone can join with proof of participation; you pick up to N winners and the payout splits evenly between them."}
         </div>
 
         {/* Funding type toggle — grant-funded only supported for Development tasks */}
@@ -309,9 +312,9 @@ export default function CreatePage() {
           <>
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6, display: "flex", gap: 4, marginBottom: 28 }}>
               {(["self", "grant"] as FundingType[]).map(type => (
-                <button key={type} onClick={() => setFundingType(type)}
-                  style={{ flex: 1, background: fundingType === type ? "var(--primary)" : "transparent", color: fundingType === type ? "var(--bg)" : "var(--text-muted)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all 0.15s" }}>
-                  {type === "self" ? "🔒 Self-Funded (3% fee)" : "🏛 Apply for Grant (5% fee)"}
+                <button key={type} onClick={() => setFundingType(type)} className="btn-motion"
+                  style={{ flex: 1, background: fundingType === type ? "var(--primary)" : "transparent", color: fundingType === type ? "var(--bg)" : "var(--text-muted)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all var(--duration-fast) ease", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  {type === "self" ? <IconLock size={15} /> : <IconLandmark size={15} />} {type === "self" ? "Self-Funded (3% fee)" : "Apply for Grant (5% fee)"}
                 </button>
               ))}
             </div>
@@ -326,13 +329,13 @@ export default function CreatePage() {
 
         {taskKind === "community" && (
           <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 28, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
-            Community tasks are self-funded only (3% fee) — grant-funded community tasks aren't supported yet.
+            Community tasks are self-funded only (3% fee); grant-funded community tasks aren't supported yet.
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {/* Title */}
-          <Field label="Task Title" required hint="keep it small — one clear, bite-sized deliverable">
+          <Field label="Task Title" required hint="keep it small: one clear, bite-sized deliverable">
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Fix broken footer layout on mobile" maxLength={200}
               style={inputStyle}
               onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
@@ -352,7 +355,7 @@ export default function CreatePage() {
                 {(["MUSD", "MEZO"] as Currency[]).map(c => {
                   const disabled = fundingType === "grant" && c === "MEZO";
                   return (
-                    <button key={c} disabled={disabled} onClick={() => setCurrency(c)}
+                    <button key={c} disabled={disabled} onClick={() => setCurrency(c)} className={disabled ? undefined : "btn-motion"}
                       style={{ flex: 1, background: currency === c ? (c === "MUSD" ? "color-mix(in srgb, var(--success) 13%, transparent)" : "color-mix(in srgb, var(--secondary-light) 13%, transparent)") : "transparent", color: disabled ? "color-mix(in srgb, var(--text-faint) 50%, transparent)" : currency === c ? (c === "MUSD" ? "var(--success)" : "var(--secondary-light)") : "var(--text-dim)", fontWeight: 700, fontSize: 13, padding: "8px 4px", borderRadius: 8, border: `1px solid ${currency === c ? (c === "MUSD" ? "color-mix(in srgb, var(--success) 25%, transparent)" : "color-mix(in srgb, var(--secondary-light) 25%, transparent)") : "transparent"}`, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}>
                       {c}
                     </button>
@@ -365,7 +368,7 @@ export default function CreatePage() {
           {/* Description */}
           <Field label="Description" required hint="scope it to a few hours–a couple of days of work">
             <textarea value={description} onChange={e => setDescription(e.target.value)}
-              placeholder="Describe the task scope, deliverables, acceptance criteria, and any technical requirements. Given the bounty size, keep this to a single well-defined fix or improvement — e.g. 'make the dashboard page responsive on mobile' — rather than an open-ended feature." rows={8}
+              placeholder="Describe the task scope, deliverables, acceptance criteria, and any technical requirements. Given the bounty size, keep this to a single well-defined fix or improvement (e.g. 'make the dashboard page responsive on mobile') rather than an open-ended feature." rows={8}
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.7, minHeight: 160 }}
               onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
               onBlur={e => (e.target.style.borderColor = "var(--border)")} />
@@ -430,7 +433,7 @@ export default function CreatePage() {
                     style={{ color: "var(--success)", fontWeight: 600, textDecoration: "none" }}>
                     {githubIssueData.repo}#{githubIssueData.number}
                   </a>
-                  <span style={{ color: "var(--text-dim)" }}>— title & description filled in</span>
+                  <span style={{ color: "var(--text-dim)" }}>· title & description filled in</span>
                 </div>
               )}
               {githubIssueError && (
@@ -450,7 +453,7 @@ export default function CreatePage() {
                       <select value={bound === "min" ? expMin : expMax}
                         onChange={e => bound === "min" ? setExpMin(Number(e.target.value)) : setExpMax(Number(e.target.value))}
                         style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", cursor: "pointer" }}>
-                        {TIERS.map(t => <option key={t.id} value={t.id} disabled={bound === "max" ? t.id < expMin : t.id > expMax}>{t.label} — {t.years}</option>)}
+                        {TIERS.map(t => <option key={t.id} value={t.id} disabled={bound === "max" ? t.id < expMin : t.id > expMax}>{t.label} · {t.years}</option>)}
                       </select>
                     </div>
                   ))}
@@ -499,7 +502,7 @@ export default function CreatePage() {
               at 3 days on-chain; this is separate — how long the creator
               gets to actually deliver *if* the grant is approved. */}
           {fundingType === "grant" && (
-            <Field label="Time to Complete (if approved)" required hint="Starts counting from approval, not from today — the 3-day patron vote happens first">
+            <Field label="Time to Complete (if approved)" required hint="Starts counting from approval, not from today: the 3-day patron vote happens first">
               <select value={workDurationDays} onChange={e => setWorkDurationDays(Number(e.target.value))}
                 style={{ ...inputStyle, cursor: "pointer" }}
                 onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--secondary-light) 31%, transparent)")}
@@ -510,7 +513,7 @@ export default function CreatePage() {
           )}
 
           {/* Tags */}
-          <Field label="Tags" hint="Comma separated — helps contributors search and filter">
+          <Field label="Tags" hint="Comma separated (helps contributors search and filter)">
             <input value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. React, Solidity, TypeScript"
               style={inputStyle}
               onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
@@ -525,15 +528,14 @@ export default function CreatePage() {
           </Field>
 
           {/* Image upload */}
-          <Field label="Attachments" hint="Up to 5 images — screenshots, mockups, diagrams (PNG, JPG, GIF)">
+          <Field label="Attachments" hint="Up to 5 images: screenshots, mockups, diagrams (PNG, JPG, GIF)">
             <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
             <div
               onClick={() => images.length < 5 && fileInputRef.current?.click()}
-              style={{ border: "2px dashed var(--border)", borderRadius: 12, padding: "24px", textAlign: "center", cursor: images.length < 5 ? "pointer" : "default", transition: "border-color 0.15s", background: "var(--surface)" }}
-              onMouseEnter={e => { if (images.length < 5) (e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
-              onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)"}
+              className={images.length < 5 ? "border-hover" : undefined}
+              style={{ border: "2px dashed var(--border)", borderRadius: 12, padding: "24px", textAlign: "center", cursor: images.length < 5 ? "pointer" : "default", transition: "border-color var(--duration-fast) ease", background: "var(--surface)" }}
             >
-              <div style={{ fontSize: 28, marginBottom: 8 }}>🖼</div>
+              <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 8 }}><IconImage size={26} /></div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)" }}>
                 {images.length < 5 ? "Click to upload images" : "Maximum 5 images reached"}
               </div>
@@ -546,6 +548,7 @@ export default function CreatePage() {
                     <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     <button
                       onClick={() => removeImage(i)}
+                      className="btn-motion"
                       style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.7)", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                       ×
                     </button>
@@ -561,7 +564,7 @@ export default function CreatePage() {
               ? <>Your wallet will be prompted to transfer <strong style={{ color: "var(--primary)" }}>{numAmount || "..."} {currency}</strong> into escrow via <code style={{ color: "var(--primary)", fontSize: 11 }}>createCommunityTask</code>. Anyone can join with a proof link; you'll pick up to {maxWinners} winners later via <code style={{ color: "var(--primary)", fontSize: 11 }}>selectWinners</code>, which pays everyone in one transaction.</>
               : fundingType === "self"
               ? <>Your wallet will be prompted to transfer <strong style={{ color: "var(--primary)" }}>{numAmount || "..."} {currency}</strong> into escrow via <code style={{ color: "var(--primary)", fontSize: 11 }}>createTask</code>. A post-condition asserts the exact amount leaving your account.</>
-              : <>Clicking <strong style={{ color: "var(--text)" }}>Submit Grant Application</strong> calls <code style={{ color: "var(--primary)", fontSize: 11 }}>applyForGrant</code>. No {currency} leaves your wallet — community patrons vote on whether to fund from the grant pool.</>}
+              : <>Clicking <strong style={{ color: "var(--text)" }}>Submit Grant Application</strong> calls <code style={{ color: "var(--primary)", fontSize: 11 }}>applyForGrant</code>. No {currency} leaves your wallet; community patrons vote on whether to fund from the grant pool.</>}
           </div>
 
           {submitError && (
@@ -570,7 +573,7 @@ export default function CreatePage() {
             </div>
           )}
 
-          <button disabled={!valid || submitting} onClick={handleSubmit}
+          <button disabled={!valid || submitting} onClick={handleSubmit} className="btn-motion"
             style={{ background: valid ? "var(--primary)" : "var(--border)", color: valid ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 16, padding: "16px", borderRadius: 12, border: "none", cursor: valid ? "pointer" : "not-allowed", transition: "all 0.15s", opacity: submitting ? 0.7 : 1 }}>
             {submitting ? "Submitting on-chain…" : taskKind === "community" ? `Lock ${numAmount || "..."} ${currency} & Open to Community →` : fundingType === "self" ? `Lock ${numAmount || "..."} ${currency} & Post Task →` : "Submit Grant Application →"}
           </button>
@@ -601,7 +604,7 @@ function Field({ label, required, hint, children }: { label: string; required?: 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>{label}</label>
         {required && <span style={{ color: "var(--danger)", fontSize: 12 }}>*</span>}
-        {hint && <span style={{ fontSize: 12, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>— {hint}</span>}
+        {hint && <span style={{ fontSize: 12, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>· {hint}</span>}
       </div>
       {children}
     </div>

@@ -6,119 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { Badge } from "@/components/ui/Badge";
+import { IconLock, IconShield, IconCode, IconGithub, IconArrow, IconCheck, IconCoins, IconUsers, IconVote, IconBitcoin, IconLink, IconGraduationCap, IconTarget, IconZap } from "@/components/icons";
 
 // Landing page
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function IconLock() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function IconCode() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="16 18 22 12 16 6" />
-      <polyline points="8 6 2 12 8 18" />
-    </svg>
-  );
-}
-
-function IconGithub() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
-    </svg>
-  );
-}
-
-function IconArrow() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function IconCoins() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
-      <path d="M7 6h1v4" />
-      <path d="m16.71 13.88.7.71-2.82 2.82" />
-    </svg>
-  );
-}
-
-function IconUsers() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function IconVote() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 20V10" />
-      <path d="M12 20V4" />
-      <path d="M6 20v-6" />
-    </svg>
-  );
-}
-
-function IconBitcoin() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727" />
-    </svg>
-  );
-}
-
 // ─── Shared primitives ────────────────────────────────────────────────────────
-
-function Badge({ children, color = "orange" }: { children: React.ReactNode; color?: "orange" | "purple" | "green" | "blue" | "gray" }) {
-  const styles: Record<string, { bg: string; text: string; border: string }> = {
-    orange: { bg: "color-mix(in srgb, var(--primary) 9%, transparent)", text: "var(--primary)", border: "color-mix(in srgb, var(--primary) 19%, transparent)" },
-    purple: { bg: "color-mix(in srgb, var(--secondary) 9%, transparent)", text: "var(--secondary-light)", border: "color-mix(in srgb, var(--secondary) 19%, transparent)" },
-    green:  { bg: "color-mix(in srgb, var(--success) 9%, transparent)", text: "var(--success)", border: "color-mix(in srgb, var(--success) 19%, transparent)" },
-    blue:   { bg: "color-mix(in srgb, var(--blue-strong) 9%, transparent)", text: "var(--blue)", border: "color-mix(in srgb, var(--blue-strong) 19%, transparent)" },
-    gray:   { bg: "var(--neutral-tint)", text: "var(--text-muted)", border: "color-mix(in srgb, var(--text) 9%, transparent)" },
-  };
-  const s = styles[color];
-  return (
-    <span style={{ background: s.bg, color: s.text, border: `1px solid ${s.border}`, borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600, letterSpacing: "0.02em", display: "inline-flex", alignItems: "center", gap: 5 }}>
-      {children}
-    </span>
-  );
-}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -131,6 +24,45 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+// Fades + slides a section into view the first time it crosses into the
+// viewport (one-shot — disconnects after triggering so it doesn't re-fire
+// on scroll-back-up). The hero animates on load instead via the .hero-in
+// CSS keyframe (no scroll trigger needed there since it's already on screen).
+function Reveal({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "none" : "translateY(28px)",
+        transition: `opacity var(--duration-slow) var(--ease-out) ${delay}ms, transform var(--duration-slow) var(--ease-out) ${delay}ms`,
+        ...style,
+      }}
+    >
       {children}
     </div>
   );
@@ -166,30 +98,33 @@ function LandingNavbar() {
 
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(16px)", background: "color-mix(in srgb, var(--bg) 85%, transparent)", borderBottom: "1px solid var(--border)" }}>
-      <style>{`.taskify-nav-link:hover { color: var(--text) !important; } .landing-btn-outline:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; } .landing-btn-primary:hover { background: var(--primary-strong) !important; }`}</style>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <style>{`.taskify-nav-link:hover { color: var(--text) !important; } .landing-btn-outline:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; box-shadow: var(--shadow-md) !important; } .landing-btn-primary:hover { background: var(--primary-strong) !important; }`}</style>
+      {/* maxWidth is 1200 + 2×24px padding (not 1200) so the padded content area itself is exactly
+          1200px wide, lining up with the unpadded maxWidth:1200 containers every section below uses */}
+      <div style={{ maxWidth: 1248, margin: "0 auto", padding: "0 24px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: 64 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "start" }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", position: "relative", flexShrink: 0 }}>
             <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
           </div>
           <span className="hidden sm:inline" style={{ fontWeight: 700, fontSize: 20, color: "var(--text)", letterSpacing: "-0.02em" }}>Taskify</span>
         </div>
 
-        <div style={{ alignItems: "center", gap: 32 }} className="hidden sm:flex">
+        {/* Centered against the full bar width via the grid's auto middle column, not left/right sibling widths */}
+        <div style={{ alignItems: "center", gap: 32, justifySelf: "center" }} className="hidden sm:flex">
           {LANDING_NAV_LINKS.map(([href, label]) => (
             <a key={label} href={href} className="taskify-nav-link" style={{ color: "var(--text-muted)", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>{label}</a>
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, justifySelf: "end" }}>
           <ThemeToggle />
           {/* Connect Wallet: shows abbreviated address when connected (with a disconnect dropdown) — hidden on mobile, Launch App covers the same action */}
           {connected ? (
             <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden sm:block">
               <button
                 onClick={() => setAddressDropdownOpen(o => !o)}
-                className="landing-btn-outline"
-                style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text)", fontSize: 14, fontWeight: 600, padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 8, cursor: "pointer", transition: "all 0.15s" }}>
+                className="landing-btn-outline btn-motion"
+                style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text)", fontSize: 14, fontWeight: 600, padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 8, boxShadow: "var(--shadow-md)", cursor: "pointer", transition: "all 0.15s" }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />
                 <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 13 }}>{formatAddress(address)}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: addressDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9" /></svg>
@@ -216,8 +151,8 @@ function LandingNavbar() {
           ) : (
             <button
               onClick={connect}
-              className="landing-btn-outline hidden sm:flex"
-              style={{ alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 14, fontWeight: 500, padding: "8px 14px", background: "transparent", border: "1px solid var(--border-strong)", borderRadius: 8, cursor: "pointer", transition: "all 0.15s" }}>
+              className="landing-btn-outline btn-motion hidden sm:flex"
+              style={{ alignItems: "center", gap: 8, color: "var(--text)", fontSize: 14, fontWeight: 600, padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 8, boxShadow: "var(--shadow-md)", cursor: "pointer", transition: "all 0.15s" }}>
               Connect Wallet
             </button>
           )}
@@ -228,8 +163,8 @@ function LandingNavbar() {
               if (!connected) { connect(); return; }
               router.push(isRegistered ? dashboardHref : "/register");
             }}
-            className="landing-btn-primary"
-            style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
+            className="landing-btn-primary btn-motion"
+            style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent)", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
             Launch App <IconArrow />
           </button>
 
@@ -290,7 +225,7 @@ function MockTaskCard() {
       <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 6px", lineHeight: 1.4 }}>
         Build Mezo DeFi Analytics Dashboard
       </h3>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 16px", lineHeight: 1.5 }}>
         React frontend connecting to the Mezo API to display protocol TVL, volume, and token stats.
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
@@ -313,9 +248,9 @@ function MockTaskCard() {
   );
 }
 
-function FloatingBadge({ style, children }: { style: React.CSSProperties; children: React.ReactNode }) {
+function FloatingBadge({ style, className, children }: { style: React.CSSProperties; className?: string; children: React.ReactNode }) {
   return (
-    <div style={{ position: "absolute", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", ...style }}>
+    <div className={className} style={{ position: "absolute", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", ...style }}>
       {children}
     </div>
   );
@@ -330,30 +265,30 @@ function Hero() {
 
       <div style={{ maxWidth: 1200, margin: "0 auto", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="block sm:grid">
         <div>
-          <div style={{ marginBottom: 24 }}>
+          <div className="hero-in" style={{ marginBottom: 24, animationDelay: "0ms" }}>
             <Badge color="orange">
-              <span style={{ fontSize: 10 }}>⛓</span> Built on Mezo · Bitcoin-secured
+              <IconLink size={11} /> Built on Mezo · Bitcoin-secured
             </Badge>
           </div>
-          <h1 style={{ fontSize: "clamp(36px, 5vw, 58px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 24px", color: "var(--text)" }}>
+          <h1 className="hero-in" style={{ fontSize: "clamp(36px, 5vw, 58px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 24px", color: "var(--text)", animationDelay: "60ms" }}>
             The On-Chain{" "}
             <span style={{ background: "linear-gradient(90deg, var(--primary), var(--primary-strong))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               Bounty Board
             </span>{" "}
             for the Mezo Community
           </h1>
-          <p style={{ fontSize: 18, color: "var(--text-muted)", lineHeight: 1.7, margin: "0 0 36px", maxWidth: 480 }}>
+          <p className="hero-in" style={{ fontSize: 18, color: "var(--text-muted)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 36px", maxWidth: 480, animationDelay: "120ms" }}>
             Post Development tasks matched by experience tier, or Community tasks anyone can join. MUSD locks in escrow either way, all enforced on-chain. No trust required.
           </p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <button onClick={connect} style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="hero-in" style={{ display: "flex", gap: 12, flexWrap: "wrap", animationDelay: "180ms" }}>
+            <button onClick={connect} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Post a Task <IconArrow />
             </button>
-            <a href="/tasks" style={{ background: "transparent", color: "var(--text)", fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
+            <a href="/tasks" className="btn-motion" style={{ background: "transparent", color: "var(--text)", fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
               Find Work
             </a>
           </div>
-          <div style={{ marginTop: 36, display: "flex", gap: 32, flexWrap: "wrap" }}>
+          <div className="hero-in" style={{ marginTop: 36, display: "flex", gap: 32, flexWrap: "wrap", animationDelay: "240ms" }}>
             {[
               { val: "3–5%", label: "Protocol fee" },
               { val: "30-day", label: "Wave rewards" },
@@ -367,15 +302,17 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right side: task card mockup */}
-        <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
-          <FloatingBadge style={{ top: -12, left: 20, color: "var(--success)" }}>
+        {/* Right side: task card mockup — each piece bobs on its own out-of-phase float loop for a livelier, less synchronized feel */}
+        <div className="hero-in" style={{ display: "flex", justifyContent: "center", position: "relative", animationDelay: "150ms" }}>
+          <FloatingBadge className="float" style={{ top: -12, left: 20, color: "var(--success)", animationDuration: "2.2s", animationDelay: "0.1s" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
             MUSD locked in escrow
           </FloatingBadge>
-          <MockTaskCard />
-          <FloatingBadge style={{ bottom: 16, right: 8, color: "var(--secondary-light)" }}>
-            <span>🎓</span> Experience-gated on-chain
+          <div className="float" style={{ animationDuration: "2.8s", animationDelay: "0.3s" }}>
+            <MockTaskCard />
+          </div>
+          <FloatingBadge className="float" style={{ bottom: 16, right: 8, color: "var(--secondary-light)", animationDuration: "2.4s", animationDelay: "0.6s" }}>
+            <IconGraduationCap size={13} /> Experience-gated on-chain
           </FloatingBadge>
         </div>
       </div>
@@ -394,14 +331,14 @@ function TrustBar() {
   ];
   return (
     <div className="hidden md:block" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "20px 24px" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "center", alignItems: "center", gap: 48, flexWrap: "wrap" }}>
+      <Reveal style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "center", alignItems: "center", gap: 48, flexWrap: "wrap" }}>
         {items.map(({ icon, label }, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-dim)", fontSize: 13, fontWeight: 500 }}>
             <span style={{ color: "var(--primary)" }}>{icon}</span>
             {label}
           </div>
         ))}
-      </div>
+      </Reveal>
     </div>
   );
 }
@@ -415,47 +352,49 @@ function HowItWorks() {
       title: "Create & Lock Escrow",
       desc: "Post a Development task with an experience range, or a Community task anyone can join, choosing MUSD or MEZO. The token locks in the smart contract the moment the task goes live. No trust required from either side.",
       color: "var(--primary)",
-      icon: "🔒",
+      icon: <IconLock size={28} />,
     },
     {
       num: "02",
       title: "Apply, or Just Join In",
       desc: "Development tasks match one contributor by declared experience tier, verified on-chain at applyForTask. Community tasks skip that gate entirely: anyone joins with a proof-of-participation link, no code required.",
       color: "var(--secondary)",
-      icon: "🎯",
+      icon: <IconTarget size={28} />,
     },
     {
       num: "03",
       title: "Work & Get Paid On-Chain",
       desc: "Approve a Development task's submission to release MUSD to one contributor, or pick up to N winners on a Community task and split the escrow between them in one transaction, no intermediary, no counterparty risk.",
       color: "var(--success)",
-      icon: "⚡",
+      icon: <IconZap size={28} />,
     },
   ];
 
   return (
-    <section style={{ padding: "96px 24px", background: "var(--bg-alt)" }}>
+    <section id="how-it-works" style={{ padding: "96px 24px", background: "linear-gradient(180deg, var(--bg) 0, var(--bg-alt) 64px, var(--bg-alt) calc(100% - 64px), var(--bg) 100%)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
+        <Reveal style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>How it works</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
             Three steps. Zero trust.
           </h2>
-          <p style={{ fontSize: 16, color: "var(--text-dim)", marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto" }}>
+          <p style={{ fontSize: 16, color: "var(--text-dim)", textAlign: "center", marginTop: 12 }}>
             Escrow, matching, and payment are all enforced by the smart contract itself, not by Taskify.
           </p>
-        </div>
+        </Reveal>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
-          {steps.map(({ num, title, desc, color, icon }) => (
-            <Card key={num} style={{ position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.04, fontWeight: 900 }}>{num}</div>
-              <div style={{ fontSize: 36, marginBottom: 16 }}>{icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color, letterSpacing: "0.06em", marginBottom: 8 }}>{num}</div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>{title}</h3>
-              <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, margin: 0 }}>{desc}</p>
-              <div style={{ marginTop: 20, height: 2, borderRadius: 4, background: `linear-gradient(90deg, ${color}40, transparent)` }} />
-            </Card>
+          {steps.map(({ num, title, desc, color, icon }, i) => (
+            <Reveal key={num} delay={i * 100}>
+              <Card style={{ position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.04, fontWeight: 900 }}>{num}</div>
+                <div style={{ color, marginBottom: 16 }}>{icon}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color, letterSpacing: "0.06em", marginBottom: 8 }}>{num}</div>
+                <h3 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>{title}</h3>
+                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: 0 }}>{desc}</p>
+                <div style={{ marginTop: 20, height: 2, borderRadius: 4, background: `linear-gradient(90deg, ${color}40, transparent)` }} />
+              </Card>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -476,9 +415,11 @@ function ExperienceSection() {
 
   return (
     <section style={{ padding: "96px 24px" }}>
-      <div className="grid grid-cols-1 md:grid-cols-2" style={{ maxWidth: 1200, margin: "0 auto", gap: 64, alignItems: "center" }}>
+      {/* 3fr/2fr instead of an even split — the left column's "On-chain:" bullet needs the extra
+          width to stay on one line; the tier-ladder card on the right doesn't need the room. */}
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]" style={{ maxWidth: 1200, margin: "0 auto", gap: 64, alignItems: "center" }}>
         {/* Left */}
-        <div>
+        <Reveal>
           <SectionLabel>Experience matching</SectionLabel>
           <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 20px", color: "var(--text)" }}>
             From{" "}
@@ -487,7 +428,7 @@ function ExperienceSection() {
             </span>{" "}
             to "best fit applies"
           </h2>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.8, margin: "0 0 28px" }}>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.8, margin: "0 0 28px" }}>
             Owners select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The contract verifies the match on-chain when a contributor applies, not just the UI.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -507,10 +448,10 @@ function ExperienceSection() {
               </div>
             ))}
           </div>
-        </div>
+        </Reveal>
 
         {/* Right side: tier ladder */}
-        <div>
+        <Reveal delay={150}>
           <Card style={{ padding: 0, overflow: "hidden" }}>
             <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Experience Tiers</div>
@@ -536,10 +477,10 @@ function ExperienceSection() {
               <span style={{ fontSize: 12, color: "var(--primary)", fontWeight: 600 }}>Gate enforced on-chain, not a UI filter</span>
             </div>
           </Card>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 12, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", marginTop: 12, lineHeight: 1.6 }}>
             This gate applies to <strong style={{ color: "var(--text-muted)" }}>Development tasks</strong> only. Community tasks (memes, bug write-ups, social bounties) are open to anyone, no tier required.
           </p>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -587,41 +528,41 @@ function RolesSection() {
       color: "var(--success)",
       bg: "color-mix(in srgb, var(--success) 9%, transparent)",
       title: "Support & Vote",
-      subtitle: "Shape what gets built — any role",
-      desc: "Any registered wallet — Owner or Contributor — can deposit MUSD to fund the grant pool and earn Patron tiers. Voting on grant applications is separate: gated by the veBTC position you already hold on Mezo Earn, not by role or by depositing.",
+      subtitle: "Shape what gets built, any role",
+      desc: "Any registered wallet (Owner or Contributor) can deposit MUSD to fund the grant pool and earn Patron tiers. Voting on grant applications is separate: gated by the veBTC position you already hold on Mezo Earn, not by role or by depositing.",
       features: [
         "Permanent MUSD deposits → patron tiers, open to any registered wallet",
         "Voting weight read live from your veBTC lock on Mezo Earn",
         "Vote For / Against grant applications (pilot access)",
         "Bronze → Silver → Gold → Diamond tiers",
-        "Taskify never custodies your veBTC — it stays on Mezo Earn",
+        "Taskify never custodies your veBTC; it stays on Mezo Earn",
       ],
       cta: "Support & Vote",
     },
   ];
 
   return (
-    <section style={{ padding: "96px 24px", background: "var(--bg-alt)" }}>
+    <section style={{ padding: "96px 24px", background: "linear-gradient(180deg, var(--bg) 0, var(--bg-alt) 64px, var(--bg-alt) calc(100% - 64px), var(--bg) 100%)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
+        <Reveal style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>Who is Taskify for?</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
             Two roles. One closed-loop economy.
           </h2>
-          <p style={{ fontSize: 16, color: "var(--text-dim)", marginTop: 12 }}>
+          <p style={{ fontSize: 16, color: "var(--text-dim)", textAlign: "center", marginTop: 12 }}>
             Every participant strengthens the protocol for everyone else.
           </p>
-        </div>
+        </Reveal>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
-          {roles.map(({ icon, color, bg, title, subtitle, desc, features, cta }) => (
-            <div key={title} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column" }}>
+          {roles.map(({ icon, color, bg, title, subtitle, desc, features, cta }, i) => (
+            <Reveal key={title} delay={i * 100} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column" }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, border: `1px solid ${color}30`, display: "flex", alignItems: "center", justifyContent: "center", color, marginBottom: 20 }}>
                 {icon}
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>{subtitle}</div>
               <h3 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: "0 0 10px" }}>{title}</h3>
-              <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, margin: "0 0 24px" }}>{desc}</p>
+              <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 24px" }}>{desc}</p>
               <ul style={{ listStyle: "none", margin: "0 0 24px", padding: 0, display: "flex", flexDirection: "column", gap: 10, flexGrow: 1 }}>
                 {features.map((f) => (
                   <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--text-muted)" }}>
@@ -630,10 +571,10 @@ function RolesSection() {
                   </li>
                 ))}
               </ul>
-              <button onClick={connect} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: bg, border: `1px solid ${color}30`, color, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" }}>
+              <button onClick={connect} className="btn-motion" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: bg, border: `1px solid ${color}30`, color, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" }}>
                 {cta} <IconArrow />
               </button>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -650,14 +591,14 @@ function ProtocolSection() {
   return (
     <section style={{ padding: "96px 24px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
+        <Reveal style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>Protocol mechanics</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
             Every state enforced on-chain
           </h2>
-        </div>
+        </Reveal>
 
-        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <Reveal style={{ maxWidth: 640, margin: "0 auto" }}>
           {/* Task lifecycle */}
           <Card>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Task Lifecycle (Development)</div>
@@ -678,7 +619,7 @@ function ProtocolSection() {
               Community tasks skip ASSIGNED / IN_PROGRESS / SUBMITTED entirely: they go straight from OPEN to FUNDS_RELEASED once the owner selects winners.
             </div>
           </Card>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -688,20 +629,21 @@ function ProtocolSection() {
 
 function TokensSection() {
   return (
-    <section id="tokens" style={{ padding: "96px 24px", background: "var(--bg-alt)" }}>
+    <section id="tokens" style={{ padding: "96px 24px", background: "linear-gradient(180deg, var(--bg) 0, var(--bg-alt) 64px, var(--bg-alt) calc(100% - 64px), var(--bg) 100%)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
+        <Reveal style={{ textAlign: "center", marginBottom: 64 }}>
           <SectionLabel>Native tokens</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
             MUSD pays. veBTC governs.
           </h2>
-          <p style={{ fontSize: 16, color: "var(--text-dim)", marginTop: 12 }}>
-            Payment and governance are deliberately separate systems — one native to Taskify, one native to Mezo Earn.
+          <p style={{ fontSize: 16, color: "var(--text-dim)", textAlign: "center", marginTop: 12 }}>
+            Payment and governance are deliberately separate systems: one native to Taskify, one native to Mezo Earn.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 24 }}>
           {/* MUSD */}
+          <Reveal>
           <Card style={{ borderColor: "color-mix(in srgb, var(--success) 19%, transparent)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -712,7 +654,7 @@ function TokensSection() {
                 <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>MUSD</div>
               </div>
             </div>
-            <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, margin: "0 0 20px" }}>
+            <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 20px" }}>
               Bitcoin-backed stablecoin native to Mezo. The primary escrow currency: contributors know exactly what they earn with zero price exposure.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -730,8 +672,10 @@ function TokensSection() {
               ))}
             </div>
           </Card>
+          </Reveal>
 
           {/* veBTC */}
+          <Reveal delay={150}>
           <Card style={{ borderColor: "color-mix(in srgb, var(--secondary) 19%, transparent)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--secondary-light)" }}>
@@ -742,14 +686,14 @@ function TokensSection() {
                 <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>veBTC</div>
               </div>
             </div>
-            <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.7, margin: "0 0 20px" }}>
+            <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 20px" }}>
               Taskify doesn&apos;t custody anything for governance. Lock BTC on Mezo Earn to mint veBTC, and that position's weight is read directly from Mezo&apos;s own contracts every time a grant vote is cast.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 "Voting weight = your real veBTC position, nothing invented by Taskify",
                 "Pair with a veMEZO lock via Mezo's Matching Market to boost weight up to 5×",
-                "Each proposal snapshots weight when it opens — late locks can't swing a live vote",
+                "Each proposal snapshots weight when it opens, so late locks can't swing a live vote",
                 "Stays on Mezo Earn the whole time; Taskify only ever reads it",
               ].map((f) => (
                 <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "var(--text-muted)" }}>
@@ -759,6 +703,7 @@ function TokensSection() {
               ))}
             </div>
           </Card>
+          </Reveal>
         </div>
       </div>
     </section>
@@ -771,29 +716,29 @@ function CTASection() {
   const { connect } = useWallet();
   return (
     <section style={{ padding: "96px 24px" }}>
-      <div style={{ maxWidth: 960, margin: "0 auto", background: "linear-gradient(135deg, var(--surface) 0%, var(--bg-alt) 100%)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", borderRadius: 24, padding: "64px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+      <Reveal style={{ maxWidth: 960, margin: "0 auto", background: "linear-gradient(135deg, var(--surface) 0%, var(--bg-alt) 100%)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", borderRadius: 24, padding: "64px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: "radial-gradient(ellipse, color-mix(in srgb, var(--primary) 10%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
           <SectionLabel>Get started</SectionLabel>
           <h2 style={{ fontSize: "clamp(30px, 5vw, 52px)", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 20px", color: "var(--text)" }}>
             Start building on Mezo
           </h2>
-          <p style={{ fontSize: 17, color: "var(--text-dim)", margin: "0 auto 40px", maxWidth: 480, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 17, color: "var(--text-dim)", textAlign: "justify", margin: "0 auto 40px", maxWidth: 480, lineHeight: 1.7 }}>
             Post a task, find work, or invest in the builders shaping the Bitcoin-secured ecosystem.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={connect} style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={connect} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Post a Task <IconArrow />
             </button>
-            <a href="/tasks" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", display: "flex", alignItems: "center", gap: 8 }}>
+            <a href="/tasks" className="btn-motion" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", display: "flex", alignItems: "center", gap: 8 }}>
               Find Work
             </a>
-            <button onClick={connect} style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={connect} className="btn-motion" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Become a Patron
             </button>
           </div>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -806,7 +751,7 @@ function Footer() {
       { label: "How it works", href: "#how-it-works" },
       { label: "Task escrow", href: "#how-it-works" },
       { label: "Grant pool", href: "#features" },
-      { label: "Wave rewards", href: "#features" },
+      { label: "Wave rewards", href: "/wave" },
     ],
     Builders: [
       { label: "Browse tasks", href: "/tasks" },
@@ -827,7 +772,7 @@ function Footer() {
   };
 
   return (
-    <footer style={{ borderTop: "1px solid var(--border)", padding: "60px 24px 40px", background: "var(--bg-alt)" }}>
+    <footer style={{ borderTop: "1px solid var(--border)", padding: "60px 24px 40px", background: "linear-gradient(180deg, var(--bg) 0, var(--bg-alt) 64px, var(--bg-alt) 100%)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block sm:grid">
           {/* Brand */}
@@ -838,7 +783,7 @@ function Footer() {
               </div>
               <span style={{ fontWeight: 700, fontSize: 18, color: "var(--text)" }}>Taskify</span>
             </div>
-            <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7, maxWidth: 280, margin: "0 0 16px" }}>
+            <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, maxWidth: 280, margin: "0 0 16px" }}>
               The on-chain bounty board for the Mezo community. Trustless escrow, community grants, Development and Community tasks alike.
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>

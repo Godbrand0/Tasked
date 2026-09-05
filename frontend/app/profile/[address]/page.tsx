@@ -5,6 +5,9 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
+import LoadingState from "@/components/ui/LoadingState";
+import EmptyState from "@/components/ui/EmptyState";
+import { IconUser } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, earnedByToken, TIERS } from "@/lib/constants";
 import { useAllTasks, useTaskifyUser, mapOnChainTask } from "@/lib/use-taskify";
 
@@ -57,7 +60,9 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
-        <div style={{ maxWidth: 600, margin: "100px auto", textAlign: "center", padding: "0 24px", color: "var(--text-dim)" }}>Loading profile…</div>
+        <div style={{ maxWidth: 600, margin: "100px auto", padding: "0 24px" }}>
+          <LoadingState size="lg" label="Loading profile…" />
+        </div>
       </div>
     );
   }
@@ -66,11 +71,14 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
-        <div style={{ maxWidth: 600, margin: "100px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>👤</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Not registered</h1>
-          <p style={{ fontSize: 14, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{address}</p>
-          <Link href="/leaderboard" style={{ color: "var(--primary)", textDecoration: "none" }}>← Back to leaderboard</Link>
+        <div style={{ maxWidth: 600, margin: "100px auto", padding: "0 24px" }}>
+          <EmptyState
+            size="lg"
+            icon={IconUser}
+            title="Not registered"
+            description={address}
+            action={<Link href="/leaderboard" className="btn-motion" style={{ color: "var(--primary)", textDecoration: "none", fontSize: 13 }}>← Back to leaderboard</Link>}
+          />
         </div>
       </div>
     );
@@ -123,12 +131,10 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {completedTasks.map((task, i) => (
-                    <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: i < completedTasks.length - 1 ? "1px solid var(--border)" : "none" }}
-                        onMouseEnter={(e) => { const el = e.currentTarget.querySelector(".ptask") as HTMLElement | null; if (el) el.style.color = "var(--primary)"; }}
-                        onMouseLeave={(e) => { const el = e.currentTarget.querySelector(".ptask") as HTMLElement | null; if (el) el.style.color = "var(--text)"; }}>
+                    <Link key={task.id} href={`/tasks/${task.id}`} className="task-row" style={{ textDecoration: "none" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: i < completedTasks.length - 1 ? "1px solid var(--border)" : "none" }}>
                         <div>
-                          <div className="ptask" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3, transition: "color 0.15s" }}>{task.title}</div>
+                          <div className="task-title" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3, transition: "color var(--duration-fast) ease" }}>{task.title}</div>
                           <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>{formatMUSD(task.amount)} {task.token}</div>
                         </div>
                         <StatusBadge status={task.status} />
@@ -145,9 +151,9 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Active Tasks</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {appliedTasks.map((task, i) => (
-                    <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
+                    <Link key={task.id} href={`/tasks/${task.id}`} className="task-row" style={{ textDecoration: "none" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: i < appliedTasks.length - 1 ? "1px solid var(--border)" : "none" }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{task.title}</div>
+                        <div className="task-title" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", transition: "color var(--duration-fast) ease" }}>{task.title}</div>
                         <StatusBadge status={task.status} />
                       </div>
                     </Link>
@@ -183,7 +189,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 <div>
                   <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 4 }}>Registered</div>
                   <div style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}>
-                    {user.registeredAt > 0 ? new Date(user.registeredAt * 1000).toLocaleDateString() : "—"}
+                    {user.registeredAt > 0 ? new Date(user.registeredAt * 1000).toLocaleDateString() : "N/A"}
                   </div>
                 </div>
               </div>
@@ -212,7 +218,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
               </div>
             </div>
 
-            <Link href="/leaderboard" style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 13, textDecoration: "none", padding: "12px", border: "1px solid var(--border)", borderRadius: 10 }}>
+            <Link href="/leaderboard" className="btn-motion" style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 13, textDecoration: "none", padding: "12px", border: "1px solid var(--border)", borderRadius: 10 }}>
               View Full Leaderboard →
             </Link>
           </div>

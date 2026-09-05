@@ -661,3 +661,57 @@ export function useCurrentWave() {
 
   return { wave, isLoading, refetch };
 }
+
+// On-chain epoch length (seconds) — read live rather than hardcoding "~30
+// days" in the UI, since the contract is the source of truth for it.
+export function useWaveEpochDuration() {
+  const { data } = useReadContract({
+    address: TASKIFY_ADDRESS,
+    abi: TASKIFY_ABI,
+    functionName: "WAVE_EPOCH_DURATION",
+    query: { enabled: Boolean(TASKIFY_ADDRESS), staleTime: Infinity },
+  });
+  return data ? Number(data as bigint) : 30 * 86400;
+}
+
+export interface WaveHistoryEntry {
+  waveId: number;
+  poolAmount: bigint;
+  totalTasks: number;
+  myTasks: number;
+  claimed: boolean;
+}
+
+// Past, finalized waves only — waveSnapshots(id) is populated once
+// advanceWave() closes wave `id`, so the live/current wave (whose pool is
+// still accumulating) is intentionally excluded; useCurrentWave covers that.
+export function useWaveHistory(currentWaveId: number, address: string | undefined, limit = 12) {
+  const publicClient = usePublicClient();
+  const from = Math.max(1, currentWaveId - limit);
+  const ids: number[] = [];
+  for (let id = from; id < currentWaveId; id++) ids.push(id);
+
+  return useQuery({
+    queryKey: ["taskify", "waveHistory", TASKIFY_ADDRESS, currentWaveId, address?.toLowerCase(), limit],
+    enabled: Boolean(publicClient && TASKIFY_ADDRESS && ids.length > 0),
+    queryFn: async (): Promise<WaveHistoryEntry[]> => {
+      const contractAddress = TASKIFY_ADDRESS;
+      if (!publicClient || !contractAddress) return [];
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const [snapshot, myTasks, claimed] = await Promise.all([
+            publicClient.readContract({ address: contractAddress, abi: TASKIFY_ABI, functionName: "waveSnapshots", args: [BigInt(id)] }) as Promise<readonly [bigint, bigint]>,
+            address
+              ? publicClient.readContract({ address: contractAddress, abi: TASKIFY_ABI, functionName: "waveCreatorTasks", args: [BigInt(id), address as `0x${string}`] }) as Promise<bigint>
+              : Promise.resolve(BigInt(0)),
+            address
+              ? publicClient.readContract({ address: contractAddress, abi: TASKIFY_ABI, functionName: "waveClaims", args: [BigInt(id), address as `0x${string}`] }) as Promise<boolean>
+              : Promise.resolve(false),
+          ]);
+          return { waveId: id, poolAmount: snapshot[0], totalTasks: Number(snapshot[1]), myTasks: Number(myTasks), claimed };
+        })
+      );
+      return results.reverse();
+    },
+  });
+}

@@ -17,6 +17,9 @@ import {
   useTaskifyUser,
 } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import LoadingState from "@/components/ui/LoadingState";
+import EmptyState from "@/components/ui/EmptyState";
+import { IconSearch, IconMegaphone, IconLink } from "@/components/icons";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -289,10 +292,17 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
-        <div style={{ maxWidth: 600, margin: "100px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>{taskLoading ? "⏳" : "🔍"}</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>{taskLoading ? "Loading task…" : "Task not found"}</h1>
-          {!taskLoading && <Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none" }}>← Back to tasks</Link>}
+        <div style={{ maxWidth: 600, margin: "100px auto", padding: "0 24px" }}>
+          {taskLoading ? (
+            <LoadingState size="lg" label="Loading task…" />
+          ) : (
+            <EmptyState
+              size="lg"
+              icon={IconSearch}
+              title="Task not found"
+              action={<Link href="/tasks" style={{ color: "var(--primary)", textDecoration: "none", fontSize: 13 }}>← Back to tasks</Link>}
+            />
+          )}
         </div>
       </div>
     );
@@ -444,7 +454,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
   async function handleRejectSubmission() {
     if (!task) return;
-    if (!confirm("Reject this submission? The contributor won't be paid for this attempt, and the task reopens for someone to pick up — including possibly the same contributor if you reassign them.")) return;
+    if (!confirm("Reject this submission? The contributor won't be paid for this attempt, and the task reopens for someone to pick up (including possibly the same contributor if you reassign them).")) return;
     setTxBusy(true);
     setTxError("");
     try {
@@ -611,7 +621,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
             <StatusBadge status={task.status} />
-            {isCommunity && <Badge color="blue">📣 Community</Badge>}
+            {isCommunity && <Badge color="blue"><IconMegaphone size={12} /> Community</Badge>}
             {task.fundingType === "grant" && <Badge color="purple">Grant-Funded</Badge>}
             {task.token === "MEZO" && <Badge color="blue">Paid in MEZO</Badge>}
           </div>
@@ -652,12 +662,25 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
+        <JumpNav
+          items={[
+            { href: "#section-description", label: "Description" },
+            grantVote && task.status === "GRANT_PENDING" ? { href: "#section-vote", label: "Grant Vote" } : null,
+            isCommunity
+              ? { href: "#section-participants", label: `Participants${submissionsLoading ? "" : ` (${submissions.length})`}` }
+              : isTaskCreator
+              ? { href: "#section-applicants", label: `Applications${applicationsLoading ? "" : ` (${applications.length})`}` }
+              : null,
+            { href: "#section-comments", label: `Comments${commentsLoading ? "" : ` (${comments.length})`}` },
+          ].filter((x): x is { href: string; label: string } => x !== null)}
+        />
+
         {/* 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px]" style={{ gap: 32, alignItems: "start" }}>
           {/* ── Left: Main content ── */}
           <div>
             {/* Description */}
-            <Section title="Description">
+            <Section id="section-description" title="Description">
               {editingDescription ? (
                 <div>
                   <textarea
@@ -673,12 +696,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     <button
                       onClick={saveDescription}
                       disabled={savingDescription || !descriptionDraft.trim()}
+                      className="btn-motion"
                       style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "none", cursor: savingDescription ? "default" : "pointer", opacity: savingDescription || !descriptionDraft.trim() ? 0.6 : 1 }}
                     >
                       {savingDescription ? "Saving…" : "Save"}
                     </button>
                     <button
                       onClick={() => { setEditingDescription(false); setDescriptionSaveError(""); }}
+                      className="btn-motion"
                       style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer" }}
                     >
                       Cancel
@@ -693,6 +718,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   {address?.toLowerCase() === task.creator.toLowerCase() && (
                     <button
                       onClick={() => { setDescriptionDraft(task.description); setEditingDescription(true); }}
+                      className="btn-motion"
                       style={{ marginTop: 10, background: "none", border: "none", color: "var(--primary)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}
                     >
                       Edit description
@@ -707,6 +733,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   {address?.toLowerCase() === task.creator.toLowerCase() && (
                     <button
                       onClick={() => { setDescriptionDraft(""); setEditingDescription(true); }}
+                      className="btn-motion"
                       style={{ background: "var(--neutral-tint)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer" }}
                     >
                       Add description
@@ -761,7 +788,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               const total = grantVote.votesFor + grantVote.votesAgainst;
               const supportPct = total > BigInt(0) ? Number((grantVote.votesFor * BigInt(1000)) / total) / 10 : 0;
               return (
-                <Section title="Community Grant Vote">
+                <Section id="section-vote" title="Community Grant Vote">
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
                       <span style={{ color: "var(--success)", fontWeight: 600 }}>For: {formatVotingWeight(grantVote.votesFor)} vote units</span>
@@ -780,7 +807,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       <span>70% required to pass</span>
                     </div>
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "0 0 4px", lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 4px", lineHeight: 1.6 }}>
                     Voting deadline: {formatTimestamp(grantVote.deadline)}. Voting weight comes from veBTC held on Mezo Earn, currently limited to an approved pilot group of veBTC holders.
                   </p>
                 </Section>
@@ -791,7 +818,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {isCommunity ? (
               <Section title="How This Task Works">
                 <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.8 }}>
-                  This is a <strong style={{ color: "var(--text)" }}>Community task</strong> — no application, no single assignee. Anyone joins with a proof link, and the owner pays up to <strong style={{ color: "var(--primary)" }}>{maxWinners} winner{maxWinners !== 1 ? "s" : ""}</strong> directly, splitting the escrow evenly between them in one transaction.
+                  This is a <strong style={{ color: "var(--text)" }}>Community task</strong>: no application, no single assignee. Anyone joins with a proof link, and the owner pays up to <strong style={{ color: "var(--primary)" }}>{maxWinners} winner{maxWinners !== 1 ? "s" : ""}</strong> directly, splitting the escrow evenly between them in one transaction.
                 </div>
               </Section>
             ) : (
@@ -817,10 +844,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
             {/* Community: participants + winner selection */}
             {isCommunity ? (
-              <Section title={submissionsLoading ? "Participants" : `${submissions.length} Participant${submissions.length !== 1 ? "s" : ""}`}>
+              <Section id="section-participants" title={submissionsLoading ? "Participants" : `${submissions.length} Participant${submissions.length !== 1 ? "s" : ""}`}>
                 {task.status === "FUNDS_RELEASED" && (
                   <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13, color: "var(--success)", fontWeight: 600, textAlign: "center" }}>
-                    ✓ {submissions.filter(s => s.isWinner).length} winner{submissions.filter(s => s.isWinner).length !== 1 ? "s" : ""} paid — escrow released and split on-chain
+                    ✓ {submissions.filter(s => s.isWinner).length} winner{submissions.filter(s => s.isWinner).length !== 1 ? "s" : ""} paid; escrow released and split on-chain
                   </div>
                 )}
                 {submissionsLoading ? (
@@ -838,6 +865,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                             <button
                               onClick={() => toggleWinner(s.address)}
                               disabled={!isSelected && selectedWinners.size >= maxWinners}
+                              className="btn-motion"
                               style={{ width: 22, height: 22, borderRadius: 6, marginTop: 6, border: `2px solid ${isSelected ? "var(--success)" : "var(--border-strong)"}`, background: isSelected ? "var(--success)" : "transparent", cursor: (!isSelected && selectedWinners.size >= maxWinners) ? "not-allowed" : "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--bg)", fontSize: 13, fontWeight: 800 }}>
                               {isSelected && "✓"}
                             </button>
@@ -881,6 +909,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     <button
                       disabled={selectedWinners.size === 0 || payingWinners}
                       onClick={handlePayWinners}
+                      className="btn-motion"
                       style={{ width: "100%", background: selectedWinners.size > 0 ? "var(--success)" : "var(--border)", color: selectedWinners.size > 0 ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: selectedWinners.size > 0 ? "pointer" : "not-allowed", opacity: payingWinners ? 0.7 : 1 }}>
                       {payingWinners ? "Recording winners…" : `Pay ${selectedWinners.size || ""} Winner${selectedWinners.size !== 1 ? "s" : ""} →`}
                     </button>
@@ -888,7 +917,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{payError}</div>
                     )}
                     <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                      Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>selectWinners</code> — splits escrow evenly, pays everyone in one transaction.
+                      Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>selectWinners</code>: splits escrow evenly, pays everyone in one transaction.
                     </p>
                   </div>
                 )}
@@ -896,7 +925,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             ) : (
               <>
               {isTaskCreator && (
-              <Section title={applicationsLoading ? "Applications" : `${applications.length} Application${applications.length !== 1 ? "s" : ""}`}>
+              <Section id="section-applicants" title={applicationsLoading ? "Applications" : `${applications.length} Application${applications.length !== 1 ? "s" : ""}`}>
                 {txError && (
                   <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 12 }}>{txError}</div>
                 )}
@@ -919,6 +948,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               <button
                                 disabled={txBusy}
                                 onClick={() => handleAssign(a.address)}
+                                className="btn-motion"
                                 style={{ marginLeft: "auto", background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 12, padding: "4px 14px", borderRadius: 6, cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.6 : 1 }}>
                                 Assign →
                               </button>
@@ -933,7 +963,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               </Section>
               )}
               {/* Comments — visible to creator, contributor, and visitors */}
-              <Section title={commentsLoading ? "Comments" : `${comments.length} Comment${comments.length !== 1 ? "s" : ""}`}>
+              <Section id="section-comments" title={commentsLoading ? "Comments" : `${comments.length} Comment${comments.length !== 1 ? "s" : ""}`}>
                 {commentsLoading ? (
                   <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>Loading comments…</div>
                 ) : comments.length === 0 && (
@@ -962,6 +992,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                             {connected && isRegistered && (
                               <button
                                 onClick={() => { setReplyingTo(replyingTo === c.id ? null : c.id); setReplyBody(""); }}
+                                className="btn-motion"
                                 style={{ background: "none", border: "none", color: replyingTo === c.id ? "var(--text)" : "var(--text-dim)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
                                 {replyingTo === c.id ? "Cancel" : "↳ Reply"}
                               </button>
@@ -986,6 +1017,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                                   <button
                                     disabled={!replyBody.trim()}
                                     onClick={() => handleReply(c.id)}
+                                    className="btn-motion"
                                     style={{ background: replyBody.trim() ? "var(--secondary-light)" : "var(--border)", color: replyBody.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 12, padding: "6px 16px", borderRadius: 8, border: "none", cursor: replyBody.trim() ? "pointer" : "not-allowed" }}>
                                     Post Reply
                                   </button>
@@ -1043,6 +1075,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       <button
                         disabled={!comment.trim()}
                         onClick={handleComment}
+                        className="btn-motion"
                         style={{ background: comment.trim() ? "var(--secondary-light)" : "var(--border)", color: comment.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 13, padding: "8px 20px", borderRadius: 8, border: "none", cursor: comment.trim() ? "pointer" : "not-allowed" }}>
                         Comment
                       </button>
@@ -1068,7 +1101,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             <SideCard>
               <SideCardTitle>Bounty</SideCardTitle>
               <div style={{ fontSize: 30, fontWeight: 800, color: "var(--primary)", marginBottom: 4 }}>
-                {formatMUSD(task.amount)} <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-muted)" }}>{task.token}</span>
+                <span className="figure">{formatMUSD(task.amount)}</span> <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-muted)" }}>{task.token}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
                 {isCommunity ? (
@@ -1086,7 +1119,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard>
                 <SideCardTitle>Experience Gate</SideCardTitle>
                 <TierRangeBadge min={task.experienceMin} max={task.experienceMax} />
-                <p style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, margin: "12px 0 0" }}>
+                <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, margin: "12px 0 0" }}>
                   Tiers <strong style={{ color: minTier.color }}>{minTier.label}</strong> → <strong style={{ color: maxTier.color }}>{maxTier.label}</strong>. Verified on-chain.
                 </p>
               </SideCard>
@@ -1098,10 +1131,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 {!connected || !isRegistered ? (
                   <SideCard>
                     <SideCardTitle>Join this Task</SideCardTitle>
-                    <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
-                      Connect your wallet and register to join — any role works, no experience tier required.
+                    <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
+                      Connect your wallet and register to join; any role works, no experience tier required.
                     </p>
-                    <button onClick={connect} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
+                    <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
                       Connect Wallet to Join
                     </button>
                   </SideCard>
@@ -1115,11 +1148,11 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     )}
                     {joined ? (
                       <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 16, textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
-                        ✓ Joined — proof submitted on-chain
+                        ✓ Joined · proof submitted on-chain
                       </div>
                     ) : (
                       <>
-                        <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
+                        <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", marginBottom: 12, lineHeight: 1.6 }}>
                           Paste a link proving your participation (a post, a write-up, anything public). The owner reviews it before picking winners.
                         </p>
                         <input
@@ -1133,6 +1166,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                         <button
                           disabled={!proofUrl.trim() || joining}
                           onClick={handleJoinCommunity}
+                          className="btn-motion"
                           style={{ width: "100%", background: proofUrl.trim() ? "var(--primary)" : "var(--border)", color: proofUrl.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: proofUrl.trim() ? "pointer" : "not-allowed", opacity: joining ? 0.7 : 1 }}>
                           {joining ? "Submitting…" : "Join & Submit Proof →"}
                         </button>
@@ -1140,7 +1174,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                           <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{joinError}</div>
                         )}
                         <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>joinCommunityTask</code> — no experience gate.
+                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>joinCommunityTask</code>: no experience gate.
                         </p>
                       </>
                     )}
@@ -1155,10 +1189,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 {!connected || !isRegistered ? (
                   <SideCard>
                     <SideCardTitle>Apply for this Bounty</SideCardTitle>
-                    <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
+                    <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
                       Connect your wallet and register to apply for this task.
                     </p>
-                    <button onClick={connect} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
+                    <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
                       Connect Wallet to Apply
                     </button>
                   </SideCard>
@@ -1181,7 +1215,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       </div>
                     ) : (
                       <>
-                        <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
+                        <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", marginBottom: 12, lineHeight: 1.6 }}>
                           Describe your motivation and approach. This is published as a comment from your wallet address.
                         </p>
                         <textarea
@@ -1196,6 +1230,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                         <button
                           disabled={!motivation.trim() || applying || slotsLeft === 0}
                           onClick={handleApply}
+                          className="btn-motion"
                           style={{ width: "100%", background: (motivation.trim() && slotsLeft > 0) ? "var(--primary)" : "var(--border)", color: (motivation.trim() && slotsLeft > 0) ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: (motivation.trim() && slotsLeft > 0) ? "pointer" : "not-allowed", opacity: applying ? 0.7 : 1 }}>
                           {applying ? "Submitting…" : slotsLeft === 0 ? "No slots remaining" : "Apply →"}
                         </button>
@@ -1203,14 +1238,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                           <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{applyError}</div>
                         )}
                         <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>applyForTask</code> — experience gate verified on-chain.
+                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>applyForTask</code>: experience gate verified on-chain.
                         </p>
                       </>
                     )}
                   </SideCard>
                 ) : isCreator ? null : (
                   <SideCard>
-                    <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, margin: 0 }}>
+                    <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, margin: 0 }}>
                       Only contributors can apply to tasks. <Link href="/register" style={{ color: "var(--primary)" }}>Register as a contributor</Link>.
                     </p>
                   </SideCard>
@@ -1222,10 +1257,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {isAssignee && task.status === "ASSIGNED" && (
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
                 <SideCardTitle color="var(--primary)">You're Assigned</SideCardTitle>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
                   Mark this task as started once you begin work.
                 </p>
-                <button disabled={txBusy} onClick={handleStartTask} style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                <button disabled={txBusy} onClick={handleStartTask} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                   {txBusy ? "Confirming…" : "Start Work →"}
                 </button>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
@@ -1234,7 +1269,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {isAssignee && task.status === "IN_PROGRESS" && (
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>
                 <SideCardTitle color="var(--primary)">In Progress</SideCardTitle>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
                   Link the PR you worked on so the owner can review it.
                 </p>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
@@ -1257,7 +1292,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   placeholder="https://github.com/owner/repo/issues/45"
                   style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box", marginBottom: 14 }}
                 />
-                <button disabled={txBusy || !prUrl.trim()} onClick={handleSubmitTask} style={{ width: "100%", background: prUrl.trim() ? "var(--primary)" : "var(--border)", color: prUrl.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: (txBusy || !prUrl.trim()) ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                <button disabled={txBusy || !prUrl.trim()} onClick={handleSubmitTask} className="btn-motion" style={{ width: "100%", background: prUrl.trim() ? "var(--primary)" : "var(--border)", color: prUrl.trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: (txBusy || !prUrl.trim()) ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                   {txBusy ? "Confirming…" : "Submit Work →"}
                 </button>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
@@ -1269,31 +1304,31 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {task.status === "SUBMITTED" && isTaskCreator && (
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>
                 <SideCardTitle color="var(--success)">Work Submitted</SideCardTitle>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
                   The contributor has marked their work as complete. Review and approve to release funds.
                 </p>
                 {workSubmission && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                     <a href={workSubmission.pr_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--secondary-light)", textDecoration: "none", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6 }}>
-                      🔗 PR: {workSubmission.pr_url}
+                      <IconLink size={13} /> PR: {workSubmission.pr_url}
                     </a>
                     {workSubmission.issue_url && (
                       <a href={workSubmission.issue_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--secondary-light)", textDecoration: "none", wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6 }}>
-                        🔗 Issue: {workSubmission.issue_url}
+                        <IconLink size={13} /> Issue: {workSubmission.issue_url}
                       </a>
                     )}
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button disabled={txBusy} onClick={handleApproveRelease} style={{ flex: 1, background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                  <button disabled={txBusy} onClick={handleApproveRelease} className="btn-motion" style={{ flex: 1, background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                     {txBusy ? "Confirming…" : "Approve & Release →"}
                   </button>
-                  <button disabled={txBusy} onClick={handleRejectSubmission} style={{ flex: 1, background: "transparent", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "1px solid var(--danger)", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                  <button disabled={txBusy} onClick={handleRejectSubmission} className="btn-motion" style={{ flex: 1, background: "transparent", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "1px solid var(--danger)", cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                     Reject
                   </button>
                 </div>
-                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 8, lineHeight: 1.5 }}>
-                  Rejecting doesn&apos;t refund you — the escrow stays locked in the task so someone else (or the same contributor, reassigned) can still complete it.
+                <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "justify", marginTop: 8, lineHeight: 1.5 }}>
+                  Rejecting doesn&apos;t refund you; the escrow stays locked in the task so someone else (or the same contributor, reassigned) can still complete it.
                 </p>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
               </SideCard>
@@ -1303,7 +1338,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {task.status === "FUNDS_RELEASED" && !isCommunity && (
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>
                 <SideCardTitle color="var(--success)">Payment Released</SideCardTitle>
-                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: workSubmission?.payout_tx_hash ? 14 : 0, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: workSubmission?.payout_tx_hash ? 14 : 0, lineHeight: 1.6 }}>
                   {formatMUSD(netAmount)} {task.token} sent to {assigneeDisplayName || assigneeUser.username || (assigneeAddr ? formatAddress(assigneeAddr) : "the contributor")}.
                 </p>
                 {workSubmission?.payout_tx_hash && (
@@ -1323,10 +1358,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {task.status === "OPEN" && isTaskCreator && task.fundingType === "self" && (
               <SideCard>
                 <SideCardTitle>Manage Task</SideCardTitle>
-                <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", marginBottom: 12, lineHeight: 1.6 }}>
                   Cancel to refund the remaining escrow (minus the protocol fee) back to your wallet.
                 </p>
-                <button disabled={txBusy} onClick={handleCancelTask} style={{ width: "100%", background: "transparent", border: "1px solid var(--danger)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
+                <button disabled={txBusy} onClick={handleCancelTask} className="btn-motion" style={{ width: "100%", background: "transparent", border: "1px solid var(--danger)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                   {txBusy ? "Confirming…" : "Cancel Task"}
                 </button>
                 {txError && <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{txError}</div>}
@@ -1344,13 +1379,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   const passed = total > BigInt(0) && supportPct >= 70;
                   return (
                     <>
-                      <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, margin: "0 0 12px" }}>
+                      <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, margin: "0 0 12px" }}>
                         Voting {votingClosed ? "ended" : "ends"} {formatTimestamp(grantVote.deadline)}. {total > BigInt(0) ? `${supportPct.toFixed(1)}% support (70% required).` : "No votes cast yet."}
                       </p>
                       {!grantVote.executed && (
                         <button
                           disabled={txBusy || !votingClosed}
                           onClick={handleExecuteGrant}
+                          className="btn-motion"
                           style={{
                             width: "100%",
                             background: !votingClosed ? "var(--border)" : passed ? "var(--success)" : "var(--danger)",
@@ -1364,7 +1400,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                             opacity: txBusy ? 0.7 : 1,
                           }}
                         >
-                          {txBusy ? "Confirming…" : !votingClosed ? "Execute Grant (locked until voting ends)" : passed ? "Execute — Approve Grant →" : "Execute — Reject Grant →"}
+                          {txBusy ? "Confirming…" : !votingClosed ? "Execute Grant (locked until voting ends)" : passed ? "Execute: Approve Grant →" : "Execute: Reject Grant →"}
                         </button>
                       )}
                       {grantVote.executed && (
@@ -1411,11 +1447,29 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 20 }}>
+    <div id={id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 20, scrollMarginTop: 88 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+// Jump nav — a first-time visitor otherwise has no way to tell what's on this
+// page (description, applicants/participants, comments, a possible grant
+// vote) without scrolling the whole thing. Only lists sections actually
+// present for this task's kind/state/viewer.
+function JumpNav({ items }: { items: { href: string; label: string }[] }) {
+  if (items.length < 2) return null;
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
+      {items.map(({ href, label }) => (
+        <a key={href} href={href} className="btn-motion"
+          style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: "6px 14px", textDecoration: "none" }}>
+          {label}
+        </a>
+      ))}
     </div>
   );
 }

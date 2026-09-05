@@ -11,6 +11,8 @@ import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
 import { useAllTasks, useGrantVotesBatch, useIsApprovedVoter, useTaskifyTx, useTaskifyUser, useVotingWeight } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import EmptyState from "@/components/ui/EmptyState";
+import { IconBallot, IconZap } from "@/components/icons";
 
 // Where "get real voting weight" sends people to actually lock BTC or MEZO —
 // Taskify no longer custodies anything for voting purposes, see
@@ -77,13 +79,13 @@ export default function VotePage() {
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>🗳️</div>
+          <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconBallot size={44} /></div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Grant voting</h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 28 }}>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
             Connect your wallet and register to vote on grant applications, once approved. See{" "}
             <Link href="/support" style={{ color: "var(--primary)" }}>Support</Link> to deposit into the pool instead.
           </p>
-          <Link href="/register" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
+          <Link href="/register" className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
             Register →
           </Link>
         </div>
@@ -99,18 +101,18 @@ export default function VotePage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 40, flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, var(--primary), var(--primary-strong))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🗳️</div>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, var(--primary), var(--primary-strong))", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}><IconBallot size={24} /></div>
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: "0 0 6px" }}>{user.username || username || formatAddress(address ?? "")}</h1>
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>
                 Voting power: <strong style={{ color: "var(--success)" }}>{formatVotingWeight(currentWeight)}</strong>
                 {" "}<button onClick={() => refetchWeight()} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>refresh</button>
                 {!canVote && !isApproved && (
-                  <span style={{ marginLeft: 8, color: "var(--text-dim)", fontSize: 12 }}>— voting is pilot-only right now</span>
+                  <span style={{ marginLeft: 8, color: "var(--text-dim)", fontSize: 12 }}>· voting is pilot-only right now</span>
                 )}
                 {!canVote && isApproved && (
                   <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: "var(--primary)", fontSize: 12, textDecoration: "none" }}>
-                    — Lock BTC or MEZO on Mezo Earn to vote →
+                    · Lock BTC or MEZO on Mezo Earn to vote →
                   </a>
                 )}
               </div>
@@ -128,21 +130,20 @@ export default function VotePage() {
 
         {!canVote && !isApproved && (
           <div style={{ background: "var(--border)", borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6 }}>
-            Grant voting is limited to an approved pilot group of veBTC holders right now — reach out if you&apos;d like to be added.
+            Grant voting is limited to an approved pilot group of veBTC holders right now; reach out if you&apos;d like to be added.
           </div>
         )}
         {!canVote && isApproved && (
           <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: "var(--primary)", lineHeight: 1.6 }}>
             Voting weight comes from your veBTC/veMEZO position on{" "}
             <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>Mezo Earn</a>
-            {" "}— lock BTC or MEZO there to vote on grant applications.
+            ; lock BTC or MEZO there to vote on grant applications.
           </div>
         )}
 
         {grantTasks.length === 0 ? (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🗳️</div>
-            <div style={{ fontSize: 15, color: "var(--text-muted)" }}>No active grant votes right now</div>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
+            <EmptyState size="lg" icon={IconBallot} title="No active grant votes right now" />
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -175,7 +176,7 @@ export default function VotePage() {
                       </div>
                       <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "0 0 8px" }}>{task.title}</h3>
                     </div>
-                    <Link href={`/tasks/${task.id}`} style={{ fontSize: 12, color: "var(--text-dim)", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}>
+                    <Link href={`/tasks/${task.id}`} className="btn-motion" style={{ fontSize: 12, color: "var(--text-dim)", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}>
                       View task →
                     </Link>
                   </div>
@@ -214,8 +215,9 @@ export default function VotePage() {
                       <button
                         disabled={executingTaskId === task.id}
                         onClick={() => handleExecute(task.id)}
-                        style={{ flex: 1, background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: executingTaskId === task.id ? "not-allowed" : "pointer", opacity: executingTaskId === task.id ? 0.7 : 1 }}>
-                        {executingTaskId === task.id ? "Confirming…" : "⚡ Execute Grant"}
+                        className="btn-motion"
+                        style={{ flex: 1, background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: executingTaskId === task.id ? "not-allowed" : "pointer", opacity: executingTaskId === task.id ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        {executingTaskId === task.id ? "Confirming…" : <><IconZap size={14} /> Execute Grant</>}
                       </button>
                     </div>
                   ) : (
@@ -223,9 +225,9 @@ export default function VotePage() {
                       {!canVoteThisTask ? (
                         <div style={{ background: "var(--border)", borderRadius: 10, padding: "12px 16px", textAlign: "center", fontSize: 13, color: "var(--text-dim)" }}>
                           {!isApproved
-                            ? "Voting is limited to an approved pilot group right now — reach out if you'd like to be added."
+                            ? "Voting is limited to an approved pilot group right now; reach out if you'd like to be added."
                             : currentWeight > BigInt(0)
-                            ? "Your veBTC position was locked after this proposal opened — it doesn't carry weight here."
+                            ? "Your veBTC position was locked after this proposal opened; it doesn't carry weight here."
                             : "Lock BTC or MEZO on Mezo Earn to unlock voting →"}
                         </div>
                       ) : myVote ? (
@@ -237,12 +239,14 @@ export default function VotePage() {
                           <button
                             disabled={votingTaskId === task.id}
                             onClick={() => handleVote(task.id, true)}
+                            className="btn-motion"
                             style={{ flex: 1, background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: votingTaskId === task.id ? "not-allowed" : "pointer" }}>
                             ✓ Vote For
                           </button>
                           <button
                             disabled={votingTaskId === task.id}
                             onClick={() => handleVote(task.id, false)}
+                            className="btn-motion"
                             style={{ flex: 1, background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, cursor: votingTaskId === task.id ? "not-allowed" : "pointer" }}>
                             ✗ Vote Against
                           </button>
@@ -250,7 +254,7 @@ export default function VotePage() {
                       )}
                       {!myVote && canVoteThisTask && (
                         <div style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>
-                          Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(myWeightForThisTask)}</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "—"}
+                          Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(myWeightForThisTask)}</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "N/A"}
                         </div>
                       )}
                     </div>
@@ -264,11 +268,11 @@ export default function VotePage() {
         {/* Voting weight source */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginTop: 24 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Where Voting Weight Comes From</div>
-          <p style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 16 }}>
             Taskify doesn&apos;t custody anything for governance. Voting weight is read live from your{" "}
             <strong style={{ color: "var(--text)" }}>veBTC</strong> position on{" "}
             <a href={MEZO_EARN_URL} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>Mezo Earn</a>
-            {" "}— lock BTC to mint veBTC, or pair it with a veMEZO lock via Mezo&apos;s Matching Market to boost your weight up to 5x.
+            ; lock BTC to mint veBTC, or pair it with a veMEZO lock via Mezo&apos;s Matching Market to boost your weight up to 5x.
             Each grant proposal fixes a snapshot when it opens, so weight acquired after a vote starts doesn&apos;t count toward it.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

@@ -4,8 +4,13 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
-import Navbar from "@/components/Navbar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
+import PageShell, { Container } from "@/components/ui/PageShell";
+import LoadingState from "@/components/ui/LoadingState";
+import { SkeletonRow } from "@/components/ui/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
+import Button from "@/components/ui/Button";
+import { IconClipboard, IconSearch, IconTrophy, IconLandmark, IconBallot } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { useAllTasks, useCurrentWave, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
@@ -40,10 +45,8 @@ export default function DashboardPage() {
   const displayRole = role ?? "creator";
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <Navbar />
-
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px" }}>
+    <PageShell>
+      <Container maxWidth={1100} style={{ padding: "40px 24px" }}>
         {/* Welcome banner */}
         <div style={{ background: "linear-gradient(135deg, var(--surface) 0%, var(--bg-alt) 100%)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 20, padding: "32px 36px", marginBottom: 40, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -60, right: -60, width: 240, height: 240, background: "radial-gradient(ellipse, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
@@ -61,10 +64,10 @@ export default function DashboardPage() {
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               {displayRole === "creator" && (
-                <Link href="/creator" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Owner Dashboard</Link>
+                <Link href="/creator" className="btn-motion" style={{ background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Owner Dashboard</Link>
               )}
               {displayRole === "contributor" && (
-                <Link href="/contributor" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Contributor Dashboard</Link>
+                <Link href="/contributor" className="btn-motion" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 14, padding: "12px 20px", borderRadius: 10, textDecoration: "none" }}>Contributor Dashboard</Link>
               )}
             </div>
           </div>
@@ -74,9 +77,8 @@ export default function DashboardPage() {
           <div>
             {/* Overview stats */}
             {tasksLoading ? (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-dim)", marginBottom: 36 }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)" }}>Loading your stats from Mezo…</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14, marginBottom: 36 }}>
+                {Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 14, marginBottom: 36 }}>
@@ -86,17 +88,17 @@ export default function DashboardPage() {
                   { label: "Escrowed",      value: formatEarnedBreakdown(escrowedTasks),   color: "var(--success)" },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+                    <div className="figure" style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
                     <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
                   </div>
                 ))}
                 {displayRole === "contributor" && [
-                  { label: "Tasks Done",    value: String(tasksCompleted),              color: "var(--success)" },
-                  { label: "Total Earned",  value: formatEarnedBreakdown(completedTasks), color: "var(--primary)" },
-                  { label: "Experience",    value: tier.label,                                       color: tier.color },
-                ].map(({ label, value, color }) => (
+                  { label: "Tasks Done",    value: String(tasksCompleted),              color: "var(--success)", figure: true },
+                  { label: "Total Earned",  value: formatEarnedBreakdown(completedTasks), color: "var(--primary)", figure: true },
+                  { label: "Experience",    value: tier.label,                                       color: tier.color, figure: false },
+                ].map(({ label, value, color, figure }) => (
                   <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+                    <div className={figure ? "figure" : undefined} style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
                     <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
                   </div>
                 ))}
@@ -107,33 +109,31 @@ export default function DashboardPage() {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>Recent Tasks</h2>
-                <Link href={displayRole === "creator" ? "/creator" : "/contributor"} style={{ fontSize: 13, color: "var(--primary)", textDecoration: "none" }}>View all →</Link>
+                <Link href={displayRole === "creator" ? "/creator" : "/contributor"} className="btn-motion" style={{ fontSize: 13, color: "var(--primary)", textDecoration: "none" }}>View all →</Link>
               </div>
               {tasksLoading ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-dim)" }}>
-                  <div style={{ fontSize: 28, marginBottom: 10 }}>⏳</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>Loading…</div>
+                <div>
+                  {Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} variant="list" />)}
                 </div>
               ) : myTasks.slice(0, 5).length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0" }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>No tasks yet</div>
-                  <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 16 }}>
-                    {displayRole === "creator" ? "Post your first task to get started" : "Browse open tasks to get started"}
-                  </div>
-                  <Link href={displayRole === "creator" ? "/create" : "/tasks"} style={{ display: "inline-block", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 10, textDecoration: "none" }}>
-                    {displayRole === "creator" ? "Post a Task" : "Browse Tasks"}
-                  </Link>
-                </div>
+                <EmptyState
+                  size="sm"
+                  icon={IconClipboard}
+                  title="No tasks yet"
+                  description={displayRole === "creator" ? "Post your first task to get started" : "Browse open tasks to get started"}
+                  action={
+                    <Button href={displayRole === "creator" ? "/create" : "/tasks"} variant="subtle" size="sm">
+                      {displayRole === "creator" ? "Post a Task" : "Browse Tasks"}
+                    </Button>
+                  }
+                />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {myTasks.slice(0, 5).map((task) => (
-                    <Link key={task.id} href={`/tasks/${task.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--border)" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).querySelector("span:first-child") as HTMLElement)?.style && ((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement | null) && (((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement).style.color = "var(--primary)")}
-                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement | null) && (((e.currentTarget as HTMLDivElement).querySelector(".task-title") as HTMLElement).style.color = "var(--text)")}>
+                    <Link key={task.id} href={`/tasks/${task.id}`} className="task-row" style={{ textDecoration: "none" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
                         <div>
-                          <div className="task-title" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2, transition: "color 0.15s" }}>{task.title}</div>
+                          <div className="task-title" style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2, transition: "color var(--duration-fast) ease" }}>{task.title}</div>
                           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatMUSD(task.amount)} {task.token}</div>
                         </div>
                         <StatusBadge status={task.status} />
@@ -146,23 +146,23 @@ export default function DashboardPage() {
 
             {/* Explore */}
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
-              <Link href="/tasks" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 24 }}>🔍</div>
+              <Link href="/tasks" className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ color: "var(--primary)" }}><IconSearch size={22} /></div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Browse Tasks</div>
                 <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Find experience-matched bounties</div>
               </Link>
-              <Link href="/leaderboard" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 24 }}>🏆</div>
+              <Link href="/leaderboard" className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ color: "var(--gold)" }}><IconTrophy size={22} /></div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Leaderboard</div>
                 <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Top contributors by MUSD earned</div>
               </Link>
-              <Link href="/support" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 24 }}>🏛</div>
+              <Link href="/support" className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ color: "var(--success)" }}><IconLandmark size={22} /></div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Support the Pool</div>
                 <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Deposit MUSD into the grant pool</div>
               </Link>
-              <Link href="/vote" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 24 }}>🗳️</div>
+              <Link href="/vote" className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ color: "var(--secondary-light)" }}><IconBallot size={22} /></div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Vote on Grants</div>
                 <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Weigh in on grant applications</div>
               </Link>
@@ -183,10 +183,10 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <Link href={`/profile/${address ?? ""}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                <Link href={`/profile/${address ?? ""}`} className="btn-motion" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                   <span>Public Profile</span><span style={{ color: "var(--primary)" }}>→</span>
                 </Link>
-                <Link href="/settings" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0" }}>
+                <Link href="/settings" className="btn-motion" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-muted)", textDecoration: "none", padding: "8px 0" }}>
                   <span>Settings</span><span style={{ color: "var(--text-muted)" }}>→</span>
                 </Link>
               </div>
@@ -195,34 +195,34 @@ export default function DashboardPage() {
             {/* Wave info */}
             <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 14, padding: 24 }}>
               {waveLoading ? (
-                <div style={{ textAlign: "center", padding: "16px 0", color: "var(--text-dim)" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>Loading wave info…</div>
-                </div>
+                <LoadingState size="sm" label="Loading wave info…" />
               ) : (
                 <>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>Wave #{wave.waveId}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                       <span style={{ color: "var(--text-dim)" }}>Pool</span>
-                      <span style={{ color: "var(--primary)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
+                      <span className="figure" style={{ color: "var(--primary)", fontWeight: 600 }}>{formatMUSD(poolAmountHuman)} MUSD</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                       <span style={{ color: "var(--text-dim)" }}>Tasks this wave</span>
-                      <span style={{ color: "var(--text)", fontWeight: 600 }}>{wave.totalTasks}</span>
+                      <span className="figure" style={{ color: "var(--text)", fontWeight: 600 }}>{wave.totalTasks}</span>
                     </div>
                   </div>
                   {displayRole === "creator" && (
-                    <Link href="/creator" style={{ display: "block", textAlign: "center", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", color: "var(--primary)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, textDecoration: "none" }}>
+                    <Button href="/creator" variant="subtle" size="sm" style={{ width: "100%", marginBottom: 8 }}>
                       Claim Reward
-                    </Link>
+                    </Button>
                   )}
+                  <Link href="/wave" className="btn-motion" style={{ display: "block", textAlign: "center", color: "var(--text-dim)", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                    View wave history →
+                  </Link>
                 </>
               )}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Container>
+    </PageShell>
   );
 }
