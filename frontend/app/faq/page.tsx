@@ -80,6 +80,27 @@ const FAQ_GROUPS: FaqGroup[] = [
     ],
   },
   {
+    group: "Wallet safety",
+    items: [
+      {
+        q: "Which wallet should I connect when I register?",
+        a: "Use a self-custody wallet you personally hold the seed phrase for — never an exchange-custodied address, and a hardware wallet for anything holding real value. If you plan to vote on grants, connect the exact address that holds your veBTC: your voting weight is read from that specific address live via Mezo's contracts, so registering with a different wallet leaves you with zero weight even if you hold veBTC elsewhere.",
+      },
+      {
+        q: "Will Taskify ever ask for my seed phrase or private key?",
+        a: "Never. Taskify only ever asks your wallet to sign transactions and approvals through its normal popup. Nobody from Taskify will DM you asking for a seed phrase, private key, or \"wallet validation\" — anyone who does is a scammer. Report and block them.",
+      },
+      {
+        q: "What am I approving when I sign a token approval?",
+        a: "Taskify only ever requests an approval for the exact amount you're about to escrow or deposit in that transaction — never an unlimited or max approval. Read every signature prompt before you sign and check the spender is the Taskify contract and the amount matches what you expect. If a prompt asks for an unlimited allowance, cancel it.",
+      },
+      {
+        q: "How do I make sure I'm on the real Taskify site?",
+        a: "Bookmark the official URL and use the bookmark every time. Don't reach Taskify through links in DMs, replies, ads, or search results — those are the most common phishing vectors. The only official account is @taskifyhq on X.",
+      },
+    ],
+  },
+  {
     group: "Grant voting",
     items: [
       {
@@ -131,7 +152,7 @@ export default function FaqPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
           {FAQ_GROUPS.map((group) => (
-            <div key={group.group}>
+            <div key={group.group} id={group.group.toLowerCase().replace(/[^a-z0-9]+/g, "-")} style={{ scrollMarginTop: 24 }}>
               <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 14px" }}>
                 {group.group}
               </h2>
