@@ -3,8 +3,11 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Initializable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
 /// @notice Minimal read interface onto Mezo's Tigris veBTC/veMEZO voting-escrow
 /// contracts. Patron voting weight is sourced live from here instead of a
@@ -18,7 +21,14 @@ interface IMezoVotingEscrow {
 /// @title Taskify — on-chain bounty board for the Mezo / Bitcoin ecosystem
 /// @notice MUSD is the escrow and grant-pool currency; MEZO amplifies
 /// governance-weight staking.
-contract Taskify is ReentrancyGuard {
+/// @dev UUPS-upgradeable. Deployed behind an ERC1967Proxy — see
+/// script/Deploy.s.sol. musd/mezo stay `immutable`: they're baked into this
+/// implementation's bytecode (not proxy storage) at implementation-deploy
+/// time, which is safe here because a given implementation is only ever
+/// wired to proxies using that same pair of token addresses, and it avoids
+/// spending a storage slot pair that upgrades would otherwise need to keep
+/// stable forever.
+contract Taskify is Initializable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     // ----- Errors -----
@@ -228,9 +238,9 @@ contract Taskify is ReentrancyGuard {
     // be approved to vote, and any registered wallet can also deposit into
     // the grant pool — see depositToPool.
     mapping(address => bool) public approvedVoters;
-    uint256 public nextTaskId = 1;
+    uint256 public nextTaskId;
 
-    uint256 public currentWaveId = 1;
+    uint256 public currentWaveId;
     uint256 public waveStartTime;
     uint256 public wavePoolAmount;
     uint256 public waveTotalTasks;
@@ -261,12 +271,33 @@ contract Taskify is ReentrancyGuard {
     event VoterApproved(address indexed voter, bool approved);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    /// @dev Runs once per implementation deploy (not per proxy) — sets the
+    /// immutables and locks the implementation contract itself out of
+    /// initialize() so it can never be used directly, only delegatecalled
+    /// through a proxy. See initialize().
     constructor(address _musd, address _mezo) {
-        CONTRACT_OWNER = msg.sender;
-        treasuryAddress = msg.sender;
         musd = _musd;
         mezo = _mezo;
+        _disableInitializers();
+    }
+
+    /// @notice Runs once per proxy, immediately after deployment (see
+    /// script/Deploy.s.sol) — sets up the state a constructor would
+    /// otherwise hold, in proxy storage instead of implementation bytecode.
+    function initialize() external initializer {
+        __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
+        CONTRACT_OWNER = msg.sender;
+        treasuryAddress = msg.sender;
         waveStartTime = block.timestamp;
+        nextTaskId = 1;
+        currentWaveId = 1;
+    }
+
+    /// @dev Restricts upgradeToAndCall to CONTRACT_OWNER — the same
+    /// authority as every other admin setter below.
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
     }
 
     // ----- Internal helpers -----
@@ -1003,4 +1034,10 @@ contract Taskify is ReentrancyGuard {
         CONTRACT_OWNER = newOwner;
         emit OwnershipTransferred(previousOwner, newOwner);
     }
+
+    /// @dev Reserved storage so a future upgrade can append new state
+    /// variables without shifting the storage slot of anything declared
+    /// above — standard OZ upgradeable-contract convention. Shrink this by
+    /// exactly as many slots as any new variables added in an upgrade.
+    uint256[50] private __gap;
 }

@@ -6,6 +6,7 @@ import {Taskify} from "../src/Taskify.sol";
 import {MockMUSD} from "../src/MockMUSD.sol";
 import {MockMEZO} from "../src/MockMEZO.sol";
 import {MockVotingEscrow} from "../src/MockVotingEscrow.sol";
+import {ERC1967Proxy} from "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @notice Solidity port of taskify.test.ts — same lifecycle, same actors,
 /// amounts scaled from 6-decimal USDX to 18-decimal MUSD (x 1e12), block
@@ -25,7 +26,9 @@ contract TaskifyTest is Test {
     function setUp() public {
         musd = new MockMUSD();
         mezo = new MockMEZO();
-        taskify = new Taskify(address(musd), address(mezo));
+        Taskify implementation = new Taskify(address(musd), address(mezo));
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), abi.encodeCall(Taskify.initialize, ()));
+        taskify = Taskify(address(proxy));
         veEscrow = new MockVotingEscrow();
         taskify.setVeBTCEscrow(address(veEscrow));
 

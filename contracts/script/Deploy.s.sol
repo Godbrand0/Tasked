@@ -5,10 +5,17 @@ import {Script, console} from "forge-std/Script.sol";
 import {Taskify} from "../src/Taskify.sol";
 import {MockMUSD} from "../src/MockMUSD.sol";
 import {MockMEZO} from "../src/MockMEZO.sol";
+import {ERC1967Proxy} from "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-/// @notice Deploys MockMUSD, MockMEZO, and Taskify to whichever network is
-/// targeted (Mezo testnet/mainnet or local). On mainnet, pass the real MUSD
-/// token address instead of deploying a mock (see MUSD_ADDRESS env var).
+/// @notice Deploys MockMUSD, MockMEZO, and Taskify (behind a UUPS
+/// ERC1967Proxy) to whichever network is targeted (Mezo testnet/mainnet or
+/// local). On mainnet, pass the real MUSD token address instead of
+/// deploying a mock (see MUSD_ADDRESS env var).
+///
+/// The address to interact with — and the one the frontend's
+/// NEXT_PUBLIC_TASKIFY_CONTRACT should point at — is the PROXY, never the
+/// implementation. Future upgrades go through script/Upgrade.s.sol against
+/// this same proxy address.
 contract Deploy is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
@@ -27,8 +34,12 @@ contract Deploy is Script {
             console.log("Deployed MockMEZO:", mezo);
         }
 
-        Taskify taskify = new Taskify(musd, mezo);
-        console.log("Deployed Taskify:", address(taskify));
+        Taskify implementation = new Taskify(musd, mezo);
+        console.log("Deployed Taskify implementation:", address(implementation));
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), abi.encodeCall(Taskify.initialize, ()));
+        Taskify taskify = Taskify(address(proxy));
+        console.log("Deployed Taskify proxy (use this address):", address(taskify));
 
         // Optional — veBTC/veMEZO escrow addresses are unverified leads as of
         // VOTING_SYSTEM_REDESIGN.md (never confirmed on a live block explorer
