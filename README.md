@@ -421,9 +421,11 @@ NEXT_PUBLIC_TASKIFY_CONTRACT=0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69
 
 | Contract | Address |
 |---|---|
-| Taskify | _not yet deployed_ |
+| Taskify | [`0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D`](https://explorer.mezo.org/address/0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D) — UUPS-upgradeable, proxy address (implementation: `0xdbc5cAbb560E6826a81fE38115F6129a97Ff2E58`) |
 | MUSD (official) | `0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186` |
 | MEZO (official) | `0x7B7c000000000000000000000000000000000001` |
+
+No veBTC escrow set yet on the mainnet deployment — grant voting won't resolve any weight until `setVeBTCEscrow` is called with a confirmed mainnet address.
 
 Sourced from [mezo.org/docs/users/resources/contracts-reference](https://mezo.org/docs/users/resources/contracts-reference/); verify before relying on them for anything beyond local development.
 

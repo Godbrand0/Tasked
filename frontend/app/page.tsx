@@ -2,6 +2,7 @@
 
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
+import { MEZO_NETWORK_NAME } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -788,7 +789,7 @@ function Footer() {
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }} />
-              <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>Mezo Testnet</span>
+              <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>{MEZO_NETWORK_NAME}</span>
             </div>
             <a href="https://x.com/taskifyhq" target="_blank" rel="noopener noreferrer"
               style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", color: "var(--text-dim)" }}
@@ -818,7 +819,7 @@ function Footer() {
             <span>Contract:</span>
             {TASKIFY_ADDRESS ? (
               <a
-                href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/address/${TASKIFY_ADDRESS}`}
+                href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/address/${TASKIFY_ADDRESS}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: "var(--primary)", textDecoration: "none" }}

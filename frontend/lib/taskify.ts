@@ -5,8 +5,8 @@ export const TASKIFY_ABI = TaskifyAbiJson;
 
 export const TASKIFY_ADDRESS = process.env.NEXT_PUBLIC_TASKIFY_CONTRACT as `0x${string}` | undefined;
 
-export const MUSD_ADDRESS = (process.env.NEXT_PUBLIC_MUSD_CONTRACT ?? CONTRACT_ADDRESSES.testnet.musd) as `0x${string}`;
-export const MEZO_ADDRESS = (process.env.NEXT_PUBLIC_MEZO_CONTRACT ?? CONTRACT_ADDRESSES.testnet.mezo) as
+export const MUSD_ADDRESS = (process.env.NEXT_PUBLIC_MUSD_CONTRACT ?? CONTRACT_ADDRESSES.mainnet.musd) as `0x${string}`;
+export const MEZO_ADDRESS = (process.env.NEXT_PUBLIC_MEZO_CONTRACT ?? CONTRACT_ADDRESSES.mainnet.mezo) as
   | `0x${string}`
   | undefined;
 

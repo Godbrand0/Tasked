@@ -32,8 +32,8 @@ import taskifyAbi from "../lib/abi/Taskify.json" with { type: "json" };
 
 const CONTRACT_ADDRESS = process.env.TASKIFY_CONTRACT_ADDRESS as `0x${string}` | undefined;
 const DEPLOY_BLOCK = process.env.TASKIFY_DEPLOY_BLOCK ? BigInt(process.env.TASKIFY_DEPLOY_BLOCK) : undefined;
-const CHAIN_ID = Number(process.env.NEXT_PUBLIC_MEZO_CHAIN_ID ?? 31611);
-const RPC_URL = process.env.NEXT_PUBLIC_MEZO_RPC_URL ?? "https://rpc.test.mezo.org";
+const CHAIN_ID = Number(process.env.NEXT_PUBLIC_MEZO_CHAIN_ID ?? 31612);
+const RPC_URL = process.env.NEXT_PUBLIC_MEZO_RPC_URL ?? "https://mezo.drpc.org";
 const POLL_INTERVAL_MS = 15_000;
 const BLOCK_CHUNK = 2000n; // getLogs range per request, keeps individual RPC calls small
 

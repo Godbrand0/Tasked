@@ -56,7 +56,7 @@ export function useTaskifyTx() {
     // whoever sees this at the explorer instead of surfacing a raw viem
     // error string.
     throw new Error(
-      `Sent, but couldn't confirm in time — check ${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/tx/${hash}. If it succeeded there, refresh this page.`
+      `Sent, but couldn't confirm in time — check ${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/tx/${hash}. If it succeeded there, refresh this page.`
     );
   }
 

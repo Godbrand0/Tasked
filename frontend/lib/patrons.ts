@@ -3,7 +3,7 @@ import { createPublicClient, http } from "viem";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
 
-const RPC_URL = process.env.NEXT_PUBLIC_MEZO_RPC_URL || "https://rpc.test.mezo.org";
+const RPC_URL = process.env.NEXT_PUBLIC_MEZO_RPC_URL || "https://mezo.drpc.org";
 
 // Who can actually vote lives on-chain only (no indexer running yet — see
 // supabase/schema.sql's "ON-CHAIN CACHE" section), so it can't be answered

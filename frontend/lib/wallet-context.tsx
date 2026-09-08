@@ -19,10 +19,10 @@ const ERC20_BALANCE_ABI = [
   },
 ] as const;
 
-// Defaults to the real Mezo testnet MUSD address; override via env for
-// mainnet or a custom devnet deployment.
-const MUSD_ADDRESS = (process.env.NEXT_PUBLIC_MUSD_CONTRACT ?? CONTRACT_ADDRESSES.testnet.musd) as `0x${string}`;
-const MEZO_ADDRESS = (process.env.NEXT_PUBLIC_MEZO_CONTRACT ?? CONTRACT_ADDRESSES.testnet.mezo) as
+// Defaults to the real Mezo mainnet MUSD address; override via env for
+// testnet or a custom devnet deployment.
+const MUSD_ADDRESS = (process.env.NEXT_PUBLIC_MUSD_CONTRACT ?? CONTRACT_ADDRESSES.mainnet.musd) as `0x${string}`;
+const MEZO_ADDRESS = (process.env.NEXT_PUBLIC_MEZO_CONTRACT ?? CONTRACT_ADDRESSES.mainnet.mezo) as
   | `0x${string}`
   | undefined;
 

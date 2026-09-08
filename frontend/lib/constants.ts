@@ -36,6 +36,14 @@ export const TASK_STATUSES: Record<string, { label: string; color: string; bg: s
 
 export const MUSD_DECIMALS = 18;
 
+// Defaults to Mezo mainnet; override NEXT_PUBLIC_MEZO_CHAIN_ID for testnet
+// (31611) or a custom devnet. Single source of truth for the "which Mezo
+// network is this" display label — see app/providers.tsx (wallet-facing
+// chain config) and any UI that shows the connected network name.
+export const MEZO_CHAIN_ID = Number(process.env.NEXT_PUBLIC_MEZO_CHAIN_ID ?? 31612);
+export const MEZO_IS_TESTNET = MEZO_CHAIN_ID === 31611;
+export const MEZO_NETWORK_NAME = MEZO_IS_TESTNET ? "Mezo Testnet" : "Mezo";
+
 // Official Mezo contract addresses (source: mezo.org/docs/users/resources/contracts-reference).
 // MEZO has no published testnet deployment — on testnet we deploy our own
 // MockMEZO (see contracts/script/Deploy.s.sol) and point NEXT_PUBLIC_MEZO_CONTRACT

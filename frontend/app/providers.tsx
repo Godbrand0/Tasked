@@ -16,20 +16,25 @@ import { createConfig, http, WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { defineChain } from "viem";
 import { WalletProvider } from "@/lib/wallet-context";
+import { MEZO_CHAIN_ID, MEZO_IS_TESTNET, MEZO_NETWORK_NAME } from "@/lib/constants";
 
-// Mezo testnet params, verified against mezo.org/docs/users/getting-started/connect
-// (2026-08-09). Override via env for a custom RPC or to point at mainnet.
-const mezoTestnet = defineChain({
-  id: Number(process.env.NEXT_PUBLIC_MEZO_CHAIN_ID ?? 31611),
-  name: "Mezo Testnet",
+// Mezo mainnet params by default (verified against
+// mezo.org/docs/developers/getting-started, 2026-09-08) — override via env
+// to point at testnet (chain 31611) or a custom RPC instead. name/testnet
+// derive from the configured chain id (see lib/constants.ts) rather than
+// being hardcoded either way, so a testnet override doesn't leave the
+// wallet UI mislabeled "Mezo" (or a mainnet config mislabeled "Mezo Testnet").
+const mezoChain = defineChain({
+  id: MEZO_CHAIN_ID,
+  name: MEZO_NETWORK_NAME,
   nativeCurrency: { name: "Bitcoin", symbol: "BTC", decimals: 18 },
   rpcUrls: {
-    default: { http: [process.env.NEXT_PUBLIC_MEZO_RPC_URL ?? "https://rpc.test.mezo.org"] },
+    default: { http: [process.env.NEXT_PUBLIC_MEZO_RPC_URL ?? "https://mezo.drpc.org"] },
   },
   blockExplorers: {
-    default: { name: "Mezo Explorer", url: process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org" },
+    default: { name: "Mezo Explorer", url: process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org" },
   },
-  testnet: true,
+  testnet: MEZO_IS_TESTNET,
 });
 
 // Explicit wallet list (skipping RainbowKit's default Coinbase Wallet entry —
@@ -58,8 +63,8 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   connectors,
-  chains: [mezoTestnet],
-  transports: { [mezoTestnet.id]: http() },
+  chains: [mezoChain],
+  transports: { [mezoChain.id]: http() },
   ssr: true,
 });
 

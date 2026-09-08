@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge } from "@/components/ui/Badge";
-import { TIERS, ROLE_LABELS } from "@/lib/constants";
+import { TIERS, ROLE_LABELS, MEZO_NETWORK_NAME } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
@@ -510,7 +510,7 @@ function SettingsPageInner() {
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 8 }}>Network</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }} />
-                      <div style={{ fontSize: 14, color: "var(--text)" }}>Mezo Testnet</div>
+                      <div style={{ fontSize: 14, color: "var(--text)" }}>{MEZO_NETWORK_NAME}</div>
                     </div>
                   </div>
                   <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>

@@ -882,7 +882,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               )}
                               {s.isWinner && s.payoutTxHash && (
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/tx/${s.payoutTxHash}`}
+                                  href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/tx/${s.payoutTxHash}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)", textDecoration: "none" }}
@@ -1343,7 +1343,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 </p>
                 {workSubmission?.payout_tx_hash && (
                   <a
-                    href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.test.mezo.org"}/tx/${workSubmission.payout_tx_hash}`}
+                    href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/tx/${workSubmission.payout_tx_hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--primary)", textDecoration: "none" }}
