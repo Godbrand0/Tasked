@@ -4,7 +4,7 @@ Seed set for launch day. **Amounts are left blank** — fill `Amount` before pos
 Post each through `/create` as the Owner wallet; the description block is markdown
 and goes to `task_content.description` (Supabase) after the on-chain tx.
 
-Mix: 4 Development, 4 Community. Keep the first batch small and tightly scoped so
+Mix: 4 Development, 5 Community. Keep the first batch small and tightly scoped so
 early contributors can finish and get paid fast (good for the launch narrative).
 
 Suggested deadlines assume a launch date of **2026-09-XX** — adjust on the day.
@@ -240,6 +240,45 @@ Acceptance criteria:
 - Clear enough for someone new to Mezo governance
 
 Top 3 by clarity and accuracy split the pot.
+
+---
+
+### C5 — Onboarding guide: how to actually get BTC, MEZO, and MUSD on Mezo
+| Field | Value |
+|---|---|
+| Kind | Community |
+| Funding | Self-funded (3%) |
+| Currency | MUSD |
+| Winners | 3 |
+| Deadline | launch + 10 days |
+| Topic | Documentation |
+| Tags | Onboarding, Bridging, Tutorial, Docs |
+| Amount | _TBD_ |
+
+**Description**
+
+Getting funded on Mezo mainnet for the first time is genuinely confusing right now —
+there's no single clear path to (1) BTC, the native gas token every transaction needs,
+(2) MEZO, and (3) MUSD. Write a real, step-by-step walkthrough covering all three,
+aimed at someone who has never touched Mezo before.
+
+Should cover at minimum:
+- Getting BTC onto Mezo as the native gas token (bridging in vs. buying directly —
+  whichever route(s) actually work today, with real fees/wait times, not assumptions)
+- Getting MEZO (where it actually trades/bridges from)
+- Getting MUSD — including borrowing it against BTC collateral via Mezo's own Borrow
+  flow (mezo.org), not just "swap for it" if that's not realistically the main path
+- Realistic amounts needed to just get started (e.g. enough BTC to cover gas for a
+  handful of Taskify transactions)
+
+Acceptance criteria:
+- Real screenshots from an actual attempt, not marketing copy — include the annoying
+  parts (slow bridges, minimum amounts, confusing UI steps) so it's actually useful
+- Public and readable (blog post, GitHub gist, Mirror, thread — your call)
+- Accurate as of when it's written; note if a step is likely to change
+- Covers the wallet-safety basics already in the FAQ (self-custody, exact-amount approvals) where relevant
+
+Top 3 by how genuinely useful/accurate the guide is split the pot.
 
 ---
 

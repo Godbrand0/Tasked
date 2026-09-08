@@ -7,8 +7,8 @@ import { IconMegaphone } from "@/components/icons";
 
 export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creatorAvatarUrl?: string }) {
   return (
-    <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none", display: "block" }}>
-      <div className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, boxShadow: "var(--shadow-sm)", cursor: "pointer" }}>
+    <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none", display: "block", height: "100%" }}>
+      <div className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, boxShadow: "var(--shadow-sm)", cursor: "pointer", height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <StatusBadge status={task.status} />
           <div style={{ display: "flex", gap: 6 }}>
@@ -30,7 +30,7 @@ export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creat
           {task.tags?.slice(0, 2).map((tag) => <Badge key={tag} color="gray">{tag}</Badge>)}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 14, borderTop: "1px solid var(--border)", marginTop: "auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Avatar src={creatorAvatarUrl} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
             <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
