@@ -63,7 +63,7 @@ export default function Navbar() {
         .nav-link:hover { color: var(--text) !important; }
         .wallet-dropdown-item:hover { background: var(--border) !important; }
       `}</style>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: 64 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", height: 64 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, justifySelf: "start" }}>
           <BackButton />
           <TaskedLogo />
