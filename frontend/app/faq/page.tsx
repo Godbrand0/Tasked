@@ -181,8 +181,9 @@ export default function FaqPage() {
           ))}
         </div>
 
-        <div style={{ borderTop: "1px solid var(--border)", marginTop: 48, paddingTop: 24 }}>
+        <div style={{ borderTop: "1px solid var(--border)", marginTop: 48, paddingTop: 24, display: "flex", gap: 20, flexWrap: "wrap" }}>
           <Link href="/terms" style={{ color: "var(--primary)", fontSize: 13, textDecoration: "none" }}>Read the Terms &amp; Conditions →</Link>
+          <Link href="/privacy" style={{ color: "var(--primary)", fontSize: 13, textDecoration: "none" }}>Privacy Policy →</Link>
         </div>
       </div>
     </div>
