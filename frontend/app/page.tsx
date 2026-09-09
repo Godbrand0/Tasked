@@ -102,7 +102,7 @@ function LandingNavbar() {
       <style>{`.taskify-nav-link:hover { color: var(--text) !important; } .landing-btn-outline:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; box-shadow: var(--shadow-md) !important; } .landing-btn-primary:hover { background: var(--primary-strong) !important; }`}</style>
       {/* maxWidth is 1200 + 2×24px padding (not 1200) so the padded content area itself is exactly
           1200px wide, lining up with the unpadded maxWidth:1200 containers every section below uses */}
-      <div style={{ maxWidth: 1248, margin: "0 auto", padding: "0 24px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: 64 }}>
+      <div style={{ maxWidth: 1248, margin: "0 auto", padding: "0 24px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", height: 64 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "start" }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", position: "relative", flexShrink: 0 }}>
             <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
