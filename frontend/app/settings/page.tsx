@@ -89,23 +89,28 @@ function SettingsPageInner() {
   // the verified handle in the query string, then we sign setXVerified(true)
   // on-chain with that real handle.
   useEffect(() => {
-    const handle = searchParams.get("x_handle");
-    const avatar = searchParams.get("x_avatar");
     const error = searchParams.get("x_error");
-    if (handle) {
-      window.history.replaceState({}, "", "/settings");
-      setXConnecting(true);
-      setXError("");
-      linkX(handle, avatar ?? undefined).catch((err) => {
-        setXError(formatContractError(err, "Failed to link X on-chain"));
-      }).finally(() => setXConnecting(false));
-    }
     if (error) {
       window.history.replaceState({}, "", "/settings");
       setXError("X connection failed. Please try again.");
+      return;
     }
+    const handle = searchParams.get("x_handle");
+    if (!handle) return;
+    // The OAuth round-trip is a full-page navigation, so the wallet
+    // connection is still rehydrating on this first render — linkX no-ops
+    // without an address. Keep the query param and let the effect re-run
+    // once `address` lands.
+    if (!address) return;
+    const avatar = searchParams.get("x_avatar");
+    window.history.replaceState({}, "", "/settings");
+    setXConnecting(true);
+    setXError("");
+    linkX(handle, avatar ?? undefined).catch((err) => {
+      setXError(formatContractError(err, "Failed to link X on-chain"));
+    }).finally(() => setXConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, address]);
 
   function handleXConnect() {
     setXError("");
@@ -114,23 +119,27 @@ function SettingsPageInner() {
 
   // Completes the GitHub OAuth flow — off-chain only, no on-chain call.
   useEffect(() => {
-    const handle = searchParams.get("github_handle");
-    const avatar = searchParams.get("github_avatar");
     const error = searchParams.get("github_error");
-    if (handle) {
-      window.history.replaceState({}, "", "/settings");
-      setGithubConnecting(true);
-      setGithubError("");
-      linkGithub(handle, avatar ?? undefined).catch((err) => {
-        setGithubError(formatContractError(err, "Failed to link GitHub"));
-      }).finally(() => setGithubConnecting(false));
-    }
     if (error) {
       window.history.replaceState({}, "", "/settings");
       setGithubError("GitHub connection failed. Please try again.");
+      return;
     }
+    const handle = searchParams.get("github_handle");
+    if (!handle) return;
+    // Wait for the wallet to rehydrate after the OAuth redirect — linkGithub
+    // no-ops without an address, and wiping the query param first would lose
+    // the handle for good. The effect re-runs when `address` arrives.
+    if (!address) return;
+    const avatar = searchParams.get("github_avatar");
+    window.history.replaceState({}, "", "/settings");
+    setGithubConnecting(true);
+    setGithubError("");
+    linkGithub(handle, avatar ?? undefined).catch((err) => {
+      setGithubError(formatContractError(err, "Failed to link GitHub"));
+    }).finally(() => setGithubConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, address]);
 
   function handleGithubConnect() {
     setGithubError("");
@@ -140,24 +149,27 @@ function SettingsPageInner() {
   // Completes the Google OAuth flow — off-chain only, for accounts
   // registered before Google became the required identity.
   useEffect(() => {
-    const email = searchParams.get("google_email");
-    const name = searchParams.get("google_name");
-    const avatar = searchParams.get("google_avatar");
     const error = searchParams.get("google_error");
-    if (email) {
-      window.history.replaceState({}, "", "/settings");
-      setGoogleConnecting(true);
-      setGoogleError("");
-      linkGoogle(email, name ?? undefined, avatar ?? undefined).catch((err) => {
-        setGoogleError(formatContractError(err, "Failed to link Google"));
-      }).finally(() => setGoogleConnecting(false));
-    }
     if (error) {
       window.history.replaceState({}, "", "/settings");
       setGoogleError("Google connection failed. Please try again.");
+      return;
     }
+    const email = searchParams.get("google_email");
+    if (!email) return;
+    // Wait for the wallet to rehydrate after the OAuth redirect (see the
+    // GitHub effect above) — linkGoogle no-ops without an address.
+    if (!address) return;
+    const name = searchParams.get("google_name");
+    const avatar = searchParams.get("google_avatar");
+    window.history.replaceState({}, "", "/settings");
+    setGoogleConnecting(true);
+    setGoogleError("");
+    linkGoogle(email, name ?? undefined, avatar ?? undefined).catch((err) => {
+      setGoogleError(formatContractError(err, "Failed to link Google"));
+    }).finally(() => setGoogleConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, address]);
 
   function handleGoogleConnect() {
     setGoogleError("");
