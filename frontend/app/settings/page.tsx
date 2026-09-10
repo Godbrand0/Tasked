@@ -87,8 +87,8 @@ function SettingsPageInner() {
   useEffect(() => setUsernameInput(username), [username]);
 
   // Completes the X OAuth flow: the callback route redirects back here with
-  // the verified handle in the query string, then we sign setXVerified(true)
-  // on-chain with that real handle.
+  // the verified handle in the query string; linkX then stores it off-chain
+  // (no transaction, same as GitHub).
   useEffect(() => {
     const error = searchParams.get("x_error");
     if (error) {
@@ -98,10 +98,9 @@ function SettingsPageInner() {
     }
     const handle = searchParams.get("x_handle");
     if (!handle) return;
-    // The OAuth round-trip is a full-page navigation, so the wallet
-    // connection is still rehydrating on this first render — linkX no-ops
-    // without an address. Keep the query param and let the effect re-run
-    // once `address` lands.
+    // The OAuth round-trip is a full-page navigation, so the wallet is still
+    // rehydrating on this first render — linkX no-ops without an address.
+    // Keep the query param and let the effect re-run once `address` lands.
     if (!address) return;
     const avatar = searchParams.get("x_avatar");
     window.history.replaceState({}, "", "/settings");
