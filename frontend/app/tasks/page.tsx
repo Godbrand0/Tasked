@@ -188,20 +188,23 @@ export default function TasksPage() {
             <EmptyState size="lg" icon={IconSearch} title="No tasks match your filters" description="Try adjusting your search or filters" />
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
-              {filtered.map(task => (
+              {filtered.map(task => {
+                const showAction = task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor));
+                return (
                 <div key={task.id} style={{ position: "relative" }}>
-                  <TaskCard task={task} creatorAvatarUrl={profilesByAddress?.[task.creator.toLowerCase()]?.avatarUrl ?? undefined} />
+                  <TaskCard task={task} creatorAvatarUrl={profilesByAddress?.[task.creator.toLowerCase()]?.avatarUrl ?? undefined} reserveActionSpace={showAction} />
                   {/* Quick-action badge on open tasks — apply (dev, contributors only) or join (community, any role) */}
-                  {task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor)) && (
+                  {showAction && (
                     <div style={{ position: "absolute", bottom: 20, right: 20 }}>
                       <Link href={`/tasks/${task.id}`} className="btn-motion"
-                        style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 6, textDecoration: "none", display: "inline-block" }}>
+                        style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, textDecoration: "none", display: "inline-block", boxShadow: "0 2px 10px color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                         {task.kind === "community" ? "Join →" : "Apply →"}
                       </Link>
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </main>
