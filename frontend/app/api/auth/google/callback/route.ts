@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mintGasGrant } from "@/lib/gas-grant";
 
 function getReturnTo(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state") ?? "";
@@ -52,6 +53,12 @@ export async function GET(req: NextRequest) {
     google_name: user.name ?? user.email.split("@")[0],
     google_avatar: user.picture ?? "",
   });
+
+  // Only present when gas sponsorship is enabled (GAS_DRIP_SECRET set). Lets
+  // /register request a one-time BTC top-up for a brand-new wallet, deduped
+  // on the Google `sub`. Short-lived; the client scrubs it from the URL.
+  const gasGrant = mintGasGrant(String(user.id ?? ""));
+  if (gasGrant) params.set("gas_grant", gasGrant);
 
   return NextResponse.redirect(new URL(`${returnTo}?${params}`, req.url));
 }

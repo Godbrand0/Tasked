@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSignMessage } from "wagmi";
 import Image from "next/image";
 import Link from "next/link";
 import { TIERS } from "@/lib/constants";
@@ -40,7 +41,8 @@ export default function RegisterPage() {
 function RegisterPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { connected, isRegistered, address, connect, register: registerWallet } = useWallet();
+  const { connected, isRegistered, address, hasGas, refetchNativeBalance, connect, register: registerWallet } = useWallet();
+  const { signMessageAsync } = useSignMessage();
 
   const [step, setStep] = useState<Step>(connected ? "identity" : "wallet");
   const [role, setRole] = useState<UserRole | null>(null);
@@ -50,6 +52,10 @@ function RegisterPageInner() {
   const [googleName, setGoogleName] = useState("");
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [googleError, setGoogleError] = useState("");
+  const [gasGrant, setGasGrant] = useState("");
+  const [funding, setFunding] = useState(false);
+  const [funded, setFunded] = useState(false);
+  const [fundError, setFundError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
 
@@ -79,6 +85,9 @@ function RegisterPageInner() {
       setGoogleName(name ?? googleEmailParam.split("@")[0]);
       setGoogleAvatar(avatar ?? "");
       setGoogleVerified(true);
+      // Short-lived token proving this Google identity — only present when
+      // gas sponsorship is enabled. Used once by the "cover my gas" step.
+      setGasGrant(searchParams.get("gas_grant") ?? "");
       // Clean params from URL without triggering navigation
       window.history.replaceState({}, "", "/register");
     }
@@ -96,6 +105,40 @@ function RegisterPageInner() {
   function handleGoogleConnect() {
     setGoogleError("");
     window.location.href = "/api/auth/google?return_to=%2Fregister";
+  }
+
+  // Mezo gas is BTC, so a brand-new wallet can't send registerUser until it
+  // holds some. When gas sponsorship is on, a one-time top-up covers the
+  // first few transactions. Offer shows only for a fresh, empty wallet.
+  const canOfferGasDrip = connected && !hasGas && Boolean(gasGrant) && !funded;
+
+  async function handleCoverGas() {
+    if (!address) return;
+    setFunding(true);
+    setFundError("");
+    try {
+      const issuedAt = new Date().toISOString();
+      const signature = await signMessageAsync({
+        message: `Taskify gas sponsorship\nWallet: ${address}\nIssued: ${issuedAt}`,
+      });
+      const res = await fetch("/api/gas-drip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, gasGrant, signature, issuedAt }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Gas top-up failed. Please try again.");
+      setFunded(true);
+      // Balance takes a moment to reflect — poll a few times.
+      for (let i = 0; i < 8; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        refetchNativeBalance();
+      }
+    } catch (err) {
+      setFundError(err instanceof Error ? err.message : "Gas top-up failed. Please try again.");
+    } finally {
+      setFunding(false);
+    }
   }
 
   async function handleRegister() {
@@ -322,10 +365,38 @@ function RegisterPageInner() {
             </div>
           )}
 
+          {/* Gas: registering is an on-chain tx paid in BTC. Cover it for a fresh wallet. */}
+          {canOfferGasDrip && (
+            <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>One-time gas top-up</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 12 }}>
+                Registering is an on-chain transaction, and Mezo gas is paid in BTC. Your wallet is empty, so we&apos;ll send a small amount to cover your first few transactions — one per account.
+              </div>
+              {fundError && (
+                <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 10 }}>{fundError}</div>
+              )}
+              <button onClick={handleCoverGas} disabled={funding} className="btn-motion"
+                style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "11px", borderRadius: 10, border: "none", cursor: funding ? "wait" : "pointer", opacity: funding ? 0.7 : 1 }}>
+                {funding ? "Funding your wallet…" : "Cover my gas →"}
+              </button>
+            </div>
+          )}
+          {funded && !hasGas && (
+            <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 16, textAlign: "center" }}>
+              Sent — waiting for it to land in your wallet…
+            </div>
+          )}
+          {connected && !hasGas && !gasGrant && (
+            <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 16 }}>
+              Heads up: your wallet has no BTC, and registering costs a small amount of gas.{" "}
+              <Link href="/faq" style={{ color: "var(--primary)", textDecoration: "none" }}>How to get BTC on Mezo →</Link>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setStep("role")} className="btn-motion" style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
-            <button onClick={handleRegister} disabled={submitting} className="btn-motion"
-              style={{ flex: 2, background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: "pointer", opacity: submitting ? 0.7 : 1 }}>
+            <button onClick={handleRegister} disabled={submitting || canOfferGasDrip} className="btn-motion"
+              style={{ flex: 2, background: (submitting || canOfferGasDrip) ? "var(--border)" : "var(--primary)", color: (submitting || canOfferGasDrip) ? "color-mix(in srgb, var(--text-faint) 53%, transparent)" : "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: (submitting || canOfferGasDrip) ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
               {submitting ? "Registering on-chain…" : "Register on Mezo →"}
             </button>
           </div>

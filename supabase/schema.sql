@@ -314,6 +314,22 @@ create table notifications (
 );
 create index notifications_recipient_idx on notifications(recipient_address, read);
 
+-- One-time gas sponsorship for first-time contributors — Mezo gas is BTC, so
+-- a brand-new wallet can't call registerUser without first acquiring some.
+-- /api/gas-drip sends a small fixed BTC amount to an eligible new wallet and
+-- records it here; one drip per Google identity, one per address (the unique
+-- constraints are the race guard). See GAS_DRIP.md.
+create table gas_drips (
+  id          uuid primary key default gen_random_uuid(),
+  google_sub  text not null unique,
+  address     text not null unique check (address = lower(address)),
+  tx_hash     text,            -- null while a pre-send reservation; set once the transfer confirms
+  amount      text not null,   -- wei, as text — see header note
+  ip_hash     text,
+  created_at  timestamptz not null default now()
+);
+create index gas_drips_created_at_idx on gas_drips(created_at);
+
 -- ============================================================================
 -- Row Level Security
 -- ============================================================================
@@ -327,6 +343,8 @@ alter table task_applications enable row level security;
 alter table task_submissions enable row level security;
 alter table task_comments enable row level security;
 alter table submission_feedback enable row level security;
+alter table gas_drips enable row level security;
+-- gas_drips: no client policies — service-role API route only.
 alter table notifications enable row level security;
 
 -- On-chain cache tables: world-readable, writes restricted to the

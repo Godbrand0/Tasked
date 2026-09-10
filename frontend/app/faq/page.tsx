@@ -71,7 +71,7 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "Do I need to connect GitHub or X? What are the benefits?",
-        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet. That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
+        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet — though every on-chain action needs a small amount of BTC for gas (see \"Do I need BTC to use Taskify?\" under Wallet safety). That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
       },
       {
         q: "I linked GitHub/X but it's not showing as verified. What happened?",
@@ -85,6 +85,10 @@ const FAQ_GROUPS: FaqGroup[] = [
       {
         q: "Which wallet should I connect when I register?",
         a: "Use a self-custody wallet you personally hold the seed phrase for — never an exchange-custodied address, and a hardware wallet for anything holding real value. If you plan to vote on grants, connect the exact address that holds your veBTC: your voting weight is read from that specific address live via Mezo's contracts, so registering with a different wallet leaves you with zero weight even if you hold veBTC elsewhere.",
+      },
+      {
+        q: "Do I need BTC to use Taskify?",
+        a: "Yes — a little. Mezo's gas token is BTC, so every on-chain action (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in gas, separate from the MUSD you earn or escrow. If you're registering as a contributor with a brand-new, empty wallet, Taskify covers a one-time top-up during registration to get you through your first few transactions — you'll see a \"Cover my gas\" step. After that, you fund gas yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
       },
       {
         q: "Will Taskify ever ask for my seed phrase or private key?",
