@@ -8,7 +8,7 @@ import { IconMegaphone } from "@/components/icons";
 
 const TERMINAL_STATUSES = ["FUNDS_RELEASED", "CANCELLED", "GRANT_REJECTED"];
 
-export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creatorAvatarUrl?: string }) {
+export default function TaskCard({ task, creatorAvatarUrl, reserveActionSpace = false }: { task: Task; creatorAvatarUrl?: string; reserveActionSpace?: boolean }) {
   return (
     <Link href={`/tasks/${task.id}`} style={{ textDecoration: "none", display: "block", height: "100%" }}>
       <div className="card-hover" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 24, boxShadow: "var(--shadow-sm)", cursor: "pointer", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -33,25 +33,30 @@ export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creat
           {task.tags?.slice(0, 2).map((tag) => <Badge key={tag} color="gray">{tag}</Badge>)}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 14, borderTop: "1px solid var(--border)", marginTop: "auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Avatar src={creatorAvatarUrl} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
-            <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-            {task.kind === "community"
-              ? (() => {
-                  const count = task.submissionCount ?? task.submissions?.length ?? 0;
-                  return <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{count} participant{count !== 1 ? "s" : ""}</span>;
-                })()
-              : task.applicantCount !== undefined && (
-                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{task.applicantCount} applicant{task.applicantCount !== 1 ? "s" : ""}</span>
+        {(() => {
+          const count =
+            task.kind === "community"
+              ? { n: task.submissionCount ?? task.submissions?.length ?? 0, noun: "participant" }
+              : task.applicantCount !== undefined
+              ? { n: task.applicantCount, noun: "applicant" }
+              : null;
+          const showCountdown = !TERMINAL_STATUSES.includes(task.status);
+          return (
+            <div style={{ paddingTop: 14, borderTop: "1px solid var(--border)", marginTop: "auto" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: (count || showCountdown) ? 6 : 0 }}>
+                <Avatar src={creatorAvatarUrl} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
+                <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
+              </div>
+              {(count || showCountdown) && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)", paddingRight: reserveActionSpace ? 96 : 0, minHeight: 18 }}>
+                  {showCountdown && <Countdown deadline={task.deadline} compact style={{ fontWeight: 600 }} />}
+                  {showCountdown && count && <span>·</span>}
+                  {count && <span style={{ whiteSpace: "nowrap" }}>{count.n} {count.noun}{count.n !== 1 ? "s" : ""}</span>}
+                </div>
               )}
-            {!TERMINAL_STATUSES.includes(task.status) && (
-              <Countdown deadline={task.deadline} compact style={{ fontSize: 11, fontWeight: 600 }} />
-            )}
-          </div>
-        </div>
+            </div>
+          );
+        })()}
       </div>
     </Link>
   );
