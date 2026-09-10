@@ -17,6 +17,7 @@ import {
   useAllTasks,
   useCurrentWave,
   useTaskifyTx,
+  useTasksWithCounts,
   useUsersBatch,
   useWaveClaimed,
   useWaveCreatorTasks,
@@ -33,10 +34,11 @@ export default function CreatorPage() {
 
   const { data: onchainTasks } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
-  const allTasks = useMemo(
+  const allTasksBase = useMemo(
     () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
     [onchainTasks, usersByAddress]
   );
+  const allTasks = useTasksWithCounts(allTasksBase);
 
   const myTasks = allTasks.filter((t) => address && t.creator.toLowerCase() === address.toLowerCase());
   const openTasks = myTasks.filter((t) => t.status === "OPEN");

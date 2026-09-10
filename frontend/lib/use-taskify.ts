@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useConfig, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -386,6 +387,46 @@ export function useAllTasks() {
       return ids.map((id, i) => parseTaskTuple(id, tuples[i] as readonly unknown[]));
     },
   });
+}
+
+// Attaches batched applicant / participant counts to a list of mapped tasks —
+// the same numbers the browse page shows. The on-chain `tasks` data has no
+// applicant/participant count, and walking applications per row would be one
+// request each; these two batched endpoints answer the whole list at once.
+// Use this anywhere TaskCard is rendered from a task list (browse, creator /
+// contributor / dashboard, profile) so the counts are consistent everywhere.
+export function useTasksWithCounts(tasks: Task[]): Task[] {
+  const devIds = tasks.filter(t => t.kind === "development").map(t => t.id).sort((a, b) => a - b).join(",");
+  const communityIds = tasks.filter(t => t.kind === "community").map(t => t.id).sort((a, b) => a - b).join(",");
+
+  const { data: applicantCounts } = useQuery({
+    queryKey: ["taskify", "applicantCounts", devIds],
+    enabled: devIds.length > 0,
+    queryFn: async (): Promise<Record<number, number>> => {
+      const res = await fetch(`/api/applications/counts?taskIds=${devIds}`);
+      if (!res.ok) return {};
+      return (await res.json()).counts ?? {};
+    },
+  });
+
+  const { data: submissionCounts } = useQuery({
+    queryKey: ["taskify", "submissionCounts", communityIds],
+    enabled: communityIds.length > 0,
+    queryFn: async (): Promise<Record<number, number>> => {
+      const res = await fetch(`/api/submissions/counts?taskIds=${communityIds}`);
+      if (!res.ok) return {};
+      return (await res.json()).counts ?? {};
+    },
+  });
+
+  return useMemo(
+    () => tasks.map(t => ({
+      ...t,
+      applicantCount: t.kind === "development" ? (applicantCounts?.[t.id] ?? 0) : t.applicantCount,
+      submissionCount: t.kind === "community" ? (submissionCounts?.[t.id] ?? 0) : t.submissionCount,
+    })),
+    [tasks, applicantCounts, submissionCounts]
+  );
 }
 
 export interface OnChainGrantVote {
