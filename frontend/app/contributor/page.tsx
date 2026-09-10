@@ -11,7 +11,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { IconCheck, IconCoins, IconAward, IconTarget } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
-import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
+import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useTasksWithCounts, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
 
 export default function ContributorPage() {
@@ -29,7 +29,7 @@ export default function ContributorPage() {
   const { data: onchainTasks } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
   const { data: profilesByAddress } = useProfilesBatch((onchainTasks ?? []).map(t => t.creator));
-  const allTasks = useMemo(
+  const allTasksBase = useMemo(
     () => (onchainTasks ?? []).map(t => {
       const addr = t.creator.toLowerCase();
       const onchainUsername = usersByAddress?.[addr] ?? "";
@@ -38,6 +38,7 @@ export default function ContributorPage() {
     }),
     [onchainTasks, usersByAddress, profilesByAddress]
   );
+  const allTasks = useTasksWithCounts(allTasksBase);
 
   const openDevTasks = allTasks.filter(t => t.status === "OPEN" && t.kind === "development");
   const matchedTasks = openDevTasks.filter((t) => t.experienceMin <= myTier && t.experienceMax >= myTier);
