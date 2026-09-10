@@ -54,6 +54,14 @@ interface LiveSubmission {
   payoutTxHash: string | null;
 }
 
+interface LiveFeedback {
+  id: string;
+  participant: string;
+  author: string;
+  body: string;
+  createdAt: number;
+}
+
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 
 const LIFECYCLE = ["GRANT_PENDING", "OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "FUNDS_RELEASED"];
@@ -266,6 +274,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [payingWinners, setPayingWinners] = useState(false);
   const [payError, setPayError] = useState("");
 
+  // Per-submission feedback thread (owner ↔ that participant)
+  const [feedbackByParticipant, setFeedbackByParticipant] = useState<Record<string, LiveFeedback[]>>({});
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, string>>({});
+  const [feedbackSending, setFeedbackSending] = useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState("");
+
   useEffect(() => {
     if (!task || task.kind !== "community") { setSubmissionsLoading(false); return; }
     let cancelled = false;
@@ -288,6 +302,36 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       .finally(() => { if (!cancelled) setSubmissionsLoading(false); });
     return () => { cancelled = true; };
   }, [task?.id, task?.kind]);
+
+  // Feedback threads. The owner pulls every thread; a participant pulls only
+  // their own, so one participant never sees another's review notes.
+  useEffect(() => {
+    if (!task || task.kind !== "community") return;
+    const isOwner = Boolean(address && address.toLowerCase() === task.creator.toLowerCase());
+    if (!isOwner && !address) return;
+    let cancelled = false;
+    const url = isOwner
+      ? `/api/submissions/feedback?taskId=${task.id}`
+      : `/api/submissions/feedback?taskId=${task.id}&participant=${address!.toLowerCase()}`;
+    fetch(url)
+      .then(res => res.json())
+      .then((data: { feedback?: { id: string; participant_address: string; author_address: string; body: string; created_at: string }[] }) => {
+        if (cancelled || !data.feedback) return;
+        const grouped: Record<string, LiveFeedback[]> = {};
+        for (const f of data.feedback) {
+          (grouped[f.participant_address] ??= []).push({
+            id: f.id,
+            participant: f.participant_address,
+            author: f.author_address,
+            body: f.body,
+            createdAt: Math.floor(new Date(f.created_at).getTime() / 1000),
+          });
+        }
+        setFeedbackByParticipant(grouped);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [task?.id, task?.kind, task?.creator, address]);
 
   if (!task) {
     return (
@@ -580,6 +624,45 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       }
       return next;
     });
+  }
+
+  async function sendFeedback(participant: string) {
+    const text = (feedbackDrafts[participant] ?? "").trim();
+    if (!text || !task || !address) return;
+    setFeedbackSending(participant);
+    setFeedbackError("");
+    try {
+      const res = await fetch("/api/submissions/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: task.id,
+          participantAddress: participant,
+          address,
+          creatorAddress: task.creator,
+          body: text,
+          taskTitle: task.title,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to send feedback");
+      const f = data.feedback as { id: string; author_address: string; body: string; created_at: string };
+      setFeedbackByParticipant(prev => ({
+        ...prev,
+        [participant]: [...(prev[participant] ?? []), {
+          id: f.id,
+          participant,
+          author: f.author_address,
+          body: f.body,
+          createdAt: Math.floor(new Date(f.created_at).getTime() / 1000),
+        }],
+      }));
+      setFeedbackDrafts(d => ({ ...d, [participant]: "" }));
+    } catch (err) {
+      setFeedbackError(formatContractError(err, "Failed to send feedback"));
+    } finally {
+      setFeedbackSending(null);
+    }
   }
 
   async function handlePayWinners() {
@@ -895,11 +978,60 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                             <a href={s.proofUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--secondary-light)", textDecoration: "none", wordBreak: "break-all" }}>
                               {s.proofUrl}
                             </a>
+
+                            {(() => {
+                              const isThisParticipant = Boolean(address && address.toLowerCase() === s.address.toLowerCase());
+                              // Only the owner and the participant themselves see a submission's thread.
+                              if (!isTaskCreator && !isThisParticipant) return null;
+                              const thread = feedbackByParticipant[s.address] ?? [];
+                              const canPost = task.status === "OPEN" && (isTaskCreator || isThisParticipant);
+                              if (thread.length === 0 && !canPost) return null;
+                              return (
+                                <div style={{ marginTop: 12, paddingLeft: 12, borderLeft: "2px solid var(--border)" }}>
+                                  {thread.map(f => {
+                                    const fromOwner = f.author.toLowerCase() === task.creator.toLowerCase();
+                                    const isMine = Boolean(address && f.author.toLowerCase() === address.toLowerCase());
+                                    return (
+                                      <div key={f.id} style={{ marginBottom: 8 }}>
+                                        <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 2 }}>
+                                          <strong style={{ color: "var(--text-muted)" }}>{isMine ? "You" : fromOwner ? "Owner" : "Participant"}</strong>
+                                          {" · "}{formatTimestamp(f.createdAt)}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{f.body}</div>
+                                      </div>
+                                    );
+                                  })}
+                                  {canPost && (
+                                    <div style={{ display: "flex", gap: 8, marginTop: thread.length > 0 ? 10 : 4 }}>
+                                      <input
+                                        value={feedbackDrafts[s.address] ?? ""}
+                                        onChange={e => setFeedbackDrafts(d => ({ ...d, [s.address]: e.target.value }))}
+                                        onKeyDown={e => { if (e.key === "Enter") sendFeedback(s.address); }}
+                                        placeholder={isTaskCreator ? "Ask for changes…" : "Reply…"}
+                                        style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+                                        onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
+                                        onBlur={e => (e.target.style.borderColor = "var(--border)")}
+                                      />
+                                      <button
+                                        disabled={!(feedbackDrafts[s.address] ?? "").trim() || feedbackSending === s.address}
+                                        onClick={() => sendFeedback(s.address)}
+                                        className="btn-motion"
+                                        style={{ background: (feedbackDrafts[s.address] ?? "").trim() ? "var(--primary)" : "var(--border)", color: (feedbackDrafts[s.address] ?? "").trim() ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 12, padding: "8px 14px", borderRadius: 8, border: "none", cursor: (feedbackDrafts[s.address] ?? "").trim() ? "pointer" : "not-allowed", flexShrink: 0 }}>
+                                        {feedbackSending === s.address ? "…" : "Send"}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                )}
+                {feedbackError && (
+                  <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{feedbackError}</div>
                 )}
 
                 {isTaskCreator && task.status === "OPEN" && submissions.length > 0 && (
