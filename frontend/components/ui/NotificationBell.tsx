@@ -8,7 +8,7 @@ import { IconTarget, IconSend, IconCoins, IconBallot, IconWaves, IconEdit, IconH
 
 interface Notification {
   id: string;
-  type: "task_assigned" | "work_submitted" | "funds_released" | "grant_vote_opened" | "wave_reward_ready" | "task_applied" | "community_task_joined";
+  type: "task_assigned" | "work_submitted" | "funds_released" | "grant_vote_opened" | "wave_reward_ready" | "task_applied" | "community_task_joined" | "submission_feedback";
   task_id: number | null;
   read: boolean;
   created_at: string;
@@ -22,6 +22,7 @@ const META: Record<Notification["type"], { icon: React.ComponentType<{ size?: nu
   wave_reward_ready: { icon: IconWaves, label: "Wave reward ready to claim" },
   task_applied: { icon: IconEdit, label: "New applicant on your task" },
   community_task_joined: { icon: IconHandRaised, label: "Someone joined your community task" },
+  submission_feedback: { icon: IconEdit, label: "Feedback on your submission" },
 };
 
 function timeAgo(iso: string): string {

@@ -12,7 +12,8 @@ export type NotificationType =
   | "task_applied"
   | "community_task_joined"
   | "task_comment"
-  | "comment_reply";
+  | "comment_reply"
+  | "submission_feedback";
 
 export interface NotifyMeta {
   taskTitle?: string;
@@ -31,6 +32,7 @@ const COPY: Record<NotificationType, { subject: string; heading: string; verb: s
   community_task_joined:  { subject: "Someone joined your community task", heading: "New participant 🙋",      verb: "joined" },
   task_comment:           { subject: "New comment on your task",           heading: "New comment 💬",          verb: "commented on" },
   comment_reply:          { subject: "Someone replied to your comment",    heading: "New reply ↩️",            verb: "replied to your comment on" },
+  submission_feedback:    { subject: "Feedback on your submission",        heading: "Feedback on your submission 📝", verb: "left feedback on your submission for" },
 };
 
 function shortAddr(addr: string) {

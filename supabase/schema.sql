@@ -56,7 +56,7 @@ create type funding_type as enum ('self', 'grant');
 create type task_kind as enum ('development', 'community');
 create type notification_type as enum (
   'task_assigned', 'work_submitted', 'funds_released', 'grant_vote_opened', 'wave_reward_ready',
-  'task_applied', 'community_task_joined', 'task_comment', 'comment_reply'
+  'task_applied', 'community_task_joined', 'task_comment', 'comment_reply', 'submission_feedback'
 );
 
 -- ============================================================================
@@ -153,6 +153,20 @@ create table task_comments (
 );
 create index task_comments_task_id_idx on task_comments(task_id);
 create index task_comments_reply_to_idx on task_comments(reply_to);
+
+-- Threaded feedback on one participant's community-task submission. The task
+-- owner asks for changes; that participant can reply. Off-chain only —
+-- joinCommunityTask() is one-shot on-chain and selectWinners() never reads
+-- submission content, so this is the real review surface.
+create table submission_feedback (
+  id                  uuid primary key default gen_random_uuid(),
+  task_id             bigint not null,
+  participant_address text not null references profiles(address), -- whose submission the thread is about
+  author_address      text not null references profiles(address), -- who wrote this message (owner or that participant)
+  body                text not null,
+  created_at          timestamptz not null default now()
+);
+create index submission_feedback_thread_idx on submission_feedback(task_id, participant_address, created_at);
 
 -- ============================================================================
 -- 2. ON-CHAIN CACHE — populated only by the event indexer (service-role
@@ -312,6 +326,7 @@ alter table task_content enable row level security;
 alter table task_applications enable row level security;
 alter table task_submissions enable row level security;
 alter table task_comments enable row level security;
+alter table submission_feedback enable row level security;
 alter table notifications enable row level security;
 
 -- On-chain cache tables: world-readable, writes restricted to the
@@ -367,6 +382,10 @@ create policy "own submission update" on task_submissions
 create policy "public read" on task_comments for select using (true);
 create policy "own comment write" on task_comments
   for insert with check (author_address = auth.jwt() ->> 'address');
+
+create policy "public read" on submission_feedback for select using (true);
+-- writes go through the service-role API route (app/api/submissions/feedback),
+-- which checks the author is the task creator or the participant themselves
 
 create policy "own notifications only" on notifications
   for select using (recipient_address = auth.jwt() ->> 'address');
