@@ -203,25 +203,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await refetchUser();
   }
 
-  // Independent of role and callable any time after registration — mirrors
-  // Taskify.sol's setXVerified, which gates Community task participation
-  // without requiring re-registration.
+  // Off-chain only, same as linkGithub. The contract has setXVerified /
+  // users[].xVerified, but nothing on-chain reads it (joinCommunityTask
+  // doesn't check it), so a gas transaction + wallet popup just to attach a
+  // social handle isn't worth it — and made linking fragile (it silently
+  // no-op'd whenever the on-chain user row hadn't loaded yet). "X verified"
+  // for display is derived from either source below, like GitHub.
   async function linkX(handle: string, avatar?: string) {
-    if (!address || !onchainUser.role) return;
-    await send("setXVerified", [true]);
+    if (!address) return;
     setXHandle(handle);
     setXAvatar(avatar ?? "");
     syncProfile(address, { x_handle: handle, x_avatar_url: avatar || null });
-    await refetchUser();
   }
 
   async function unlinkX() {
-    if (!address || !onchainUser.role) return;
-    await send("setXVerified", [false]);
+    if (!address) return;
     setXHandle("");
     setXAvatar("");
     syncProfile(address, { x_handle: null, x_avatar_url: null });
-    await refetchUser();
   }
 
   // GitHub has no on-chain setGithubVerified (unlike X) — the on-chain flag
@@ -308,9 +307,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // to check both the on-chain flag (legacy/registration-time) and the
     // off-chain handle (linked later from Settings).
     githubVerified: onchainUser.githubVerified || Boolean(githubHandle),
+    // xVerified follows the same either-source rule now that linkX is off-chain.
     githubHandle,
     githubAvatar,
-    xVerified: onchainUser.xVerified,
+    xVerified: onchainUser.xVerified || Boolean(xHandle),
     xHandle,
     xAvatar,
     googleVerified: Boolean(googleEmail),
