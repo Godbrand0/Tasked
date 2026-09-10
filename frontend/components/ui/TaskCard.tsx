@@ -3,7 +3,10 @@ import { Task } from "@/lib/mock";
 import { formatMUSD } from "@/lib/constants";
 import { Badge, TierRangeBadge, StatusBadge } from "./Badge";
 import Avatar from "./Avatar";
+import Countdown from "./Countdown";
 import { IconMegaphone } from "@/components/icons";
+
+const TERMINAL_STATUSES = ["FUNDS_RELEASED", "CANCELLED", "GRANT_REJECTED"];
 
 export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creatorAvatarUrl?: string }) {
   return (
@@ -35,14 +38,19 @@ export default function TaskCard({ task, creatorAvatarUrl }: { task: Task; creat
             <Avatar src={creatorAvatarUrl} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
             <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
           </div>
-          {task.kind === "community"
-            ? (() => {
-                const count = task.submissionCount ?? task.submissions?.length ?? 0;
-                return <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{count} participant{count !== 1 ? "s" : ""}</span>;
-              })()
-            : task.applicantCount !== undefined && (
-              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{task.applicantCount} applicant{task.applicantCount !== 1 ? "s" : ""}</span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+            {task.kind === "community"
+              ? (() => {
+                  const count = task.submissionCount ?? task.submissions?.length ?? 0;
+                  return <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{count} participant{count !== 1 ? "s" : ""}</span>;
+                })()
+              : task.applicantCount !== undefined && (
+                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{task.applicantCount} applicant{task.applicantCount !== 1 ? "s" : ""}</span>
+              )}
+            {!TERMINAL_STATUSES.includes(task.status) && (
+              <Countdown deadline={task.deadline} compact style={{ fontSize: 11, fontWeight: 600 }} />
             )}
+          </div>
         </div>
       </div>
     </Link>

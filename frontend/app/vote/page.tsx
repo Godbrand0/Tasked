@@ -12,6 +12,7 @@ import { formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
 import { useAllTasks, useGrantVotesBatch, useIsApprovedVoter, useTaskifyTx, useTaskifyUser, useVotingWeight } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
 import EmptyState from "@/components/ui/EmptyState";
+import Countdown from "@/components/ui/Countdown";
 import { IconBallot, IconZap } from "@/components/icons";
 
 // Where "get real voting weight" sends people to actually lock BTC or MEZO —
@@ -254,7 +255,8 @@ export default function VotePage() {
                       )}
                       {!myVote && canVoteThisTask && (
                         <div style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginTop: 8 }}>
-                          Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(myWeightForThisTask)}</strong> · Deadline: {vote?.deadline ? new Date(vote.deadline * 1000).toLocaleDateString() : "N/A"}
+                          Your weight: <strong style={{ color: "var(--text)" }}>{formatVotingWeight(myWeightForThisTask)}</strong>
+                          {vote?.deadline ? <> · <Countdown deadline={vote.deadline} expiredLabel="Voting closed" /></> : " · Deadline: N/A"}
                         </div>
                       )}
                     </div>
