@@ -53,7 +53,9 @@ export default function LeaderboardPage() {
           address,
           username: profile?.displayName || usersByAddress?.[address]?.username || `${address.slice(0, 6)}…${address.slice(-4)}`,
           avatarUrl: profile?.avatarUrl ?? undefined,
-          githubVerified: usersByAddress?.[address]?.githubVerified ?? false,
+          // On-chain flag is only set at registration (no longer collected there);
+          // GitHub is normally linked off-chain from Settings afterward.
+          githubVerified: (usersByAddress?.[address]?.githubVerified ?? false) || Boolean(profile?.githubHandle),
           selfFundedTasksPosted: counts[address],
         };
       })

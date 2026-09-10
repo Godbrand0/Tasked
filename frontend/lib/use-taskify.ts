@@ -324,14 +324,15 @@ export function useUsersBatchFull(addresses: string[]) {
 export function useProfilesBatch(addresses: string[]) {
   const unique = Array.from(new Set(addresses.map((a) => a.toLowerCase()))).filter(Boolean);
 
+  type BatchProfile = { displayName: string | null; avatarUrl: string | null; githubHandle: string | null; xHandle: string | null };
   return useQuery({
     queryKey: ["taskify", "profilesBatch", unique.join(",")],
     enabled: unique.length > 0,
     queryFn: async () => {
       const res = await fetch(`/api/profile/batch?addresses=${unique.join(",")}`);
-      if (!res.ok) return {} as Record<string, { displayName: string | null; avatarUrl: string | null }>;
+      if (!res.ok) return {} as Record<string, BatchProfile>;
       const data = await res.json();
-      return (data.profiles ?? {}) as Record<string, { displayName: string | null; avatarUrl: string | null }>;
+      return (data.profiles ?? {}) as Record<string, BatchProfile>;
     },
   });
 }

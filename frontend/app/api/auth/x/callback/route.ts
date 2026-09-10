@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { oauthRedirectUri } from "@/lib/oauth";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -10,12 +11,18 @@ export async function GET(req: NextRequest) {
   const returnTo = storedReturnTo.startsWith("/") && !storedReturnTo.startsWith("//") ? storedReturnTo : "/register";
 
   function fail(reason: string) {
+    console.error("[auth/x] callback failed:", reason);
     const res = NextResponse.redirect(new URL(`${returnTo}?x_error=${reason}`, req.url));
     res.cookies.delete("x_oauth_verifier");
     res.cookies.delete("x_oauth_state");
     res.cookies.delete("x_oauth_return_to");
     return res;
   }
+
+  // X sends the user back with ?error=... when they deny or the app is
+  // misconfigured — surface that rather than a vague "no_code".
+  const providerError = req.nextUrl.searchParams.get("error");
+  if (providerError) return fail(providerError === "access_denied" ? "no_code" : "token_exchange");
 
   if (!code || !state || !cookieVerifier || !cookieState) return fail("no_code");
   if (state !== cookieState) return fail("state_mismatch");
@@ -36,13 +43,16 @@ export async function GET(req: NextRequest) {
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/x/callback`,
+      redirect_uri: oauthRedirectUri("/api/auth/x/callback"),
       code_verifier: cookieVerifier,
     }),
   });
 
-  const tokenData = await tokenRes.json();
-  if (!tokenRes.ok || !tokenData.access_token) return fail("token_exchange");
+  const tokenData = await tokenRes.json().catch(() => ({}));
+  if (!tokenRes.ok || !tokenData.access_token) {
+    console.error("[auth/x] token exchange rejected:", tokenRes.status, JSON.stringify(tokenData));
+    return fail("token_exchange");
+  }
 
   const userRes = await fetch("https://api.x.com/2/users/me?user.fields=profile_image_url,name", {
     headers: { Authorization: `Bearer ${tokenData.access_token}` },

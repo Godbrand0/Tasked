@@ -11,6 +11,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconUser, IconAward, IconBell, IconLock, IconAlertTriangle, IconCheck } from "@/components/icons";
 
 const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
@@ -92,7 +93,7 @@ function SettingsPageInner() {
     const error = searchParams.get("x_error");
     if (error) {
       window.history.replaceState({}, "", "/settings");
-      setXError("X connection failed. Please try again.");
+      setXError(oauthErrorMessage("X", error));
       return;
     }
     const handle = searchParams.get("x_handle");
@@ -122,7 +123,7 @@ function SettingsPageInner() {
     const error = searchParams.get("github_error");
     if (error) {
       window.history.replaceState({}, "", "/settings");
-      setGithubError("GitHub connection failed. Please try again.");
+      setGithubError(oauthErrorMessage("GitHub", error));
       return;
     }
     const handle = searchParams.get("github_handle");
@@ -152,7 +153,7 @@ function SettingsPageInner() {
     const error = searchParams.get("google_error");
     if (error) {
       window.history.replaceState({}, "", "/settings");
-      setGoogleError("Google connection failed. Please try again.");
+      setGoogleError(oauthErrorMessage("Google", error));
       return;
     }
     const email = searchParams.get("google_email");
