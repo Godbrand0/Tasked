@@ -22,18 +22,23 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("address, display_name, custom_avatar_url, google_avatar_url, github_avatar_url, x_avatar_url")
+    .select("address, display_name, custom_avatar_url, google_avatar_url, github_avatar_url, x_avatar_url, github_handle, x_handle")
     .in("address", addresses);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const profiles: Record<string, { displayName: string | null; avatarUrl: string | null }> = {};
+  const profiles: Record<string, { displayName: string | null; avatarUrl: string | null; githubHandle: string | null; xHandle: string | null }> = {};
   for (const row of data) {
     profiles[row.address] = {
       displayName: row.display_name || null,
       avatarUrl: row.custom_avatar_url || row.google_avatar_url || row.github_avatar_url || row.x_avatar_url || null,
+      // GitHub/X can be linked entirely off-chain post-registration — list
+      // pages that show a "verified" indicator have to check this too, not
+      // just the on-chain flag.
+      githubHandle: row.github_handle || null,
+      xHandle: row.x_handle || null,
     };
   }
   return NextResponse.json({ profiles });
