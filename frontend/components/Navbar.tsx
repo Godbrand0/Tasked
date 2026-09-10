@@ -12,7 +12,7 @@ import BackButton from "@/components/ui/BackButton";
 import Avatar from "@/components/ui/Avatar";
 import DropdownPanel, { useOutsideClick } from "@/components/ui/DropdownPanel";
 import Button from "@/components/ui/Button";
-import { IconTarget, IconSettings } from "@/components/icons";
+import { IconTarget, IconSettings, IconLandmark, IconVote } from "@/components/icons";
 
 const NAV_LINKS = [
   { href: "/tasks", label: "Browse Tasks" },
@@ -84,19 +84,7 @@ export default function Navbar() {
               Post Task
             </Link>
           )}
-          {/* Support + Vote: available to any registered wallet, regardless of role */}
-          {isRegistered && (
-            <>
-              <Link href="/support" className="nav-link"
-                style={{ color: pathname === "/support" ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === "/support" ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
-                Support
-              </Link>
-              <Link href="/vote" className="nav-link"
-                style={{ color: pathname === "/vote" ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === "/vote" ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
-                Vote
-              </Link>
-            </>
-          )}
+          {/* Support + Vote now live in the profile dropdown, not the top nav */}
         </div>
 
         {/* Right side */}
@@ -193,11 +181,13 @@ export default function Navbar() {
                     {/* Nav items */}
                     {[
                       { label: "My Dashboard", href: dashboardHref, icon: IconTarget },
+                      { label: "Support", href: "/support", icon: IconLandmark },
+                      { label: "Vote", href: "/vote", icon: IconVote },
                       { label: "Settings", href: "/settings", icon: IconSettings },
                     ].map(({ label, href, icon: Icon }) => (
                       <Link key={href} href={href} className="wallet-dropdown-item"
                         onClick={() => setDropdownOpen(false)}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: "var(--radius-sm)", fontSize: 13, color: "var(--text-soft)", textDecoration: "none", transition: "background 0.1s" }}>
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: "var(--radius-sm)", fontSize: 13, color: pathname === href ? "var(--text)" : "var(--text-soft)", fontWeight: pathname === href ? 600 : 400, textDecoration: "none", transition: "background 0.1s" }}>
                         <Icon size={15} />{label}
                       </Link>
                     ))}
