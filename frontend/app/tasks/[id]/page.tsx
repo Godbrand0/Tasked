@@ -19,6 +19,7 @@ import {
 import { formatContractError } from "@/lib/errors";
 import LoadingState from "@/components/ui/LoadingState";
 import EmptyState from "@/components/ui/EmptyState";
+import Countdown from "@/components/ui/Countdown";
 import { IconSearch, IconMegaphone, IconLink } from "@/components/icons";
 
 function formatTimestamp(unixSeconds: number): string {
@@ -1113,6 +1114,31 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 <SideRow label="Funding type" value={task.fundingType === "self" ? "Self-funded" : "Community grant"} />
               </div>
             </SideCard>
+
+            {/* Deadline / voting countdown — hidden once the task reaches a terminal state */}
+            {task.status !== "FUNDS_RELEASED" && task.status !== "CANCELLED" && task.status !== "GRANT_REJECTED" && (
+              <SideCard>
+                {task.status === "GRANT_PENDING" && grantVote ? (
+                  <>
+                    <SideCardTitle>Grant Vote</SideCardTitle>
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
+                      <Countdown deadline={grantVote.deadline} expiredLabel="Voting closed" />
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(grantVote.deadline)}</div>
+                  </>
+                ) : (
+                  <>
+                    <SideCardTitle>Deadline</SideCardTitle>
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
+                      {task.status === "EXPIRED"
+                        ? <span style={{ color: "var(--danger)" }}>Expired</span>
+                        : <Countdown deadline={task.deadline} />}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(task.deadline)}</div>
+                  </>
+                )}
+              </SideCard>
+            )}
 
             {/* Experience gate — development only */}
             {!isCommunity && (
