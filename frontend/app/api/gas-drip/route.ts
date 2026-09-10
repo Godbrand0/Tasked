@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { createPublicClient, createWalletClient, defineChain, getAddress, http, isAddress, verifyMessage } from "viem";
+import { createPublicClient, createWalletClient, defineChain, getAddress, http, isAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyGasGrant } from "@/lib/gas-grant";
@@ -9,8 +9,13 @@ import { TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
 // One-time gas sponsorship for first-time contributors. Mezo's gas token is
 // BTC, so a brand-new wallet can't call registerUser until it holds some —
 // a wall for someone whose whole reason for being here is to *earn* MUSD.
-// This route sends a small fixed BTC amount from a dedicated sponsor wallet
-// to an eligible new wallet, exactly once per Google identity / per address.
+// /register calls this silently on the way to registration when the wallet
+// has no BTC; the user never sees a "gas" step.
+//
+// Farm resistance is by economics, not by cryptography: one drip per Google
+// `sub` (proven by a short-lived token from the OAuth callback), and the
+// drip is sized to a few cents — less than a throwaway Google account costs,
+// so farming is net-negative. A daily cap bounds the worst case regardless.
 //
 // Dormant unless fully configured. See GAS_DRIP.md for the design, the
 // eligibility rules, calibration, and the kill switch.
@@ -36,10 +41,6 @@ const mezoChain = defineChain({
   rpcUrls: { default: { http: [RPC_URL] } },
 });
 
-function signedMessage(address: string, issuedAt: string) {
-  return `Taskify gas sponsorship\nWallet: ${address}\nIssued: ${issuedAt}`;
-}
-
 export async function POST(req: NextRequest) {
   // Feature is entirely off unless every piece is configured.
   if (
@@ -59,37 +60,23 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const rawAddress = typeof body?.address === "string" ? body.address : "";
   const gasGrant = typeof body?.gasGrant === "string" ? body.gasGrant : null;
-  const signature = typeof body?.signature === "string" ? (body.signature as `0x${string}`) : null;
-  const issuedAt = typeof body?.issuedAt === "string" ? body.issuedAt : "";
 
-  if (!isAddress(rawAddress) || !gasGrant || !signature || !issuedAt) {
-    return NextResponse.json({ error: "address, gasGrant, signature and issuedAt are required" }, { status: 400 });
+  if (!isAddress(rawAddress) || !gasGrant) {
+    return NextResponse.json({ error: "address and gasGrant are required" }, { status: 400 });
   }
   const address = getAddress(rawAddress);
   const addressLc = address.toLowerCase();
 
-  // 1. Google identity (dedupe key is the stable `sub`, not the email)
+  // 1. Google identity — the dedupe key is the stable `sub`, not the email.
+  //    No wallet-control signature: it never protected against farming (a
+  //    farmer owns all their fake wallets), only against the non-threat of
+  //    funding a stranger's fresh address. Dropping it keeps the flow silent.
   const sub = verifyGasGrant(gasGrant);
   if (!sub) {
     return NextResponse.json({ error: "Google verification expired — reconnect Google and try again." }, { status: 401 });
   }
 
-  // 2. Wallet control — a fresh signature over a message naming this address
-  const issuedMs = Date.parse(issuedAt);
-  if (Number.isNaN(issuedMs) || Math.abs(Date.now() - issuedMs) > 10 * 60_000) {
-    return NextResponse.json({ error: "Signature expired — try again." }, { status: 401 });
-  }
-  let signatureValid = false;
-  try {
-    signatureValid = await verifyMessage({ address, message: signedMessage(address, issuedAt), signature });
-  } catch {
-    signatureValid = false;
-  }
-  if (!signatureValid) {
-    return NextResponse.json({ error: "That signature doesn't match the connected wallet." }, { status: 401 });
-  }
-
-  // 3. Friendly pre-check for the dedupe (the unique constraints below are the real guard)
+  // 2. Friendly pre-check for the dedupe (the unique constraints below are the real guard)
   const { data: seen } = await sb
     .from("gas_drips")
     .select("id")
@@ -99,7 +86,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This account has already received a one-time gas top-up." }, { status: 409 });
   }
 
-  // 4. Global daily cap (kill switch: set GAS_DRIP_DAILY_CAP=0)
+  // 3. Global daily cap (kill switch: set GAS_DRIP_DAILY_CAP=0)
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
   const { count: recent } = await sb
     .from("gas_drips")
@@ -111,7 +98,7 @@ export async function POST(req: NextRequest) {
 
   const publicClient = createPublicClient({ chain: mezoChain, transport: http(RPC_URL) });
 
-  // 5. Wallet must be brand-new and not already registered on Taskify
+  // 4. Wallet must be brand-new and not already registered on Taskify
   let txCount: number;
   let balance: bigint;
   let role: number;
@@ -140,7 +127,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This wallet is already registered on Taskify." }, { status: 409 });
   }
 
-  // 6. Reserve the slot BEFORE sending — the unique constraints reject a
+  // 5. Reserve the slot BEFORE sending — the unique constraints reject a
   //    concurrent second request here, so no double-send.
   const ipHash = IP_SALT
     ? crypto.createHmac("sha256", IP_SALT).update((req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "").digest("hex")
@@ -164,7 +151,7 @@ export async function POST(req: NextRequest) {
       .is("tx_hash", null);
   };
 
-  // 7. Sponsor wallet must have enough left (fail closed)
+  // 6. Sponsor wallet must have enough left (fail closed)
   const account = privateKeyToAccount(privateKey);
   let signerBalance: bigint;
   try {
@@ -179,7 +166,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Gas sponsorship is temporarily unavailable — please fund your wallet manually." }, { status: 503 });
   }
 
-  // 8. Send
+  // 7. Send
   const walletClient = createWalletClient({ account, chain: mezoChain, transport: http(RPC_URL) });
   let txHash: `0x${string}`;
   try {
@@ -191,7 +178,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "The gas top-up transaction failed — try again shortly." }, { status: 502 });
   }
 
-  // 9. Finalise the reservation with the real hash
+  // 8. Finalise the reservation with the real hash
   const { error: finalErr } = await sb
     .from("gas_drips")
     .update({ tx_hash: txHash })

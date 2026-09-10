@@ -88,7 +88,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Do I need BTC to use Taskify?",
-        a: "Yes — a little. Mezo's gas token is BTC, so every on-chain action (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in gas, separate from the MUSD you earn or escrow. If you're registering as a contributor with a brand-new, empty wallet, Taskify covers a one-time top-up during registration to get you through your first few transactions — you'll see a \"Cover my gas\" step. After that, you fund gas yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
+        a: "Yes — a little. Mezo's gas token is BTC, so every on-chain action (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in gas, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several transactions. After that you fund gas yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
       },
       {
         q: "Will Taskify ever ask for my seed phrase or private key?",

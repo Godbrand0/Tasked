@@ -70,8 +70,8 @@ interface WalletContextValue extends WalletState {
     googleName?: string;
     googleAvatar?: string;
   }) => Promise<void>;
-  /** Re-read the native BTC balance (e.g. after a gas top-up). */
-  refetchNativeBalance: () => void;
+  /** Re-read the native BTC balance (e.g. after a gas top-up) and return it in wei. */
+  refetchNativeBalance: () => Promise<bigint>;
   linkX: (handle: string, avatar?: string) => Promise<void>;
   unlinkX: () => Promise<void>;
   /** Off-chain only — there's no on-chain setGithubVerified, unlike X's setXVerified. */
@@ -164,7 +164,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
   const nativeBalance = nativeBal?.value ?? BigInt(0);
   const hasGas = nativeBalance > BigInt(0);
-  function refetchNativeBalance() { refetchNativeBal(); }
+  async function refetchNativeBalance(): Promise<bigint> {
+    const r = await refetchNativeBal();
+    return r.data?.value ?? BigInt(0);
+  }
 
   function handleConnect() {
     openConnectModal?.();

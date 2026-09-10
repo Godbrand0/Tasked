@@ -5,20 +5,31 @@ apply for a bounty, or submit work — until it holds some BTC, which is a wall 
 exactly the people Taskify wants: contributors who are here to *earn* MUSD and
 haven't touched Mezo before.
 
-This feature covers that first cliff. When a fresh, empty wallet reaches the
-registration screen, Taskify sends it a small **one-time** BTC top-up from a
-dedicated sponsor wallet — enough for the first handful of transactions. After
-that the user funds gas themselves (swap a bit of their first payout, or bring
-BTC from elsewhere).
+This feature covers that first cliff, **invisibly**. When someone registers with
+a fresh, empty wallet, Taskify sends it a small one-time BTC top-up from a
+dedicated sponsor wallet before the `registerUser` transaction — enough for the
+first ~5 transactions. The user never sees a "gas" step; registration just
+works. After that they fund gas themselves (swap a bit of their first payout, or
+bring BTC from elsewhere).
 
 Scope, deliberately narrow:
 
-- **Only** first-time contributor onboarding: `registerUser`, then whatever they
-  do next (`applyForTask` / `joinCommunityTask` / `submitTask` / `setXVerified`).
+- **Only** first-time contributor onboarding: `registerUser`, then the first few
+  things they do (`applyForTask` / `joinCommunityTask` / `submitTask` / `setXVerified`).
 - **One drip per Google identity, ever. One drip per wallet address, ever.**
 - Creators and patrons pay their own gas — those actions move real money and are
   economically self-limiting.
 - Not "gasless forever" — no relayer, no paymaster, no contract change.
+
+## Farm resistance
+
+Not cryptographic — economic. Every drip needs a fresh Google `sub`, proven by a
+short-lived token the OAuth callback mints. Throwaway Google accounts cost a
+farmer more (~$0.10–0.50 each) than the drip is worth (~a cent or two of BTC at
+~5 L2 transactions), so farming is net-negative. `GAS_DRIP_DAILY_CAP` bounds the
+worst case regardless. There is **no wallet-control signature** — it never
+stopped farming (a farmer owns all their fake wallets) and only added a visible
+prompt; the fresh-wallet checks + per-`sub` dedupe do the real work.
 
 ## How it works
 
@@ -27,26 +38,30 @@ Scope, deliberately narrow:
   ├── user signs in with Google (free — web OAuth)
   │     callback mints a short-lived HMAC token proving the Google `sub`
   │     and passes it back in the redirect (only when GAS_DRIP_SECRET is set)
-  ├── user connects their (empty) wallet
-  ├── confirm step: wallet has 0 BTC  ->  "Cover my gas →" button
-  │     client: user signs a plain message naming their address (no gas)
-  │             POST /api/gas-drip { address, gasGrant, signature, issuedAt }
-  │     server: verify the Google token  -> sub
-  │             verify the signature recovers to `address`, issued < 10 min ago
-  │             no gas_drips row for this sub or this address
-  │             daily cap not hit
-  │             wallet is brand-new: nonce 0, balance 0, users(addr).role == 0
-  │             reserve a gas_drips row (unique constraints = the race guard)
-  │             sponsor wallet has enough BTC left (else 503 + log)
-  │             send GAS_DRIP_AMOUNT_WEI BTC  ->  address, wait for receipt
-  │             write tx_hash onto the reserved row
-  └── user clicks Register, pays gas from the BTC they just received, as normal
+  ├── user connects their (empty) wallet, picks a role
+  └── clicks "Register on Mezo →"
+        client (handleRegister): balance is 0 and a gasGrant is in hand
+                -> POST /api/gas-drip { address, gasGrant }   (silent, no prompt)
+        server: verify the Google token  -> sub
+                no gas_drips row for this sub or this address
+                daily cap not hit
+                wallet is brand-new: nonce 0, balance 0, users(addr).role == 0
+                reserve a gas_drips row (unique constraints = the race guard)
+                sponsor wallet has enough BTC left (else 503 + log)
+                send GAS_DRIP_AMOUNT_WEI BTC -> address, wait for receipt
+                write tx_hash onto the reserved row
+        client: poll balance until it lands, then call registerUser
+        -> one MetaMask prompt (the register tx), paid from the top-up
 ```
+
+Only visible on failure (cap hit / sponsor dry): one line pointing to the FAQ's
+"how to get BTC on Mezo", instead of a doomed transaction.
 
 Files: `frontend/app/api/gas-drip/route.ts`, `frontend/lib/gas-grant.ts`,
 `frontend/app/api/auth/google/callback/route.ts` (mints the token),
-`frontend/app/register/page.tsx` (the button), `frontend/lib/wallet-context.tsx`
-(`hasGas` / `nativeBalance`), `supabase/migrations/0017_gas_drips.sql`.
+`frontend/app/register/page.tsx` (`ensureGas` inside `handleRegister`),
+`frontend/lib/wallet-context.tsx` (`nativeBalance` / `refetchNativeBalance`),
+`supabase/migrations/0017_gas_drips.sql`.
 
 ## Setup
 
@@ -67,7 +82,7 @@ Run `supabase/migrations/0017_gas_drips.sql` in the Supabase SQL editor.
 |---|---|---|
 | `GAS_DRIP_PRIVATE_KEY` | sponsor wallet private key (`0x…`) | — |
 | `GAS_DRIP_SECRET` | random string; signs the Google-identity token and hashes IPs | `openssl rand -hex 32` |
-| `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — see calibration | `200000000000000` (0.0002 BTC) |
+| `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — ~5 transactions' worth, see calibration | `200000000000000` (0.0002 BTC) |
 | `GAS_DRIP_DAILY_CAP` | max drips per rolling 24h. **`0` disables the whole feature.** | `50` |
 | `GAS_DRIP_MIN_SIGNER_BALANCE_WEI` | keep this much in the sponsor wallet as a reserve; below `amount + this`, the endpoint 503s | `0` |
 
@@ -79,9 +94,15 @@ need BTC" note with a link, and `/api/gas-drip` returns 503.
 
 ### 4. Calibrate `GAS_DRIP_AMOUNT_WEI`
 
-On Mezo mainnet, measure gas for `registerUser` + `applyForTask` + `submitTask`
-(+ `setXVerified` + `joinCommunityTask`), sum the BTC cost, multiply by ~2 for
-headroom. It should be small — Mezo is an L2. Re-check if Mezo gas prices move.
+Target: **~5 transactions' worth of BTC gas** — enough for `registerUser` plus a
+first `applyForTask` / `joinCommunityTask` / `submitTask` / `setXVerified`, which
+gets a contributor to their first payout (after which they have MUSD to swap for
+more gas).
+
+On Mezo mainnet, measure the gas used by those calls, take the current gas price,
+multiply out for 5 txs, add ~30% headroom. It should still be small — Mezo is an
+L2. Keep it **well under the cost of a throwaway Google account** so farming
+stays unprofitable. Re-check if Mezo gas prices move.
 
 ## Operating it
 
