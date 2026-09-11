@@ -10,6 +10,7 @@ import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
+import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { formatMUSD, formatEarnedBreakdown, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { IconClipboard, IconZap, IconCheck, IconLock, IconLandmark, IconUser } from "@/components/icons";
@@ -317,6 +318,8 @@ export default function CreatorPage() {
                 </Link>
               </div>
             </div>
+
+            <SocialLinksCard />
           </div>
         </div>
       </Container>

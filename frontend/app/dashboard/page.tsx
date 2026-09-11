@@ -10,6 +10,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import { SkeletonRow } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import Button from "@/components/ui/Button";
+import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { IconClipboard, IconSearch, IconTrophy, IconLandmark, IconBallot } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
@@ -220,6 +221,8 @@ export default function DashboardPage() {
                 </>
               )}
             </div>
+
+            <SocialLinksCard />
           </div>
         </div>
       </Container>

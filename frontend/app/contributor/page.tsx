@@ -8,6 +8,7 @@ import TaskCard from "@/components/ui/TaskCard";
 import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
+import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { IconCheck, IconCoins, IconAward, IconTarget } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
@@ -280,6 +281,8 @@ export default function ContributorPage() {
               </button>
               {tierError && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{tierError}</div>}
             </div>
+
+            <SocialLinksCard />
           </div>
         </div>
       </Container>
