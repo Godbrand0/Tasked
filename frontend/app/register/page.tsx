@@ -8,6 +8,7 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 import { formatContractError } from "@/lib/errors";
+import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconBriefcase, IconZap, IconLock } from "@/components/icons";
 
 type Step = "wallet" | "identity" | "role" | "confirm";
@@ -89,7 +90,7 @@ function RegisterPageInner() {
       window.history.replaceState({}, "", "/register");
     }
     if (error) {
-      setGoogleError("Google connection failed. Please try again.");
+      setGoogleError(oauthErrorMessage("Google", error));
       window.history.replaceState({}, "", "/register");
     }
   }, [searchParams]);

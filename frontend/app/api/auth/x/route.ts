@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { oauthRedirectUri } from "@/lib/oauth";
 import crypto from "crypto";
 
 // X (Twitter) API v2 OAuth 2.0 with PKCE — same pattern as
@@ -30,7 +31,7 @@ export function GET(req: NextRequest) {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
-    redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/x/callback`,
+    redirect_uri: oauthRedirectUri("/api/auth/x/callback"),
     scope: "users.read tweet.read",
     state,
     code_challenge: challenge,

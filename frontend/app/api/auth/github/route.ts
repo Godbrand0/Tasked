@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { oauthRedirectUri } from "@/lib/oauth";
 
 export function GET() {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -8,7 +9,7 @@ export function GET() {
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/github/callback`,
+    redirect_uri: oauthRedirectUri("/api/auth/github/callback"),
     scope: "read:user",
   });
 

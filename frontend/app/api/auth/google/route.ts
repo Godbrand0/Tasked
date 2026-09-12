@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { oauthRedirectUri } from "@/lib/oauth";
 
 // Google OAuth 2.0 — same pattern as app/api/auth/github, plain
 // authorization-code flow (no PKCE needed for a confidential server-side
@@ -23,7 +24,7 @@ export function GET(req: NextRequest) {
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/google/callback`,
+    redirect_uri: oauthRedirectUri("/api/auth/google/callback"),
     response_type: "code",
     scope: "openid email profile",
     prompt: "select_account",

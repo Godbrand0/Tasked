@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import TaskCard from "@/components/ui/TaskCard";
 import PageShell, { Container } from "@/components/ui/PageShell";
@@ -10,7 +10,7 @@ import Button from "@/components/ui/Button";
 import { IconSearch } from "@/components/icons";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
-import { useAllTasks, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
+import { useAllTasks, useUsersBatch, useProfilesBatch, useTasksWithCounts, mapOnChainTask } from "@/lib/use-taskify";
 
 const STATUS_FILTERS = ["All", "Open", "In Progress", "Submitted", "Completed"];
 const STATUS_MAP: Record<string, string[]> = {
@@ -44,36 +44,7 @@ export default function TasksPage() {
     [onchainTasks, usersByAddress, profilesByAddress]
   );
 
-  const [submissionCounts, setSubmissionCounts] = useState<Record<number, number>>({});
-  const [applicantCounts, setApplicantCounts] = useState<Record<number, number>>({});
-
-  const communityTaskIds = useMemo(() => baseTasks.filter(t => t.kind === "community").map(t => t.id).join(","), [baseTasks]);
-  const developmentTaskIds = useMemo(() => baseTasks.filter(t => t.kind === "development").map(t => t.id).join(","), [baseTasks]);
-
-  useEffect(() => {
-    if (!communityTaskIds) return;
-    fetch(`/api/submissions/counts?taskIds=${communityTaskIds}`)
-      .then(res => res.json())
-      .then((data: { counts?: Record<number, number> }) => setSubmissionCounts(data.counts ?? {}))
-      .catch(() => {});
-  }, [communityTaskIds]);
-
-  useEffect(() => {
-    if (!developmentTaskIds) return;
-    fetch(`/api/applications/counts?taskIds=${developmentTaskIds}`)
-      .then(res => res.json())
-      .then((data: { counts?: Record<number, number> }) => setApplicantCounts(data.counts ?? {}))
-      .catch(() => {});
-  }, [developmentTaskIds]);
-
-  const tasks = useMemo(
-    () => baseTasks.map(t => ({
-      ...t,
-      submissionCount: t.kind === "community" ? (submissionCounts[t.id] ?? 0) : undefined,
-      applicantCount: t.kind === "development" ? (applicantCounts[t.id] ?? 0) : undefined,
-    })),
-    [baseTasks, submissionCounts, applicantCounts]
-  );
+  const tasks = useTasksWithCounts(baseTasks);
 
   const filtered = tasks.filter(t => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.tags?.some(tag => tag.toLowerCase().includes(search.toLowerCase()))) return false;

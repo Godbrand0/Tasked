@@ -10,6 +10,7 @@ import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
+import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { formatMUSD, formatEarnedBreakdown, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import { IconClipboard, IconZap, IconCheck, IconLock, IconLandmark, IconUser } from "@/components/icons";
@@ -17,6 +18,7 @@ import {
   useAllTasks,
   useCurrentWave,
   useTaskifyTx,
+  useTasksWithCounts,
   useUsersBatch,
   useWaveClaimed,
   useWaveCreatorTasks,
@@ -33,10 +35,11 @@ export default function CreatorPage() {
 
   const { data: onchainTasks } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
-  const allTasks = useMemo(
+  const allTasksBase = useMemo(
     () => (onchainTasks ?? []).map(t => mapOnChainTask(t, usersByAddress?.[t.creator.toLowerCase()] ?? "")),
     [onchainTasks, usersByAddress]
   );
+  const allTasks = useTasksWithCounts(allTasksBase);
 
   const myTasks = allTasks.filter((t) => address && t.creator.toLowerCase() === address.toLowerCase());
   const openTasks = myTasks.filter((t) => t.status === "OPEN");
@@ -315,6 +318,8 @@ export default function CreatorPage() {
                 </Link>
               </div>
             </div>
+
+            <SocialLinksCard />
           </div>
         </div>
       </Container>

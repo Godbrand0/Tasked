@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mintGasGrant } from "@/lib/gas-grant";
+import { oauthRedirectUri } from "@/lib/oauth";
 
 function getReturnTo(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state") ?? "";
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
       client_id: process.env.GOOGLE_CLIENT_ID ?? "",
       client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
       code,
-      redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/google/callback`,
+      redirect_uri: oauthRedirectUri("/api/auth/google/callback"),
       grant_type: "authorization_code",
     }),
   });
