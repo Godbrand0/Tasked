@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useAccount, useDisconnect, useReadContract } from "wagmi";
+import { useAccount, useBalance, useDisconnect, useReadContract } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { formatUnits } from "viem";
 import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
@@ -37,6 +37,10 @@ export interface WalletState {
   isRegistered: boolean;
   musdBalance: number;
   mezoBalance: number;
+  /** Native BTC balance in wei — Mezo's gas token. */
+  nativeBalance: bigint;
+  /** Whether the connected wallet holds any BTC to pay gas with. */
+  hasGas: boolean;
   githubVerified: boolean;
   githubHandle: string;
   githubAvatar: string;
@@ -66,6 +70,8 @@ interface WalletContextValue extends WalletState {
     googleName?: string;
     googleAvatar?: string;
   }) => Promise<void>;
+  /** Re-read the native BTC balance (e.g. after a gas top-up) and return it in wei. */
+  refetchNativeBalance: () => Promise<bigint>;
   linkX: (handle: string, avatar?: string) => Promise<void>;
   unlinkX: () => Promise<void>;
   /** Off-chain only — there's no on-chain setGithubVerified, unlike X's setXVerified. */
@@ -151,6 +157,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const musdBalance = musdRaw !== undefined ? Number(formatUnits(musdRaw as bigint, MUSD_DECIMALS)) : 0;
   const mezoBalance = mezoRaw !== undefined ? Number(formatUnits(mezoRaw as bigint, MUSD_DECIMALS)) : 0;
+
+  const { data: nativeBal, refetch: refetchNativeBal } = useBalance({
+    address: address as `0x${string}` | undefined,
+    query: { enabled: Boolean(address) },
+  });
+  const nativeBalance = nativeBal?.value ?? BigInt(0);
+  const hasGas = nativeBalance > BigInt(0);
+  async function refetchNativeBalance(): Promise<bigint> {
+    const r = await refetchNativeBal();
+    return r.data?.value ?? BigInt(0);
+  }
 
   function handleConnect() {
     openConnectModal?.();
@@ -294,6 +311,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     address: address ?? "",
     musdBalance,
     mezoBalance,
+    nativeBalance,
+    hasGas,
+    refetchNativeBalance,
     // Off-chain display_name overrides the permanent on-chain username for
     // display purposes — see updateDisplayName. onchainUsername always
     // exposes the real on-chain value underneath, for spots that need it

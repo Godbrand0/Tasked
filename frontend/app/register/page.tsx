@@ -41,7 +41,7 @@ export default function RegisterPage() {
 function RegisterPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { connected, isRegistered, address, connect, register: registerWallet } = useWallet();
+  const { connected, isRegistered, address, refetchNativeBalance, connect, register: registerWallet } = useWallet();
 
   const [step, setStep] = useState<Step>(connected ? "identity" : "wallet");
   const [role, setRole] = useState<UserRole | null>(null);
@@ -51,8 +51,10 @@ function RegisterPageInner() {
   const [googleName, setGoogleName] = useState("");
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [googleError, setGoogleError] = useState("");
+  const [gasGrant, setGasGrant] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
+  const [needsGasHelp, setNeedsGasHelp] = useState(false);
 
   // If already registered redirect to dashboard
   useEffect(() => {
@@ -80,6 +82,10 @@ function RegisterPageInner() {
       setGoogleName(name ?? googleEmailParam.split("@")[0]);
       setGoogleAvatar(avatar ?? "");
       setGoogleVerified(true);
+      // Short-lived token proving this Google identity — only present when
+      // gas sponsorship is enabled. Used silently by handleRegister to top up
+      // an empty wallet before the registerUser transaction.
+      setGasGrant(searchParams.get("gas_grant") ?? "");
       // Clean params from URL without triggering navigation
       window.history.replaceState({}, "", "/register");
     }
@@ -99,12 +105,58 @@ function RegisterPageInner() {
     window.location.href = "/api/auth/google?return_to=%2Fregister";
   }
 
+  // Mezo gas is BTC — a brand-new wallet can't send registerUser until it
+  // holds some. If gas sponsorship is on (gasGrant present), silently top up
+  // an empty wallet here so registration is seamless; the user never sees a
+  // "gas" step. Returns true when the wallet is ready to transact.
+  async function ensureGas(): Promise<boolean> {
+    if (!address) return false;
+    let balance = await refetchNativeBalance();
+    if (balance > BigInt(0)) return true;
+
+    if (!gasGrant) {
+      // Sponsorship isn't available — the user genuinely needs to fund the wallet.
+      setNeedsGasHelp(true);
+      return false;
+    }
+
+    const res = await fetch("/api/gas-drip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, gasGrant }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      // 409 = wallet isn't fresh / already topped up → it likely already has
+      // gas from elsewhere; fall through and let registerUser try. Otherwise
+      // surface the "get some BTC" path.
+      if (res.status !== 409) {
+        setRegisterError(data.error ?? "We couldn't finish setting up your wallet automatically.");
+        setNeedsGasHelp(true);
+        return false;
+      }
+    }
+
+    // Wait for the top-up to land.
+    for (let i = 0; i < 12 && balance <= BigInt(0); i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      balance = await refetchNativeBalance();
+    }
+    if (balance <= BigInt(0)) {
+      setRegisterError("Your wallet setup is taking longer than expected — give it a moment and try again.");
+      return false;
+    }
+    return true;
+  }
+
   async function handleRegister() {
     const username = googleName || googleEmail.split("@")[0];
     if (!role || !username) return;
     setSubmitting(true);
     setRegisterError("");
+    setNeedsGasHelp(false);
     try {
+      if (!(await ensureGas())) return;
       // Google's email doubles as the notification email automatically —
       // wallet-context's register() syncs it to profiles.email directly.
       await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), googleEmail, googleName, googleAvatar });
@@ -323,10 +375,18 @@ function RegisterPageInner() {
             </div>
           )}
 
+          {/* Only shown if the wallet has no BTC and we couldn't set it up automatically. */}
+          {needsGasHelp && (
+            <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 16 }}>
+              Your wallet needs a small amount of BTC to cover gas on Mezo.{" "}
+              <Link href="/faq" style={{ color: "var(--primary)", textDecoration: "none" }}>How to get some →</Link>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setStep("role")} className="btn-motion" style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button onClick={handleRegister} disabled={submitting} className="btn-motion"
-              style={{ flex: 2, background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: "pointer", opacity: submitting ? 0.7 : 1 }}>
+              style={{ flex: 2, background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
               {submitting ? "Registering on-chain…" : "Register on Mezo →"}
             </button>
           </div>
