@@ -82,7 +82,7 @@ Run `supabase/migrations/0017_gas_drips.sql` in the Supabase SQL editor.
 |---|---|---|
 | `GAS_DRIP_PRIVATE_KEY` | sponsor wallet private key (`0x…`) | — |
 | `GAS_DRIP_SECRET` | random string; signs the Google-identity token and hashes IPs | `openssl rand -hex 32` |
-| `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — ~5 transactions' worth, see calibration | `200000000000000` (0.0002 BTC) |
+| `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — ~5 transactions' worth, see calibration | `1125000000000` (0.0000011 BTC, ~$0.09 at $78k/BTC) |
 | `GAS_DRIP_DAILY_CAP` | max drips per rolling 24h. **`0` disables the whole feature.** | `50` |
 | `GAS_DRIP_MIN_SIGNER_BALANCE_WEI` | keep this much in the sponsor wallet as a reserve; below `amount + this`, the endpoint 503s | `0` |
 
