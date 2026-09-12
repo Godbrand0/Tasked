@@ -45,7 +45,7 @@ prompt; the fresh-wallet checks + per-`sub` dedupe do the real work.
         server: verify the Google token  -> sub
                 no gas_drips row for this sub or this address
                 daily cap not hit
-                wallet is brand-new: nonce 0, balance 0, users(addr).role == 0
+                wallet is brand-new: nonce 0, no BTC, no MEZO, users(addr).role == 0
                 reserve a gas_drips row (unique constraints = the race guard)
                 sponsor wallet has enough BTC left (else 503 + log)
                 send GAS_DRIP_AMOUNT_WEI BTC -> address, wait for receipt
@@ -82,8 +82,8 @@ Run `supabase/migrations/0017_gas_drips.sql` in the Supabase SQL editor.
 |---|---|---|
 | `GAS_DRIP_PRIVATE_KEY` | sponsor wallet private key (`0x…`) | — |
 | `GAS_DRIP_SECRET` | random string; signs the Google-identity token and hashes IPs | `openssl rand -hex 32` |
-| `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — ~5 transactions' worth, see calibration | `1125000000000` (0.0000011 BTC, ~$0.09 at $78k/BTC) |
-| `GAS_DRIP_DAILY_CAP` | max drips per rolling 24h. **`0` disables the whole feature.** | `50` |
+| `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — ~5 transactions' worth, see calibration | `1282051282051` (~0.0000013 BTC, $0.10 at $78k/BTC) |
+| `GAS_DRIP_DAILY_CAP` | max drips per rolling 24h. **`0` disables the whole feature.** | `10` (pilot — see below) |
 | `GAS_DRIP_MIN_SIGNER_BALANCE_WEI` | keep this much in the sponsor wallet as a reserve; below `amount + this`, the endpoint 503s | `0` |
 
 The feature is **completely dormant** until `GAS_DRIP_PRIVATE_KEY`,
@@ -103,6 +103,23 @@ On Mezo mainnet, measure the gas used by those calls, take the current gas price
 multiply out for 5 txs, add ~30% headroom. It should still be small — Mezo is an
 L2. Keep it **well under the cost of a throwaway Google account** so farming
 stays unprofitable. Re-check if Mezo gas prices move.
+
+**$0.10 pilot setting:** at ~$78k/BTC that's `1282051282051` wei
+(~0.0000013 BTC). Recompute if BTC has moved meaningfully since — the amount
+is fixed in wei, not pegged to a live price.
+
+### Daily cap, sized to a $5 seed
+
+A $5 sponsor float at $0.10/drip covers **~50 users** before it needs a
+top-up. Start conservative so a single bad day (bug, or someone probing the
+endpoint) can't drain the whole float before you notice:
+
+- **`GAS_DRIP_DAILY_CAP = 10`** to start. Worst case if that's hit every day:
+  10 × $0.10 = **$1/day (~$30/month)** — an acceptable ceiling for a pilot.
+- Watch actual usage for a week (see Monitor below); raise the cap once you've
+  seen real organic demand and the float can support it.
+- The float itself is the harder limit day-to-day: 10/day empties a $5 float
+  in 5 days flat-out, so also watch the sponsor wallet balance, not just the cap.
 
 ## Operating it
 

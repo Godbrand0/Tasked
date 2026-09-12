@@ -4,7 +4,7 @@ import { createPublicClient, createWalletClient, defineChain, getAddress, http, 
 import { privateKeyToAccount } from "viem/accounts";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyGasGrant } from "@/lib/gas-grant";
-import { TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
+import { ERC20_ABI, MEZO_ADDRESS, TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
 
 // One-time gas sponsorship for first-time contributors. Mezo's gas token is
 // BTC, so a brand-new wallet can't call registerUser until it holds some —
@@ -98,30 +98,43 @@ export async function POST(req: NextRequest) {
 
   const publicClient = createPublicClient({ chain: mezoChain, transport: http(RPC_URL) });
 
-  // 4. Wallet must be brand-new and not already registered on Taskify
+  // 4. Wallet must be brand-new and not already registered on Taskify — no
+  //    tx history, no native BTC, AND no MEZO (a wallet that already holds
+  //    either isn't the "never touched Mezo" case this exists for).
   let txCount: number;
   let balance: bigint;
+  let mezoBalance: bigint;
   let role: number;
   try {
-    const [count, bal, userRow] = await Promise.all([
+    const reads: [Promise<number>, Promise<bigint>, Promise<bigint>, Promise<readonly unknown[]>] = [
       publicClient.getTransactionCount({ address }),
       publicClient.getBalance({ address }),
+      MEZO_ADDRESS
+        ? (publicClient.readContract({
+            address: MEZO_ADDRESS,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address],
+          }) as Promise<bigint>)
+        : Promise.resolve(BigInt(0)),
       publicClient.readContract({
         address: taskifyAddress,
         abi: TASKIFY_ABI,
         functionName: "users",
         args: [address],
       }) as Promise<readonly unknown[]>,
-    ]);
+    ];
+    const [count, bal, mezoBal, userRow] = await Promise.all(reads);
     txCount = count;
     balance = bal;
+    mezoBalance = mezoBal;
     role = Number((userRow as readonly unknown[])[1] ?? 0);
   } catch (err) {
     console.error("[gas-drip] chain read failed:", err);
     return NextResponse.json({ error: "Couldn't reach Mezo just now — try again shortly." }, { status: 502 });
   }
-  if (txCount > 0 || balance > BigInt(0)) {
-    return NextResponse.json({ error: "This wallet isn't new — one-time top-ups are for fresh wallets only." }, { status: 409 });
+  if (txCount > 0 || balance > BigInt(0) || mezoBalance > BigInt(0)) {
+    return NextResponse.json({ error: "This wallet isn't new — one-time top-ups are for fresh wallets with no BTC or MEZO." }, { status: 409 });
   }
   if (role !== 0) {
     return NextResponse.json({ error: "This wallet is already registered on Taskify." }, { status: 409 });
