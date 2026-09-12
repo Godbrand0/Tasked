@@ -164,12 +164,18 @@ export async function POST(req: NextRequest) {
       .is("tx_hash", null);
   };
 
-  // 6. Sponsor wallet must have enough left (fail closed)
-  const account = privateKeyToAccount(privateKey);
+  // 6. Sponsor wallet must have enough left (fail closed). privateKeyToAccount
+  //    throws synchronously on a malformed key (wrong length, missing 0x, a
+  //    stray space/newline from pasting into Vercel) — catch it here too, not
+  //    just the balance read, or a bad key crashes the route *after* the
+  //    reservation above and leaves it stuck forever.
+  let account: ReturnType<typeof privateKeyToAccount>;
   let signerBalance: bigint;
   try {
+    account = privateKeyToAccount(privateKey);
     signerBalance = await publicClient.getBalance({ address: account.address });
-  } catch {
+  } catch (err) {
+    console.error("[gas-drip] sponsor account/balance read failed:", err);
     await releaseReservation();
     return NextResponse.json({ error: "Gas sponsorship is temporarily unavailable." }, { status: 503 });
   }
