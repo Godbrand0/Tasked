@@ -7,6 +7,7 @@ import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import LoadingState from "@/components/ui/LoadingState";
 import EmptyState from "@/components/ui/EmptyState";
+import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { IconUser } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, earnedByToken, TIERS } from "@/lib/constants";
 import { useAllTasks, useTaskifyUser, mapOnChainTask } from "@/lib/use-taskify";
@@ -217,6 +218,8 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 ))}
               </div>
             </div>
+
+            <SocialLinksCard />
 
             <Link href="/leaderboard" className="btn-motion" style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 13, textDecoration: "none", padding: "12px", border: "1px solid var(--border)", borderRadius: 10 }}>
               View Full Leaderboard →
