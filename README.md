@@ -9,8 +9,8 @@ Two kinds of task live side by side on one board:
 - **Development tasks** — experience-tier gated, one contributor applies and is assigned, paid on approval. GitHub-verified.
 - **Community tasks** — open to any registered wallet (memes, bug write-ups, social bounties — no code required). Anyone joins with a proof-of-participation link; the creator picks up to *N* winners and the escrow splits evenly between them in one transaction. X-verified.
 
-**Live Demo:** [taskifybounties.vercel.app](https://taskifybounties.vercel.app/)
-**Contract (Mezo Testnet):** [`0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69`](https://explorer.test.mezo.org/address/0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69) — see [Contract Addresses](#contract-addresses)
+**Live Demo:** [taskifybounties.com](https://taskifybounties.com/)
+**Contract (Mezo Mainnet):** [`0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D`](https://explorer.mezo.org/address/0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D) — see [Contract Addresses](#contract-addresses)
 
 ---
 
@@ -85,7 +85,7 @@ Taskify/
 │   ├── src/
 │   │   ├── Taskify.sol               # Core protocol contract
 │   │   ├── MockMUSD.sol              # ERC-20 mock for local/testnet deploys
-│   │   └── MockMEZO.sol              # ERC-20 mock (MEZO has no testnet deployment)
+│   │   └── MockMEZO.sol              # ERC-20 mock, only needed for local (anvil) deploys — real MEZO is live on both testnet and mainnet
 │   ├── test/
 │   │   └── Taskify.t.sol             # Foundry unit tests
 │   ├── script/
@@ -357,15 +357,23 @@ forge fmt --check
 
 ### 5. Deploy Contracts
 
-Already deployed to Mezo testnet at `0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69` (see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To redeploy your own instance:
+Already deployed and UUPS-upgradeable on **Mezo mainnet** at `0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D` (the proxy address — see [Contract Addresses](#contract-addresses)) — the frontend points at this address by default via `NEXT_PUBLIC_TASKIFY_CONTRACT`. To deploy your own instance (e.g. to testnet for free experimentation):
 
 ```bash
 cd contracts
-cp .env.example .env   # fill in PRIVATE_KEY (funded via https://faucet.test.mezo.org)
+cp .env.example .env   # fill in PRIVATE_KEY
+
+# Testnet (funded via https://faucet.test.mezo.org)
 forge script script/Deploy.s.sol --rpc-url https://rpc.test.mezo.org --broadcast
+
+# Mainnet — Mezo has no first-party public RPC; see the "Recommended Mainnet
+# RPC Providers" table at mezo.org/docs/developers/getting-started
+forge script script/Deploy.s.sol --rpc-url https://mezo.drpc.org --broadcast
 ```
 
-Both `MUSD_ADDRESS` and `MEZO_ADDRESS` in `contracts/.env` default to the real Mezo testnet tokens — MEZO turned out to have a live deployment on testnet at the same address as mainnet, so no mock is needed on either token. Set them to `MockMUSD`/`MockMEZO` addresses instead if you want unlimited test balances without a faucet.
+`MUSD_ADDRESS` and `MEZO_ADDRESS` in `contracts/.env` should be set to the real token addresses for whichever network you're targeting (see [Contract Addresses](#contract-addresses) — MUSD differs between testnet and mainnet, MEZO is the same on both). Leave both unset on testnet only if you want `Deploy.s.sol` to deploy fresh `MockMUSD`/`MockMEZO` instead, for unlimited test balances without a faucet.
+
+An existing deployment upgrades via `contracts/script/Upgrade.s.sol` (`PROXY_ADDRESS=<proxy> forge script script/Upgrade.s.sol --rpc-url <url> --broadcast`) rather than a fresh `Deploy.s.sol` run — that deploys a new implementation and points the existing proxy at it, preserving all on-chain state.
 
 ---
 
@@ -391,31 +399,25 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 # WalletConnect Cloud project ID — get one at https://cloud.walletconnect.com
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 
-# Mezo network (defaults below already match testnet if unset)
-NEXT_PUBLIC_MEZO_CHAIN_ID=31611
-NEXT_PUBLIC_MEZO_RPC_URL=https://rpc.test.mezo.org
-NEXT_PUBLIC_MEZO_EXPLORER_URL=https://explorer.test.mezo.org
+# Mezo network (defaults below already match mainnet if unset — override
+# with the Mezo Testnet values from Contract Addresses to point at testnet
+# instead, e.g. for free experimentation)
+NEXT_PUBLIC_MEZO_CHAIN_ID=31612
+NEXT_PUBLIC_MEZO_RPC_URL=https://mezo.drpc.org
+NEXT_PUBLIC_MEZO_EXPLORER_URL=https://explorer.mezo.org
 
-# Token contracts — both default to the real Mezo testnet deployments if unset
-NEXT_PUBLIC_MUSD_CONTRACT=0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503
+# Token contracts — both default to the real Mezo mainnet deployments if unset
+NEXT_PUBLIC_MUSD_CONTRACT=0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186
 NEXT_PUBLIC_MEZO_CONTRACT=0x7B7c000000000000000000000000000000000001
 
 # Taskify contract (see Contract Addresses) — required for every on-chain
 # read/write in the app; leave unset only if you haven't deployed yet.
-NEXT_PUBLIC_TASKIFY_CONTRACT=0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69
+NEXT_PUBLIC_TASKIFY_CONTRACT=0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D
 ```
 
 ---
 
 ## Contract Addresses
-
-### Mezo Testnet (chain id `31611`)
-
-| Contract | Address |
-|---|---|
-| Taskify | `0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69` |
-| MUSD (official) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
-| MEZO (official) | `0x7B7c000000000000000000000000000000000001` — same address as mainnet, live on testnet too |
 
 ### Mezo Mainnet (chain id `31612`)
 
@@ -424,6 +426,14 @@ NEXT_PUBLIC_TASKIFY_CONTRACT=0x3e72A1E45CD5c499f1fd48C8f102Bf6C28381F69
 | Taskify | [`0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D`](https://explorer.mezo.org/address/0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D) — UUPS-upgradeable, proxy address (implementation: `0xdbc5cAbb560E6826a81fE38115F6129a97Ff2E58`) |
 | MUSD (official) | `0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186` |
 | MEZO (official) | `0x7B7c000000000000000000000000000000000001` |
+
+### Mezo Testnet (chain id `31611`)
+
+| Contract | Address |
+|---|---|
+| Taskify | [`0xe0Aa09a432b03456fBf4f5Ee2b626531A0c6Cc2f`](https://explorer.test.mezo.org/address/0xe0Aa09a432b03456fBf4f5Ee2b626531A0c6Cc2f) — UUPS-upgradeable, proxy address (implementation: `0x53570511D18956B71d1B6Fe28181D689B2e5cB1d`) |
+| MUSD (official) | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` |
+| MEZO (official) | `0x7B7c000000000000000000000000000000000001` — same address as mainnet, live on testnet too |
 
 No veBTC escrow set yet on the mainnet deployment — grant voting won't resolve any weight until `setVeBTCEscrow` is called with a confirmed mainnet address.
 
