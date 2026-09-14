@@ -68,7 +68,7 @@ export default function TasksPage() {
             <div>
               <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
               <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
-                {tasks.filter(t => t.status === "OPEN").length} open tasks · experience-matched on-chain
+                {tasks.filter(t => t.status === "OPEN").length} open tasks · matched automatically by experience
               </p>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

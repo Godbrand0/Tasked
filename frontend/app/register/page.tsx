@@ -17,7 +17,7 @@ const ROLE_OPTIONS: { id: UserRole; icon: React.ComponentType<{ size?: number }>
   { id: "creator",     icon: IconBriefcase, title: "Owner",       subtitle: "Fund the work",        color: "var(--primary)", bg: "color-mix(in srgb, var(--primary) 9%, transparent)",
     desc: "Post tasks, lock MUSD in escrow, set experience requirements, and choose from matched applicants." },
   { id: "contributor", icon: IconZap, title: "Contributor", subtitle: "Get paid to build",    color: "var(--secondary-light)", bg: "color-mix(in srgb, var(--secondary) 9%, transparent)",
-    desc: "Browse experience-matched bounties, apply on-chain, complete work, and build your on-chain reputation." },
+    desc: "Browse experience-matched bounties, apply, complete work, and build your permanent track record." },
 ];
 
 function StepDot({ label, active, done }: { label: string; active: boolean; done: boolean }) {
@@ -187,7 +187,7 @@ function RegisterPageInner() {
           {step === "wallet" ? "Connect your wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
-          {step === "wallet" ? "Your wallet address is your on-chain identity." : step === "identity" ? "This information is stored on the Mezo blockchain." : step === "role" ? "Your role is stored on-chain and shapes your Taskify experience." : ""}
+          {step === "wallet" ? "Your wallet address is your identity on Taskify." : step === "identity" ? "This information verifies your identity and isn't shared publicly." : step === "role" ? "Your role shapes your Taskify experience." : ""}
         </p>
       </div>
 
@@ -210,7 +210,7 @@ function RegisterPageInner() {
             <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconLock size={44} /></div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>No wallet connected</h2>
             <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 24px" }}>
-              Connect your Ethereum wallet to begin registration. Your wallet address becomes your permanent on-chain identity.
+              Connect your Ethereum wallet to begin registration. Your wallet address becomes your permanent identity on Taskify.
             </p>
             <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
               Connect Wallet →
@@ -378,7 +378,7 @@ function RegisterPageInner() {
           {/* Only shown if the wallet has no BTC and we couldn't set it up automatically. */}
           {needsGasHelp && (
             <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 16 }}>
-              Your wallet needs a small amount of BTC to cover gas on Mezo.{" "}
+              Your wallet needs a small amount of BTC to cover network fees on Mezo.{" "}
               <Link href="/faq" style={{ color: "var(--primary)", textDecoration: "none" }}>How to get some →</Link>
             </div>
           )}
@@ -387,7 +387,7 @@ function RegisterPageInner() {
             <button onClick={() => setStep("role")} className="btn-motion" style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 15, padding: "13px", borderRadius: 12, cursor: "pointer" }}>← Back</button>
             <button onClick={handleRegister} disabled={submitting} className="btn-motion"
               style={{ flex: 2, background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "13px", borderRadius: 12, border: "none", cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
-              {submitting ? "Registering on-chain…" : "Register on Mezo →"}
+              {submitting ? "Registering…" : "Register on Mezo →"}
             </button>
           </div>
         </div>

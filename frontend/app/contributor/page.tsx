@@ -245,7 +245,7 @@ export default function ContributorPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Reputation */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>On-Chain Reputation</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Track Record</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Experience Tier</span>
@@ -271,7 +271,7 @@ export default function ContributorPage() {
             {/* Update experience */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Update Experience</div>
-              <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, marginBottom: 14 }}>Calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain. 1-day cooldown after update.</p>
+              <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, marginBottom: 14 }}>1-day cooldown after each update.</p>
               <select value={tierChoice} onChange={e => setTierChoice(Number(e.target.value))}
                 style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "var(--text)", outline: "none", cursor: "pointer", marginBottom: 10 }}>
                 {TIERS.map((t) => <option key={t.id} value={t.id}>{t.label} · {t.years}</option>)}

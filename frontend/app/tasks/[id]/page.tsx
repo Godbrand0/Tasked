@@ -463,7 +463,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       } catch (err) {
         // Best-effort — the task is already marked Submitted on-chain
         // regardless of whether this off-chain write succeeds.
-        setSubmitWorkError(formatContractError(err, "Work submitted on-chain, but saving the PR/issue links failed."));
+        setSubmitWorkError(formatContractError(err, "Work submitted, but saving the PR/issue links failed."));
       }
 
       await refetchTask();
@@ -931,7 +931,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <Section id="section-participants" title={submissionsLoading ? "Participants" : `${submissions.length} Participant${submissions.length !== 1 ? "s" : ""}`}>
                 {task.status === "FUNDS_RELEASED" && (
                   <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13, color: "var(--success)", fontWeight: 600, textAlign: "center" }}>
-                    ✓ {submissions.filter(s => s.isWinner).length} winner{submissions.filter(s => s.isWinner).length !== 1 ? "s" : ""} paid; escrow released and split on-chain
+                    ✓ {submissions.filter(s => s.isWinner).length} winner{submissions.filter(s => s.isWinner).length !== 1 ? "s" : ""} paid; escrow released and split automatically
                   </div>
                 )}
                 {submissionsLoading ? (
@@ -1050,7 +1050,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                       <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{payError}</div>
                     )}
                     <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                      Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>selectWinners</code>: splits escrow evenly, pays everyone in one transaction.
+                      Splits escrow evenly and pays everyone in one transaction.
                     </p>
                   </div>
                 )}
@@ -1242,7 +1242,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 ) : (
                   <SideRow label="Contributor receives" value={`${formatMUSD(netAmount)} ${task.token}`} valueColor="var(--success)" />
                 )}
-                <SideRow label={`Protocol fee (${task.fundingType === "self" ? "3" : "5"}%)`} value={`${formatMUSD(fee)} ${task.token}`} />
+                <SideRow label={`Platform fee (${task.fundingType === "self" ? "3" : "5"}%)`} value={`${formatMUSD(fee)} ${task.token}`} />
                 <SideRow label="Funding type" value={task.fundingType === "self" ? "Self-funded" : "Community grant"} />
               </div>
             </SideCard>
@@ -1278,7 +1278,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 <SideCardTitle>Experience Gate</SideCardTitle>
                 <TierRangeBadge min={task.experienceMin} max={task.experienceMax} />
                 <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.6, margin: "12px 0 0" }}>
-                  Tiers <strong style={{ color: minTier.color }}>{minTier.label}</strong> → <strong style={{ color: maxTier.color }}>{maxTier.label}</strong>. Verified on-chain.
+                  Tiers <strong style={{ color: minTier.color }}>{minTier.label}</strong> → <strong style={{ color: maxTier.color }}>{maxTier.label}</strong>. Checked automatically.
                 </p>
               </SideCard>
             )}
@@ -1306,7 +1306,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     )}
                     {joined ? (
                       <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 16, textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
-                        ✓ Joined · proof submitted on-chain
+                        ✓ Joined · proof submitted
                       </div>
                     ) : (
                       <>
@@ -1332,7 +1332,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                           <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{joinError}</div>
                         )}
                         <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>joinCommunityTask</code>: no experience gate.
+                          Open to anyone — no experience gate.
                         </p>
                       </>
                     )}
@@ -1369,7 +1369,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                     </div>
                     {appliedOnchain ? (
                       <div style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", borderRadius: 10, padding: 16, textAlign: "center", color: "var(--success)", fontWeight: 700, fontSize: 14 }}>
-                        ✓ Application submitted on-chain
+                        ✓ Application submitted
                       </div>
                     ) : (
                       <>
@@ -1396,7 +1396,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                           <div style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", marginTop: 8 }}>{applyError}</div>
                         )}
                         <p style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                          Once on-chain, calls <code style={{ color: "var(--primary)", fontSize: 10 }}>applyForTask</code>: experience gate verified on-chain.
+                          Your experience tier is checked automatically.
                         </p>
                       </>
                     )}
@@ -1517,7 +1517,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard>
                 <SideCardTitle>Manage Task</SideCardTitle>
                 <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", marginBottom: 12, lineHeight: 1.6 }}>
-                  Cancel to refund the remaining escrow (minus the protocol fee) back to your wallet.
+                  Cancel to refund the remaining escrow (minus the platform fee) back to your wallet.
                 </p>
                 <button disabled={txBusy} onClick={handleCancelTask} className="btn-motion" style={{ width: "100%", background: "transparent", border: "1px solid var(--danger)", color: "var(--danger)", fontWeight: 700, fontSize: 13, padding: "10px", borderRadius: 10, cursor: txBusy ? "not-allowed" : "pointer", opacity: txBusy ? 0.7 : 1 }}>
                   {txBusy ? "Confirming…" : "Cancel Task"}

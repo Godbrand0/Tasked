@@ -167,7 +167,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
           {/* Sidebar — on-chain identity */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>On-Chain Identity</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Public Profile</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {user.role === 2 && (
                   <>

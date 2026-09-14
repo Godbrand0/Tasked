@@ -107,7 +107,7 @@ function SettingsPageInner() {
     setXConnecting(true);
     setXError("");
     linkX(handle, avatar ?? undefined).catch((err) => {
-      setXError(formatContractError(err, "Failed to link X on-chain"));
+      setXError(formatContractError(err, "Failed to link X"));
     }).finally(() => setXConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, address]);
@@ -365,7 +365,7 @@ function SettingsPageInner() {
                       onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
                       onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
                     <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
-                      Changes how you're shown across the app. Your on-chain identity (<code style={{ fontFamily: "var(--font-geist-mono)" }}>{onchainUsername}</code>) never changes; Taskify.sol has no update function for it.
+                      Changes how you're shown across the app. Your permanent username (<code style={{ fontFamily: "var(--font-geist-mono)" }}>{onchainUsername}</code>) never changes once you register.
                     </div>
                   </div>
                   <div>
@@ -451,7 +451,7 @@ function SettingsPageInner() {
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 8px" }}>Experience Level</h2>
                 <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px", lineHeight: 1.6 }}>
-                  Your experience tier is stored on-chain and gates which tasks you can apply to. Updates cost a small gas fee and have a ~1 day cooldown.
+                  Your experience tier gates which tasks you can apply to. Updates cost a small network fee and have a ~1 day cooldown.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
                   {TIERS.map((tier) => (
@@ -470,7 +470,7 @@ function SettingsPageInner() {
                 </div>
                 {expTier !== experienceLevel && (
                   <div style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 13%, transparent)", borderRadius: 10, padding: 14, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-                    Changing from <strong style={{ color: "var(--text)" }}>{TIERS[experienceLevel].label}</strong> to <strong style={{ color: TIERS[expTier].color }}>{TIERS[expTier].label}</strong>. This calls <code style={{ color: "var(--primary)", fontSize: 11 }}>updateExperience</code> on-chain.
+                    Changing from <strong style={{ color: "var(--text)" }}>{TIERS[experienceLevel].label}</strong> to <strong style={{ color: TIERS[expTier].color }}>{TIERS[expTier].label}</strong>.
                   </div>
                 )}
               </div>
@@ -480,7 +480,7 @@ function SettingsPageInner() {
             {active === "notifications" && (
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 8px" }}>Notifications</h2>
-                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px" }}>Choose which on-chain events trigger notifications.</p>
+                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px" }}>Choose which events trigger notifications.</p>
 
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
@@ -540,7 +540,7 @@ function SettingsPageInner() {
             {active === "danger" && (
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)", margin: "0 0 8px" }}>Danger Zone</h2>
-                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px", lineHeight: 1.6 }}>These actions are irreversible. On-chain data cannot be deleted.</p>
+                <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 24px", lineHeight: 1.6 }}>These actions are irreversible and cannot be undone.</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ background: "color-mix(in srgb, var(--danger-strong) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", borderRadius: 12, padding: 20 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Cancel All Open Tasks</div>
@@ -559,7 +559,7 @@ function SettingsPageInner() {
               <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                 {saveError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{saveError}</div>}
                 <button onClick={handleSave} disabled={saving} className="btn-motion" style={{ background: saved ? "color-mix(in srgb, var(--success) 9%, transparent)" : "var(--primary)", border: saved ? "1px solid color-mix(in srgb, var(--success) 19%, transparent)" : "none", color: saved ? "var(--success)" : "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px 28px", borderRadius: 10, cursor: saving ? "not-allowed" : "pointer", transition: "all 0.2s", opacity: saving ? 0.7 : 1 }}>
-                  {saving ? "Saving…" : saved ? "✓ Saved" : active === "experience" ? "Update Experience On-Chain" : "Save Changes"}
+                  {saving ? "Saving…" : saved ? "✓ Saved" : active === "experience" ? "Update Experience" : "Save Changes"}
                 </button>
               </div>
             )}

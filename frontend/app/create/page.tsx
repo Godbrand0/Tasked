@@ -253,12 +253,12 @@ export default function CreatePage() {
             {taskKind === "community"
               ? `${numAmount.toLocaleString()} ${currency} is locked in escrow, open for anyone to join. Pick up to ${maxWinners} winners from the submissions whenever you're ready.`
               : fundingType === "self"
-              ? `${numAmount.toLocaleString()} ${currency} is now locked in the Taskify contract. Your task is live in the bounty board.`
+              ? `${numAmount.toLocaleString()} ${currency} is now locked in escrow. Your task is live in the bounty board.`
               : "Your grant application enters a 3-day community voting period. Voting weight comes from patrons' veBTC position on Mezo Earn."}
           </p>
           {descriptionSaveFailed && (
             <div style={{ background: "var(--warning-tint, #fff3cd)", border: "1px solid var(--warning, #e0a100)", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-muted)", textAlign: "left" }}>
-              Your task is live on-chain, but the description couldn&apos;t be saved. {createdTaskId !== null ? "Open the task and add it from there." : "Try adding it again from the task page once it appears in the bounty board."}
+              Your task is live, but the description couldn&apos;t be saved. {createdTaskId !== null ? "Open the task and add it from there." : "Try adding it again from the task page once it appears in the bounty board."}
             </div>
           )}
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -289,7 +289,7 @@ export default function CreatePage() {
             <Link href="/creator" style={{ color: "var(--text-dim)", textDecoration: "none" }}>My Dashboard</Link> → Post Task
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Post a Task</h1>
-          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>Lock funds in escrow and match the right contributors on-chain.</p>
+          <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>Lock funds in escrow and match the right contributors automatically.</p>
         </div>
 
         {/* Task kind toggle */}
@@ -400,7 +400,7 @@ export default function CreatePage() {
             {numAmount >= 1 && (
               <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                 <Row label="Gross deposit" value={`${numAmount.toLocaleString()} ${currency}`} />
-                <Row label={`Protocol fee (${fee * 100}%)`} value={`−${feeAmt.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`} valueColor="var(--text-muted)" />
+                <Row label={`Platform fee (${fee * 100}%)`} value={`−${feeAmt.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`} valueColor="var(--text-muted)" />
                 <div style={{ height: 1, background: "var(--border)" }} />
                 <Row label="Contributor receives" value={`${netAmt.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`} valueColor="var(--success)" bold />
               </div>
@@ -575,7 +575,7 @@ export default function CreatePage() {
 
           <button disabled={!valid || submitting} onClick={handleSubmit} className="btn-motion"
             style={{ background: valid ? "var(--primary)" : "var(--border)", color: valid ? "var(--bg)" : "color-mix(in srgb, var(--text-faint) 53%, transparent)", fontWeight: 700, fontSize: 16, padding: "16px", borderRadius: 12, border: "none", cursor: valid ? "pointer" : "not-allowed", transition: "all 0.15s", opacity: submitting ? 0.7 : 1 }}>
-            {submitting ? "Submitting on-chain…" : taskKind === "community" ? `Lock ${numAmount || "..."} ${currency} & Open to Community →` : fundingType === "self" ? `Lock ${numAmount || "..."} ${currency} & Post Task →` : "Submit Grant Application →"}
+            {submitting ? "Submitting…" : taskKind === "community" ? `Lock ${numAmount || "..."} ${currency} & Open to Community →` : fundingType === "self" ? `Lock ${numAmount || "..."} ${currency} & Post Task →` : "Submit Grant Application →"}
           </button>
         </div>
       </div>

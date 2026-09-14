@@ -17,11 +17,11 @@ interface FaqGroup { group: string; items: FaqItem[] }
 
 const FAQ_GROUPS: FaqGroup[] = [
   {
-    group: "Protocol basics",
+    group: "The basics",
     items: [
       {
         q: "What is Taskify?",
-        a: "Taskify is an on-chain bounty board on Mezo. Creators post tasks and lock MUSD in escrow, contributors apply and get paid on approval, and Patrons fund a community grant pool and vote on which grant-funded tasks get built. Every step (escrow, experience gating, payment) is enforced by the Taskify smart contract, not by a central party.",
+        a: "Taskify is a bounty board built on Mezo. Creators post tasks and lock MUSD in escrow, contributors apply and get paid on approval, and Patrons fund a community grant pool and vote on which grant-funded tasks get built. Every step (escrow, experience gating, payment) is enforced automatically by Taskify itself, not by a central party.",
       },
       {
         q: "What is MUSD and why does Taskify use it?",
@@ -33,19 +33,19 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Is my money safe in escrow?",
-        a: "Funds move only through the Taskify contract: MUSD locks in at task creation and only leaves escrow when the creator approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no custodial intermediary holding funds at any point.",
+        a: "Funds move only through Taskify itself: MUSD locks in at task creation and only leaves escrow when the creator approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no intermediary holding funds at any point.",
       },
       {
         q: "What fees does Taskify take?",
-        a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the protocol treasury and 40% goes into the wave pool, which is redistributed to active self-funded creators roughly every 30 days.",
+        a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the Taskify treasury and 40% goes into the wave pool, which is redistributed to active self-funded creators roughly every 30 days.",
       },
       {
         q: "What wallets are supported?",
         a: "Any standard Ethereum wallet via RainbowKit: MetaMask, Rabby, Rainbow, WalletConnect-compatible mobile wallets, or any browser-injected wallet.",
       },
       {
-        q: "Has the Taskify contract been audited?",
-        a: "The protocol is under active review. Check the repository for the latest audit status before depositing meaningful funds, and always start with amounts you're comfortable testing with.",
+        q: "Has Taskify been audited?",
+        a: "Taskify is under active review. Check the repository for the latest audit status before depositing meaningful funds, and always start with amounts you're comfortable testing with.",
       },
     ],
   },
@@ -54,7 +54,7 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "How does experience matching work?",
-        a: "Creators set a minimum and maximum experience tier when posting a task. Contributors declare their own tier at registration. The contract itself checks the match when a contributor calls applyForTask, and it's enforced on-chain, not just filtered in the UI.",
+        a: "Creators set a minimum and maximum experience tier when posting a task. Contributors declare their own tier at registration. Taskify itself checks the match the moment a contributor applies — it's enforced automatically, not just filtered away in the interface.",
       },
       {
         q: "What kind of tasks should I post as a creator?",
@@ -62,7 +62,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Can I post a large, multi-week feature as one task?",
-        a: "You can, but it's not what the protocol is optimized for. Large scope is better split into several small self-funded tasks, each with its own escrow, applicant, and payout, or posted as a grant-funded task so the community can weigh in on whether the scope and requested amount make sense before any MUSD moves.",
+        a: "You can, but it's not what Taskify is optimized for. Large scope is better split into several small self-funded tasks, each with its own escrow, applicant, and payout, or posted as a grant-funded task so the community can weigh in on whether the scope and requested amount make sense before any MUSD moves.",
       },
     ],
   },
@@ -71,7 +71,7 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "Do I need to connect GitHub or X? What are the benefits?",
-        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet — though every on-chain action needs a small amount of BTC for gas (see \"Do I need BTC to use Taskify?\" under Wallet safety). That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
+        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet — though every action on Taskify needs a small amount of BTC for network fees (see \"Do I need BTC to use Taskify?\" under Wallet safety). That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
       },
       {
         q: "I linked GitHub/X but it's not showing as verified. What happened?",
@@ -84,11 +84,11 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "Which wallet should I connect when I register?",
-        a: "Use a self-custody wallet you personally hold the seed phrase for — never an exchange-custodied address, and a hardware wallet for anything holding real value. If you plan to vote on grants, connect the exact address that holds your veBTC: your voting weight is read from that specific address live via Mezo's contracts, so registering with a different wallet leaves you with zero weight even if you hold veBTC elsewhere.",
+        a: "Use a self-custody wallet you personally hold the seed phrase for — never an exchange-custodied address, and a hardware wallet for anything holding real value. If you plan to vote on grants, connect the exact address that holds your veBTC: your voting weight is read from that specific address live via Mezo's own system, so registering with a different wallet leaves you with zero weight even if you hold veBTC elsewhere.",
       },
       {
         q: "Do I need BTC to use Taskify?",
-        a: "Yes — a little. Mezo's gas token is BTC, so every on-chain action (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in gas, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several transactions. After that you fund gas yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
+        a: "Yes — a little. Every action on Mezo (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in network fees, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several actions. After that you cover network fees yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
       },
       {
         q: "Will Taskify ever ask for my seed phrase or private key?",
@@ -96,7 +96,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "What am I approving when I sign a token approval?",
-        a: "Taskify only ever requests an approval for the exact amount you're about to escrow or deposit in that transaction — never an unlimited or max approval. Read every signature prompt before you sign and check the spender is the Taskify contract and the amount matches what you expect. If a prompt asks for an unlimited allowance, cancel it.",
+        a: "Taskify only ever requests an approval for the exact amount you're about to escrow or deposit in that transaction — never an unlimited or max approval. Read every signature prompt before you sign and check the spender is Taskify itself and the amount matches what you expect. If a prompt asks for an unlimited allowance, cancel it.",
       },
       {
         q: "How do I make sure I'm on the real Taskify site?",
@@ -109,7 +109,7 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "How does grant voting work?",
-        a: "Voting weight comes entirely from your veBTC position on Mezo Earn; lock BTC there to mint veBTC, and Taskify reads that weight live via Mezo's own contracts every time you vote. It's completely decoupled from MUSD deposits: depositing funds the grant pool and earns Patron tiers, but doesn't grant votes. Each proposal snapshots weight at the moment it opens, so locking veBTC after a vote has already started doesn't let you swing it.",
+        a: "Voting weight comes entirely from your veBTC position on Mezo Earn; lock BTC there to mint veBTC, and Taskify reads that weight live from Mezo's own system every time you vote. It's completely decoupled from MUSD deposits: depositing funds the grant pool and earns Patron tiers, but doesn't grant votes. Each proposal snapshots weight at the moment it opens, so locking veBTC after a vote has already started doesn't let you swing it.",
       },
       {
         q: "How can I become a voter?",
@@ -138,7 +138,7 @@ const FAQ_GROUPS: FaqGroup[] = [
 ];
 
 export default function FaqPage() {
-  const [openKey, setOpenKey] = useState<string | null>("Protocol basics:0");
+  const [openKey, setOpenKey] = useState<string | null>("The basics:0");
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>

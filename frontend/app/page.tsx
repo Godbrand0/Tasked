@@ -227,7 +227,7 @@ function MockTaskCard() {
         Build Mezo DeFi Analytics Dashboard
       </h3>
       <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", margin: "0 0 16px", lineHeight: 1.5 }}>
-        React frontend connecting to the Mezo API to display protocol TVL, volume, and token stats.
+        React frontend connecting to the Mezo API to display platform activity, trading volume, and token stats.
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <Badge color="orange">500 MUSD</Badge>
@@ -272,14 +272,14 @@ function Hero() {
             </Badge>
           </div>
           <h1 className="hero-in" style={{ fontSize: "clamp(36px, 5vw, 58px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 24px", color: "var(--text)", animationDelay: "60ms" }}>
-            The On-Chain{" "}
+            The Trustless{" "}
             <span style={{ background: "linear-gradient(90deg, var(--primary), var(--primary-strong))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               Bounty Board
             </span>{" "}
             for the Mezo Community
           </h1>
           <p className="hero-in" style={{ fontSize: 18, color: "var(--text-muted)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 36px", maxWidth: 480, animationDelay: "120ms" }}>
-            Post Development tasks matched by experience tier, or Community tasks anyone can join. MUSD locks in escrow either way, all enforced on-chain. No trust required.
+            Post Development tasks matched by experience tier, or Community tasks anyone can join. MUSD locks in escrow either way. No trust required.
           </p>
           <div className="hero-in" style={{ display: "flex", gap: 12, flexWrap: "wrap", animationDelay: "180ms" }}>
             <button onClick={connect} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -291,7 +291,7 @@ function Hero() {
           </div>
           <div className="hero-in" style={{ marginTop: 36, display: "flex", gap: 32, flexWrap: "wrap", animationDelay: "240ms" }}>
             {[
-              { val: "3–5%", label: "Protocol fee" },
+              { val: "3–5%", label: "Platform fee" },
               { val: "30-day", label: "Wave rewards" },
               { val: "2 task kinds", label: "Development · Community" },
             ].map(({ val, label }) => (
@@ -313,7 +313,7 @@ function Hero() {
             <MockTaskCard />
           </div>
           <FloatingBadge className="float" style={{ bottom: 16, right: 8, color: "var(--secondary-light)", animationDuration: "2.4s", animationDelay: "0.6s" }}>
-            <IconGraduationCap size={13} /> Experience-gated on-chain
+            <IconGraduationCap size={13} /> Experience-gated automatically
           </FloatingBadge>
         </div>
       </div>
@@ -351,20 +351,20 @@ function HowItWorks() {
     {
       num: "01",
       title: "Create & Lock Escrow",
-      desc: "Post a Development task with an experience range, or a Community task anyone can join, choosing MUSD or MEZO. The token locks in the smart contract the moment the task goes live. No trust required from either side.",
+      desc: "Post a Development task with an experience range, or a Community task anyone can join, choosing MUSD or MEZO. The token locks in escrow the moment the task goes live. No trust required from either side.",
       color: "var(--primary)",
       icon: <IconLock size={28} />,
     },
     {
       num: "02",
       title: "Apply, or Just Join In",
-      desc: "Development tasks match one contributor by declared experience tier, verified on-chain at applyForTask. Community tasks skip that gate entirely: anyone joins with a proof-of-participation link, no code required.",
+      desc: "Development tasks match one contributor by declared experience tier, verified automatically when they apply. Community tasks skip that gate entirely: anyone joins with a proof-of-participation link, no code required.",
       color: "var(--secondary)",
       icon: <IconTarget size={28} />,
     },
     {
       num: "03",
-      title: "Work & Get Paid On-Chain",
+      title: "Work & Get Paid",
       desc: "Approve a Development task's submission to release MUSD to one contributor, or pick up to N winners on a Community task and split the escrow between them in one transaction, no intermediary, no counterparty risk.",
       color: "var(--success)",
       icon: <IconZap size={28} />,
@@ -380,7 +380,7 @@ function HowItWorks() {
             Three steps. Zero trust.
           </h2>
           <p style={{ fontSize: 16, color: "var(--text-dim)", textAlign: "center", marginTop: 12 }}>
-            Escrow, matching, and payment are all enforced by the smart contract itself, not by Taskify.
+            Escrow, matching, and payment are all enforced automatically by the system itself, not manually by the Taskify team.
           </p>
         </Reveal>
 
@@ -430,13 +430,13 @@ function ExperienceSection() {
             to "best fit applies"
           </h2>
           <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.8, margin: "0 0 28px" }}>
-            Owners select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The contract verifies the match on-chain when a contributor applies, not just the UI.
+            Owners select a minimum and maximum experience tier when posting. Contributors declare their level at registration. The system verifies the match automatically when a contributor applies, not just in the interface.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[
               { label: "Owners", text: "Get applicants who genuinely fit the task scope." },
               { label: "Contributors", text: "See a curated feed of relevant work, not noise." },
-              { label: "On-chain", text: "Experience gate is enforced at applyForTask, not filtered away client-side." },
+              { label: "Enforced automatically", text: "The experience gate can't be bypassed — it's checked the moment someone applies, not just filtered away in the interface." },
             ].map(({ label, text }) => (
               <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 20, height: 20, borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, color: "var(--primary)" }}>
@@ -475,7 +475,7 @@ function ExperienceSection() {
             ))}
             <div style={{ padding: "14px 24px", background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderTop: "1px solid color-mix(in srgb, var(--primary) 9%, transparent)", display: "flex", alignItems: "center", gap: 8 }}>
               <IconShield />
-              <span style={{ fontSize: 12, color: "var(--primary)", fontWeight: 600 }}>Gate enforced on-chain, not a UI filter</span>
+              <span style={{ fontSize: 12, color: "var(--primary)", fontWeight: 600 }}>Enforced automatically, not just a filter</span>
             </div>
           </Card>
           <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "justify", marginTop: 12, lineHeight: 1.6 }}>
@@ -518,7 +518,7 @@ function RolesSection() {
       features: [
         "Development: experience-matched task feed, GitHub-verified identity",
         "Community: join with a proof link, no experience tier or code needed",
-        "Permanent on-chain task history either way",
+        "Permanent task history either way",
         "Portable reputation (MUSD earned + tasks done)",
         "Public profile at /profile/[address]",
       ],
@@ -551,7 +551,7 @@ function RolesSection() {
             Two roles. One closed-loop economy.
           </h2>
           <p style={{ fontSize: 16, color: "var(--text-dim)", textAlign: "center", marginTop: 12 }}>
-            Every participant strengthens the protocol for everyone else.
+            Every participant strengthens Taskify for everyone else.
           </p>
         </Reveal>
 
@@ -593,9 +593,9 @@ function ProtocolSection() {
     <section style={{ padding: "96px 24px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Reveal style={{ textAlign: "center", marginBottom: 64 }}>
-          <SectionLabel>Protocol mechanics</SectionLabel>
+          <SectionLabel>How it's enforced</SectionLabel>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
-            Every state enforced on-chain
+            Every state enforced automatically
           </h2>
         </Reveal>
 
@@ -748,7 +748,7 @@ function CTASection() {
 
 function Footer() {
   const links: Record<string, { label: string; href: string }[]> = {
-    Protocol: [
+    Platform: [
       { label: "How it works", href: "/docs" },
       { label: "Task escrow", href: "/docs#lifecycle" },
       { label: "Grant pool", href: "/docs#patrons" },
@@ -786,7 +786,7 @@ function Footer() {
               <span style={{ fontWeight: 700, fontSize: 18, color: "var(--text)" }}>Taskify</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, maxWidth: 280, margin: "0 0 16px" }}>
-              The on-chain bounty board for the Mezo community. Trustless escrow, community grants, Development and Community tasks alike.
+              The trustless bounty board for the Mezo community. Secure escrow, community grants, Development and Community tasks alike.
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }} />

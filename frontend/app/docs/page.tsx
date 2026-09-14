@@ -17,14 +17,14 @@ const SECTIONS: DocSection[] = [
     body: (
       <>
         <p>
-          Taskify is an on-chain bounty board on Mezo. Owners post tasks and lock MUSD (or MEZO) in escrow,
+          Taskify is a bounty board built on Mezo. Owners post tasks and lock MUSD (or MEZO) in escrow,
           contributors apply and get paid on approval, and Patrons fund a shared grant pool and vote on which
           grant-funded tasks get built.
         </p>
         <p>
-          Every step that matters — escrow, experience gating, payout, voting weight — is enforced by the Taskify
-          smart contract itself, not by a central party. Nobody, including the Taskify team, can move escrowed
-          funds outside the paths the contract allows.
+          Every step that matters — escrow, experience gating, payout, voting weight — is enforced automatically
+          by Taskify itself, not by a central party. Nobody, including the Taskify team, can move escrowed
+          funds outside the paths the system allows.
         </p>
       </>
     ),
@@ -44,8 +44,8 @@ const SECTIONS: DocSection[] = [
           <li>
             <strong>Community</strong> — open to any registered wallet, no experience gate. Anyone joins with a
             proof-of-participation link (a post, a write-up, a PR — whatever the task asks for). The Owner reviews
-            submissions off-chain and picks up to <code>maxWinners</code> addresses; the escrow splits evenly between
-            them in one transaction.
+            submissions and picks winners, up to the limit set when the task was posted; the escrow splits evenly
+            between them in one transaction.
           </li>
         </ul>
       </>
@@ -59,16 +59,16 @@ const SECTIONS: DocSection[] = [
         <p>Development tasks can be funded one of two ways:</p>
         <ul>
           <li>
-            <strong>Self-funded</strong> — the Owner deposits the full bounty themselves at creation. 3% protocol
+            <strong>Self-funded</strong> — the Owner deposits the full bounty themselves at creation. 3% platform
             fee.
           </li>
           <li>
             <strong>Grant-funded</strong> — the Owner proposes the task with no upfront deposit. If patrons approve
-            it by vote (see below), MUSD is drawn from the shared grant pool automatically. 5% protocol fee.
+            it by vote (see below), MUSD is drawn from the shared grant pool automatically. 5% platform fee.
           </li>
         </ul>
         <p>Community tasks are always self-funded (3%) — grant-funded Community tasks aren&apos;t supported yet.</p>
-        <p>Every fee splits the same way: 60% to the protocol treasury, 40% into the current wave pool.</p>
+        <p>Every fee splits the same way: 60% to the Taskify treasury, 40% into the current wave pool.</p>
       </>
     ),
   },
@@ -77,7 +77,7 @@ const SECTIONS: DocSection[] = [
     title: "Task lifecycle",
     body: (
       <>
-        <p>A task moves through a fixed set of on-chain statuses. The exact path depends on how it&apos;s funded and what kind it is:</p>
+        <p>A task moves through a fixed set of statuses. The exact path depends on how it&apos;s funded and what kind it is:</p>
         <p style={{ fontFamily: "var(--font-geist-mono, monospace)", fontSize: 13, lineHeight: 2, color: "var(--text-muted)" }}>
           Development, self-funded:<br />
           Open → Assigned → In Progress → Submitted → Payment Released<br />
@@ -88,13 +88,14 @@ const SECTIONS: DocSection[] = [
           (Grant Pending resolves to either Open, on approval, or Grant Rejected.)
           <br /><br />
           Community:<br />
-          Open → Payment Released (via selectWinners, once)<br />
+          Open → Payment Released (winners are selected and paid in one step)<br />
           (Open can also go to Cancelled or Expired before any winners are picked.)
         </p>
         <p>
           A creator can <strong>cancel</strong> a self-funded task before it&apos;s assigned, refunded minus the fee.
-          Anyone can call <strong>markExpired</strong> on a task past its deadline that hasn&apos;t reached Submitted
-          — this never touches work that&apos;s already been delivered or a grant proposal that was never funded.
+          Anyone can <strong>mark a task expired</strong> once it&apos;s past its deadline and hasn&apos;t reached
+          Submitted — this never touches work that&apos;s already been delivered or a grant proposal that was never
+          funded.
         </p>
       </>
     ),
@@ -106,8 +107,8 @@ const SECTIONS: DocSection[] = [
       <>
         <p>
           Contributors declare a tier at registration (self-attested, changeable once a day). Development tasks set
-          a minimum and maximum tier at creation — the contract checks the match on-chain when a contributor calls
-          <code> applyForTask</code>, not just in the UI.
+          a minimum and maximum tier at creation — Taskify checks the match automatically the moment a contributor
+          applies, not just in the interface.
         </p>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
@@ -149,9 +150,9 @@ const SECTIONS: DocSection[] = [
           and earns Patron tiers, but grants no votes on its own.
         </p>
         <p>
-          Each grant proposal opens a 3-day voting window and fixes a snapshot — both the timestamp and the veBTC
-          contract address — the moment it opens. Locking veBTC after a vote has started doesn&apos;t let you swing
-          it, and the snapshot can&apos;t be affected by a later change to which contract Taskify reads from.
+          Each grant proposal opens a 3-day voting window and fixes a snapshot — both the timestamp and which veBTC
+          source Taskify reads from — the moment it opens. Locking veBTC after a vote has started doesn&apos;t let
+          you swing it, and the snapshot can&apos;t be affected by a later change to that source.
         </p>
         <p>
           A proposal passes at <strong>70%</strong> support of cast weight. Grant voting is currently in an
@@ -208,9 +209,9 @@ const SECTIONS: DocSection[] = [
     body: (
       <>
         <p>
-          Funds move only through the Taskify contract: MUSD or MEZO locks in at task creation and only leaves escrow
+          Funds move only through Taskify itself: MUSD or MEZO locks in at task creation and only leaves escrow
           when the Owner approves submitted work, a task is cancelled before assignment, or a task expires past its
-          deadline. There&apos;s no custodial intermediary holding funds at any point, and Taskify only ever requests
+          deadline. There&apos;s no intermediary holding funds at any point, and Taskify only ever requests
           an approval for the exact amount about to be escrowed — never unlimited.
         </p>
         <p>
@@ -247,7 +248,7 @@ export default function DocsPage() {
             How Taskify works
           </h1>
           <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 40px" }}>
-            The full protocol reference. For quick answers, see the{" "}
+            The full reference. For quick answers, see the{" "}
             <Link href="/faq" style={{ color: "var(--primary)", textDecoration: "none" }}>FAQ</Link> instead.
           </p>
 
