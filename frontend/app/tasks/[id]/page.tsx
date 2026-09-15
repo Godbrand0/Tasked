@@ -236,13 +236,18 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   interface LiveApplication { id: string; address: string; author: string; avatarColor: string; motivation: string; createdAt: number }
   const [applications, setApplications] = useState<LiveApplication[]>([]);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [applicationsError, setApplicationsError] = useState("");
 
   function loadApplications() {
     if (!task) return Promise.resolve();
+    setApplicationsError("");
     return fetch(`/api/applications?taskId=${task.id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data: { applications?: { id: string; applicant_address: string; motivation: string; created_at: string }[] }) => {
-        if (!data.applications) return;
+        if (!data.applications) throw new Error("Malformed response");
         setApplications(data.applications.map(a => ({
           id: a.id,
           address: a.applicant_address,
@@ -252,7 +257,13 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           createdAt: Math.floor(new Date(a.created_at).getTime() / 1000),
         })));
       })
-      .catch(() => {});
+      // A failed fetch used to look identical to "genuinely zero
+      // applications" — no error, no retry, nothing to tell the creator it
+      // broke. Surface it distinctly instead.
+      .catch((err) => {
+        console.error("[applications] failed to load:", err);
+        setApplicationsError("Couldn't load applications — this isn't necessarily zero.");
+      });
   }
 
   useEffect(() => {
@@ -398,7 +409,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
-  function notifyServer(recipient: string, type: "task_assigned" | "work_submitted" | "funds_released" | "submission_rejected") {
+  function notifyServer(recipient: string, type: "task_assigned" | "work_submitted" | "funds_released" | "submission_rejected", amountOverride?: string) {
     fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -408,7 +419,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
         taskId,
         taskTitle: task?.title,
         actorAddress: address,
-        amount: type === "funds_released" && task ? `${task.amount} ${task.token}` : undefined,
+        amount: amountOverride ?? (type === "funds_released" && task ? `${task.amount} ${task.token}` : undefined),
       }),
     }).catch(() => {});
   }
@@ -681,6 +692,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       if (!res.ok) throw new Error(data.error ?? "Failed to record winners");
       const winnerSet = new Set((data.submissions as { participant_address: string }[]).map(s => s.participant_address));
       setSubmissions(prev => prev.map(s => winnerSet.has(s.address) ? { ...s, isWinner: true, payoutTxHash: receipt.transactionHash } : s));
+      // selectWinners() splits netAmount evenly across winners.length (remainder
+      // to the last winner on-chain) — email everyone paid with their actual share.
+      const shareLabel = `${formatMUSD(netAmount / winners.length)} ${task.token}`;
+      for (const winner of winners) {
+        notifyServer(winner, "funds_released", shareLabel);
+      }
       await refetchTask();
     } catch (err) {
       setPayError(formatContractError(err, "Failed to record winners"));
@@ -1064,6 +1081,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 )}
                 {applicationsLoading ? (
                   <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>Loading applications…</div>
+                ) : applicationsError ? (
+                  <div style={{ textAlign: "center", padding: "20px 0" }}>
+                    <div style={{ fontSize: 14, color: "var(--danger)", marginBottom: 10 }}>{applicationsError}</div>
+                    <button
+                      onClick={() => { setApplicationsLoading(true); loadApplications().finally(() => setApplicationsLoading(false)); }}
+                      className="btn-motion"
+                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>
+                      Retry
+                    </button>
+                  </div>
                 ) : applications.length === 0 ? (
                   <div style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "center", padding: "20px 0" }}>No applications yet. Share this task to get visibility.</div>
                 ) : (
