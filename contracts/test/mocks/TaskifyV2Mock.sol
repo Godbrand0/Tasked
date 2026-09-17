@@ -10,7 +10,10 @@ import {Taskify} from "../../src/Taskify.sol";
 /// function, to show state survives an upgrade and new logic becomes live.
 ///
 /// Not a real proposed V2 — just enough of a second implementation to
-/// exercise upgradeToAndCall end to end.
+/// exercise upgradeToAndCall end to end. Do NOT copy its inheritance pattern
+/// for a real upgrade: real new state belongs inside Taskify directly above
+/// __gap (see the upgrade storage rule in Taskify.sol), because state added
+/// here sits after __gap and would shift if a later version shrank the gap.
 contract TaskifyV2Mock is Taskify {
     uint256 public schemaVersion;
 
