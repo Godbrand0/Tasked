@@ -7,7 +7,8 @@ import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { PatronTierBadge } from "@/components/ui/Badge";
 import { formatMUSD, PATRON_TIERS, MUSD_DECIMALS } from "@/lib/constants";
-import { useWallet, formatAddress } from "@/lib/wallet-context";
+import { useWallet } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { MUSD_ADDRESS, TASKIFY_ADDRESS } from "@/lib/taskify";
 import { useApproveIfNeeded, usePatron, useTaskifyTx, useTaskifyUser, toRawMUSD } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
@@ -79,7 +80,7 @@ export default function SupportPage() {
           <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, var(--success), var(--success-strong))", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}><IconLandmark size={24} /></div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{user.username || username || formatAddress(address ?? "")}</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{user.username || username || (address && <Address value={address} />)}</h1>
               <PatronTierBadge tier={currentTier.id} />
             </div>
             <div style={{ fontSize: 13, color: "var(--text-dim)" }}>

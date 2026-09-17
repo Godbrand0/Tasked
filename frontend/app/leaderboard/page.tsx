@@ -6,6 +6,8 @@ import { formatUnits } from "viem";
 import PageShell, { Container } from "@/components/ui/PageShell";
 import Avatar from "@/components/ui/Avatar";
 import EmptyState from "@/components/ui/EmptyState";
+import Address from "@/components/ui/Address";
+import { formatAddress } from "@/lib/wallet-context";
 import { IconTrophy, IconMedal, IconCheck } from "@/components/icons";
 import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
 import { MUSD_ADDRESS } from "@/lib/taskify";
@@ -51,7 +53,7 @@ export default function LeaderboardPage() {
         const profile = profilesByAddress?.[address];
         return {
           address,
-          username: profile?.displayName || usersByAddress?.[address]?.username || `${address.slice(0, 6)}…${address.slice(-4)}`,
+          username: profile?.displayName || usersByAddress?.[address]?.username || "",
           avatarUrl: profile?.avatarUrl ?? undefined,
           // On-chain flag is only set at registration (no longer collected there);
           // GitHub is normally linked off-chain from Settings afterward.
@@ -102,9 +104,9 @@ export default function LeaderboardPage() {
                         <IconMedal size={28} color={MEDAL_COLORS[rank]} />
                       </div>
                       <div style={{ margin: "0 auto 10px" }}>
-                        <Avatar src={creator.avatarUrl} alt={creator.username} size={40} fontSize={16} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
+                        <Avatar src={creator.avatarUrl} alt={creator.username || formatAddress(creator.address)} size={40} fontSize={16} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{creator.username}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{creator.username || <Address value={creator.address} />}</div>
                       <div className="figure" style={{ fontSize: 18, fontWeight: 800, color: "var(--primary)", marginTop: 10 }}>{creator.selfFundedTasksPosted}</div>
                       <div style={{ fontSize: 11, color: "var(--text-dim)" }}>self-funded tasks</div>
                     </div>
@@ -130,8 +132,8 @@ export default function LeaderboardPage() {
                   <div className="table-row" style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 120px 80px", gap: 0, padding: "16px 24px", borderBottom: i < sorted.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", transition: "background var(--duration-fast) ease", minWidth: 600 }}>
                     <div className="figure" style={{ fontSize: 14, fontWeight: 700, color: i < 3 ? "var(--primary)" : "var(--text-dim)" }}>{i + 1}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <Avatar src={creator.avatarUrl} alt={creator.username} size={36} fontSize={14} gradient={`linear-gradient(135deg, hsl(${(i * 60) % 360}, 70%, 50%), hsl(${(i * 60 + 120) % 360}, 70%, 50%))`} />
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{creator.username}</div>
+                      <Avatar src={creator.avatarUrl} alt={creator.username || formatAddress(creator.address)} size={36} fontSize={14} gradient={`linear-gradient(135deg, hsl(${(i * 60) % 360}, 70%, 50%), hsl(${(i * 60 + 120) % 360}, 70%, 50%))`} />
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{creator.username || <Address value={creator.address} />}</div>
                     </div>
                     <div className="figure" style={{ textAlign: "center", fontSize: 15, fontWeight: 700, color: "var(--success)" }}>{creator.selfFundedTasksPosted}</div>
                     <div style={{ textAlign: "right" }}>
