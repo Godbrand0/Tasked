@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { ROLE_LABELS } from "@/lib/constants";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "@/components/ui/NotificationBell";
@@ -118,7 +119,7 @@ export default function Navbar() {
                 {addressDropdownOpen && (
                   <DropdownPanel padding={8}>
                     <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
-                      {address}
+                      <Address value={address}>{address}</Address>
                     </div>
                     <button
                       onClick={() => { disconnect(); setAddressDropdownOpen(false); }}
@@ -175,7 +176,7 @@ export default function Navbar() {
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>{address}</div>
+                      <div style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}><Address value={address}>{address}</Address></div>
                     </div>
 
                     {/* Nav items */}
@@ -259,7 +260,7 @@ export default function Navbar() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "10px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)" }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)" }} />
-                {formatAddress(address)}
+                <Address value={address} />
               </div>
               <button onClick={disconnect} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
                 Disconnect

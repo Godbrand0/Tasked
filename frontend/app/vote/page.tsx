@@ -7,7 +7,8 @@ import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/Badge";
 import { formatMUSD, MUSD_DECIMALS } from "@/lib/constants";
-import { useWallet, formatAddress } from "@/lib/wallet-context";
+import { useWallet } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
 import { useAllTasks, useGrantVotesBatch, useIsApprovedVoter, useTaskifyTx, useTaskifyUser, useVotingWeight } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
@@ -104,7 +105,7 @@ export default function VotePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, var(--primary), var(--primary-strong))", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}><IconBallot size={24} /></div>
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: "0 0 6px" }}>{user.username || username || formatAddress(address ?? "")}</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: "0 0 6px" }}>{user.username || username || (address && <Address value={address} />)}</h1>
               <div style={{ fontSize: 13, color: "var(--text-dim)" }}>
                 Voting power: <strong style={{ color: "var(--success)" }}>{formatVotingWeight(currentWeight)}</strong>
                 {" "}<button onClick={() => refetchWeight()} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>refresh</button>

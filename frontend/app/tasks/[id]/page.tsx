@@ -63,6 +63,7 @@ interface LiveFeedback {
 }
 
 import { useWallet, formatAddress } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 
 const LIFECYCLE = ["GRANT_PENDING", "OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "FUNDS_RELEASED"];
 
@@ -734,7 +735,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", fontSize: 13, color: "var(--text-dim)" }}>
             <Link href={`/profile/${task.creator}`} style={{ display: "flex", alignItems: "center", gap: 8, color: "inherit", textDecoration: "none" }}>
               <Avatar src={creatorAvatar} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
-              <span>Posted by <strong style={{ color: "var(--text)" }}>{task.creatorUsername}</strong></span>
+              <span>Posted by <strong style={{ color: "var(--text)" }}>{creatorDisplayName || creatorUser.username || <Address value={task.creator} />}</strong></span>
             </Link>
             <span style={{ color: "var(--border-strong)" }}>·</span>
             <span>Task #{task.id}</span>
@@ -1524,7 +1525,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <SideCard style={{ border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>
                 <SideCardTitle color="var(--success)">Payment Released</SideCardTitle>
                 <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: workSubmission?.payout_tx_hash ? 14 : 0, lineHeight: 1.6 }}>
-                  {formatMUSD(netAmount)} {task.token} sent to {assigneeDisplayName || assigneeUser.username || (assigneeAddr ? formatAddress(assigneeAddr) : "the contributor")}.
+                  {formatMUSD(netAmount)} {task.token} sent to {assigneeDisplayName || assigneeUser.username || (assigneeAddr ? <Address value={assigneeAddr} /> : "the contributor")}.
                 </p>
                 {workSubmission?.payout_tx_hash && (
                   <a
@@ -1605,7 +1606,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                 <Link href={`/profile/${assigneeAddr}`} style={{ display: "flex", alignItems: "center", gap: 10, color: "inherit", textDecoration: "none" }}>
                   <Avatar src={assigneeAvatar} alt={assigneeDisplayName || assigneeUser.username || formatAddress(assigneeAddr)} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--secondary-light), var(--secondary))" />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{assigneeDisplayName || assigneeUser.username || formatAddress(assigneeAddr)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{assigneeDisplayName || assigneeUser.username || <Address value={assigneeAddr} />}</div>
                     <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{isAssignee ? "You" : "Contributor"}</div>
                   </div>
                 </Link>
@@ -1618,7 +1619,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
               <Link href={`/profile/${task.creator}`} style={{ display: "flex", alignItems: "center", gap: 10, color: "inherit", textDecoration: "none" }}>
                 <Avatar src={creatorAvatar} alt={task.creatorUsername} size={36} fontSize={14} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{task.creatorUsername}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{creatorDisplayName || creatorUser.username || <Address value={task.creator} />}</div>
                   <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Task owner</div>
                 </div>
               </Link>

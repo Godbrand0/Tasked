@@ -14,6 +14,7 @@ import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { IconClipboard, IconSearch, IconTrophy, IconLandmark, IconBallot } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { useAllTasks, useCurrentWave, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function DashboardPage() {
@@ -54,7 +55,7 @@ export default function DashboardPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 6 }}>Welcome back</div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{displayUsername}</h1>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{username || (address && <Address value={address} />)}</h1>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Badge color={displayRole === "creator" ? "orange" : "purple"}>
                   {ROLE_LABELS[displayRole]}
@@ -179,8 +180,8 @@ export default function DashboardPage() {
                   {displayUsername.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{displayUsername}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{(address ?? "").slice(0, 10)}…</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{username || (address && <Address value={address} />)}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{address && <Address value={address}>{address.slice(0, 10)}…</Address>}</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
