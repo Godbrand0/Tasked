@@ -8,6 +8,8 @@ import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import LoadingState from "@/components/ui/LoadingState";
 import EmptyState from "@/components/ui/EmptyState";
 import SocialLinksCard from "@/components/ui/SocialLinksCard";
+import Address from "@/components/ui/Address";
+import { formatAddress } from "@/lib/wallet-context";
 import { IconUser } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, earnedByToken, TIERS } from "@/lib/constants";
 import { useAllTasks, useTaskifyUser, mapOnChainTask } from "@/lib/use-taskify";
@@ -52,7 +54,7 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
   const appliedTasks = myTasks.filter((t) => t.status !== "FUNDS_RELEASED");
 
   const tier = TIERS[user.experienceLevel] ?? TIERS[0];
-  const displayName = user.username || `${address.slice(0, 6)}…${address.slice(-4)}`;
+  const displayName = user.username || formatAddress(address);
   // GitHub can be linked entirely off-chain post-registration (see
   // lib/wallet-context.tsx) — "verified" here has to check both sources.
   const githubVerified = user.githubVerified || Boolean(githubHandleOffchain);
@@ -98,11 +100,11 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
             <Avatar src={avatarUrl} alt={displayName} size={80} radius={20} fontSize={32} gradient={`linear-gradient(135deg, ${tier.color}, var(--secondary))`} />
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-                <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>
+                <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0 }}>{user.username || <Address value={address} />}</h1>
                 {githubVerified && <Badge color="green">✓ GitHub Verified</Badge>}
                 {user.role === 2 && <TierBadge tier={user.experienceLevel} />}
               </div>
-              <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", marginBottom: 14 }}>{address}</div>
+              <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", marginBottom: 14 }}><Address value={address}>{address}</Address></div>
               <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                 {[
                   { label: "Tasks Completed",  value: String(user.tasksCompleted),        color: "var(--success)" },

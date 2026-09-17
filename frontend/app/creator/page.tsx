@@ -13,6 +13,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { formatMUSD, formatEarnedBreakdown, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { IconClipboard, IconZap, IconCheck, IconLock, IconLandmark, IconUser } from "@/components/icons";
 import {
   useAllTasks,
@@ -112,11 +113,11 @@ export default function CreatorPage() {
             <Avatar src={avatarUrl} alt={displayUsername} size={52} radius={14} fontSize={20} gradient="linear-gradient(135deg, var(--primary), var(--primary-strong))" />
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayUsername}</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{username || (displayAddress && <Address value={displayAddress} />)}</h1>
                 {githubVerified && <Badge color="green">GitHub Verified</Badge>}
                 <Badge color="orange">Owner</Badge>
               </div>
-              <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{displayAddress.slice(0, 12)}…{displayAddress.slice(-6)}</div>
+              <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>{displayAddress && <Address value={displayAddress}>{displayAddress.slice(0, 12)}…{displayAddress.slice(-6)}</Address>}</div>
             </div>
           </div>
           <Button href="/create" size="md" style={{ padding: "12px 22px" }}>+ Post New Task</Button>

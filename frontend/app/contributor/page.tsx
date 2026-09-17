@@ -12,6 +12,7 @@ import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { IconCheck, IconCoins, IconAward, IconTarget } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useTasksWithCounts, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
 
@@ -108,7 +109,7 @@ export default function ContributorPage() {
             <Avatar src={avatarUrl} alt={displayName} size={52} fontSize={20} gradient="linear-gradient(135deg, var(--secondary), var(--secondary-light))" />
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{displayName}</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>{(connected && isRegistered && username) ? username : (address && <Address value={address} />)}</h1>
                 <Badge color="purple">Contributor</Badge>
               </div>
               <TierBadge tier={myTier} />

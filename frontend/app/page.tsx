@@ -1,6 +1,7 @@
 "use client";
 
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
+import Address from "@/components/ui/Address";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
 import { MEZO_NETWORK_NAME } from "@/lib/constants";
 import { useRouter } from "next/navigation";
@@ -134,7 +135,7 @@ function LandingNavbar() {
               {addressDropdownOpen && (
                 <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 8, minWidth: 220, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 100 }}>
                   <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
-                    {address}
+                    <Address value={address}>{address}</Address>
                   </div>
                   <button
                     onClick={() => { disconnect(); setAddressDropdownOpen(false); }}
@@ -199,7 +200,7 @@ function LandingNavbar() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "10px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)" }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }} />
-                {formatAddress(address)}
+                <Address value={address} />
               </div>
               <button onClick={disconnect} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
                 Disconnect
@@ -826,14 +827,16 @@ function Footer() {
           <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6 }}>
             <span>Contract:</span>
             {TASKIFY_ADDRESS ? (
-              <a
-                href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/address/${TASKIFY_ADDRESS}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "var(--primary)", textDecoration: "none" }}
-              >
-                {formatAddress(TASKIFY_ADDRESS)} ↗
-              </a>
+              <Address value={TASKIFY_ADDRESS}>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/address/${TASKIFY_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--primary)", textDecoration: "none" }}
+                >
+                  {formatAddress(TASKIFY_ADDRESS)} ↗
+                </a>
+              </Address>
             ) : (
               <span style={{ color: "var(--text-dim)" }}>0x…TBD</span>
             )}
