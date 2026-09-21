@@ -3,7 +3,7 @@
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
-import { MEZO_NETWORK_NAME } from "@/lib/constants";
+import { MEZO_NETWORK_NAME, GOVERNANCE, MEZO_EXPLORER_URL } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -712,6 +712,104 @@ function TokensSection() {
   );
 }
 
+// ─── Governance ───────────────────────────────────────────────────────────────
+
+function GovernanceSection() {
+  return (
+    <section id="governance" style={{ padding: "96px 24px" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <Reveal style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionLabel>Governance</SectionLabel>
+          <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "var(--text)" }}>
+            No single person can change Taskify.
+          </h2>
+          <p style={{ fontSize: 16, color: "var(--text-dim)", textAlign: "center", marginTop: 12, maxWidth: 680, marginLeft: "auto", marginRight: "auto" }}>
+            The contract is owned by a {GOVERNANCE.threshold}-of-{GOVERNANCE.signers.length} Safe multisig on{" "}
+            <a href={GOVERNANCE.safeAppUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>safe.mezo.org</a>
+            , including an independent signer from the Mezo g6 community. Two signatures are required before anything
+            administrative can happen.
+          </p>
+        </Reveal>
+
+        <Reveal delay={100}>
+          <Card style={{ borderColor: "color-mix(in srgb, var(--primary) 19%, transparent)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "color-mix(in srgb, var(--primary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
+                <IconShield />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Owner multisig · {GOVERNANCE.threshold} of {GOVERNANCE.signers.length}</div>
+                <a href={`${MEZO_EXPLORER_URL}/address/${GOVERNANCE.safeAddress}`} target="_blank" rel="noreferrer"
+                  style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", textDecoration: "none", wordBreak: "break-all" }}>
+                  {GOVERNANCE.safeAddress}
+                </a>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+              {GOVERNANCE.signers.map(signer => (
+                <div key={signer.address} style={{ display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap", fontSize: 13 }}>
+                  <span style={{ color: "var(--text)", fontWeight: 600, minWidth: 220 }}>{signer.role}</span>
+                  <a href={`${MEZO_EXPLORER_URL}/address/${signer.address}`} target="_blank" rel="noreferrer"
+                    style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono, monospace)", fontSize: 12, textDecoration: "none", wordBreak: "break-all" }}>
+                    {signer.address}
+                  </a>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 24, borderTop: "1px solid var(--border)", paddingTop: 24 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Two signers can</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    "Upgrade the contract",
+                    "Change the fee treasury address",
+                    "Set the veBTC / veMEZO weight sources",
+                    "Approve wallets for the voting pilot",
+                  ].map(f => (
+                    <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "var(--text-muted)" }}>
+                      <span style={{ color: "var(--success)", flexShrink: 0, marginTop: 1 }}><IconCheck /></span>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>Nobody can</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    "Withdraw or move funds locked in escrow",
+                    "Spend the grant pool outside an approved grant",
+                    "Cast or alter a grant vote",
+                    "Redirect the MUSD or MEZO token addresses",
+                  ].map(f => (
+                    <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "var(--text-muted)" }}>
+                      <span style={{ color: "var(--text-dim)", flexShrink: 0, marginTop: 1, fontWeight: 700 }}>&times;</span>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Reveal>
+
+        <Reveal delay={200}>
+          <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "center", marginTop: 24, lineHeight: 1.8 }}>
+            Being straight with you: two of the three signers are Taskify team members, and there is no timelock on
+            upgrades yet — an approved upgrade takes effect immediately. Read the full breakdown, including what an
+            upgrade could change, in the{" "}
+            <a href="/docs#governance" style={{ color: "var(--primary)", textDecoration: "none" }}>governance docs</a>{" "}
+            and{" "}
+            <a href="/terms" style={{ color: "var(--primary)", textDecoration: "none" }}>Terms</a>.
+          </p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function CTASection() {
@@ -765,9 +863,10 @@ function Footer() {
       { label: "MUSD", href: "#tokens" },
       { label: "veBTC voting", href: "#tokens" },
       { label: "Patron tiers", href: "#tokens" },
-      { label: "Governance", href: "#tokens" },
+      { label: "Grant voting", href: "#tokens" },
     ],
     Legal: [
+      { label: "Governance & multisig", href: "/docs#governance" },
       { label: "FAQ", href: "/faq" },
       { label: "Terms & Conditions", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
@@ -861,6 +960,7 @@ export default function Home() {
       <RolesSection />
       <ProtocolSection />
       <TokensSection />
+      <GovernanceSection />
       <CTASection />
       <Footer />
     </div>

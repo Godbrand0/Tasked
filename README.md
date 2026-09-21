@@ -27,7 +27,8 @@ Two kinds of task live side by side on one board:
 9. [Local Development](#local-development)
 10. [Environment Variables](#environment-variables)
 11. [Contract Addresses](#contract-addresses)
-12. [Security Model](#security-model)
+12. [Governance & Ownership](#governance--ownership)
+13. [Security Model](#security-model)
 
 ---
 
@@ -139,7 +140,7 @@ Taskify/
 
 ## Smart Contract Reference
 
-All financial logic lives in `contracts/src/Taskify.sol`. There are no upgradeable proxies — the contract is the single source of truth. Built with OpenZeppelin's `SafeERC20` and `ReentrancyGuard`.
+All financial logic lives in `contracts/src/Taskify.sol`. It is deployed behind a UUPS upgradeable proxy, so the proxy address is the stable one to integrate against and the implementation behind it can be replaced — upgrade authority belongs to a 2-of-3 Safe multisig, see [Governance & Ownership](#governance--ownership). Built with OpenZeppelin's `SafeERC20` and `ReentrancyGuard`.
 
 ### Protocol Constants
 
@@ -375,6 +376,8 @@ forge script script/Deploy.s.sol --rpc-url https://mezo.drpc.org --broadcast
 
 An existing deployment upgrades via `contracts/script/Upgrade.s.sol` (`PROXY_ADDRESS=<proxy> forge script script/Upgrade.s.sol --rpc-url <url> --broadcast`) rather than a fresh `Deploy.s.sol` run — that deploys a new implementation and points the existing proxy at it, preserving all on-chain state.
 
+On **mainnet the deployer key cannot upgrade on its own**: the proxy's owner is a 2-of-3 Safe. `Upgrade.s.sol` detects this, deploys only the new implementation, and prints the `upgradeToAndCall` call for you to propose in the Safe's Transaction Builder at [safe.mezo.org](https://safe.mezo.org); two of the three signers must then approve it. Ownership transfers are two-step (`transferOwnership`, then `acceptOwnership` from the new owner). See [Governance & Ownership](#governance--ownership).
+
 ---
 
 ## Environment Variables
@@ -423,7 +426,8 @@ NEXT_PUBLIC_TASKIFY_CONTRACT=0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D
 
 | Contract | Address |
 |---|---|
-| Taskify | [`0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D`](https://explorer.mezo.org/address/0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D) — UUPS-upgradeable, proxy address (implementation: `0xdbc5cAbb560E6826a81fE38115F6129a97Ff2E58`) |
+| Taskify | [`0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D`](https://explorer.mezo.org/address/0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D) — UUPS-upgradeable, proxy address (implementation: `0x5999e34b74baeF936d039A130D43400258e4D1b9`) |
+| Owner multisig | [`0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31`](https://explorer.mezo.org/address/0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31) — 2-of-3 Safe; holds both `CONTRACT_OWNER` and `treasuryAddress`, see [Governance & Ownership](#governance--ownership) |
 | MUSD (official) | `0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186` |
 | MEZO (official) | `0x7B7c000000000000000000000000000000000001` |
 
@@ -441,6 +445,64 @@ Sourced from [mezo.org/docs/users/resources/contracts-reference](https://mezo.or
 
 ---
 
+## Governance & Ownership
+
+The mainnet contract is upgradeable, so who may upgrade it matters as much as the code itself. That authority is **not** held by any single key.
+
+`CONTRACT_OWNER` and `treasuryAddress` on the mainnet proxy are both the Safe multisig [`0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31`](https://explorer.mezo.org/address/0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31), operated through [safe.mezo.org](https://safe.mezo.org) with a **threshold of 2 out of 3 signers**:
+
+| Signer | Address |
+|---|---|
+| Mezo community representative (g6) — independent of the Taskify team | [`0x68Fe50235230e24f17c90f8Fb0Cd4626fbD34972`](https://explorer.mezo.org/address/0x68Fe50235230e24f17c90f8Fb0Cd4626fbD34972) |
+| Taskify core team (deployer) | [`0x91487d8BC1B573f0BC6c23dE7BA23d50F49F627B`](https://explorer.mezo.org/address/0x91487d8BC1B573f0BC6c23dE7BA23d50F49F627B) |
+| Taskify core team | [`0x4344c919B6b104Cd06b93fa31c9dB7FB659B8E64`](https://explorer.mezo.org/address/0x4344c919B6b104Cd06b93fa31c9dB7FB659B8E64) |
+
+Ownership moved from the deployer EOA to this Safe on 2026-09-16, resolving the most serious finding of the September 2026 security review (a single key held upgrade authority over live funds). The third signer — the independent g6 community member — was added afterwards, taking the Safe from 2-of-2 to 2-of-3.
+
+### What the owner can do
+
+| Function | Effect |
+|---|---|
+| `upgradeToAndCall` | Replaces the implementation. Can change **any** rule in the contract, including rules governing escrowed funds. The most consequential power here. |
+| `setTreasuryAddress` | Changes where the protocol's 60% fee share is sent. Rejects the zero address. |
+| `setVeBTCEscrow` / `setVeMEZOEscrow` | Sets which Mezo contracts voting weight is read from. Each live proposal snapshots its source at open, so a change can't retroactively alter an in-flight vote. |
+| `setApprovedVoters` | Maintains the invite-only grant-voting allowlist. |
+| `transferOwnership` | Nominates a new owner, which must then call `acceptOwnership`. Two-step, so ownership can't be sent to an address that cannot claim it. |
+
+### What the owner cannot do
+
+- **Touch escrowed task funds.** No owner-gated function moves, withdraws or releases a task's escrow. Escrow leaves only via `approveAndRelease`, `cancelTask`, `markExpired` or `selectWinners`, all driven by the task's own participants and deadlines.
+- **Spend the grant pool** outside an `executeGrant` call for a proposal that passed the on-chain vote.
+- **Cast or alter votes.** Weight is read live from Mezo's escrow contracts; `grantVoters` prevents double voting.
+- **Redirect the payment tokens.** `musd` and `mezo` are immutable, fixed at deployment.
+- **Stall wave rewards.** `advanceWave` and `claimStrandedWaveFunds` are permissionless.
+
+### Known limitations
+
+Stated plainly rather than glossed over:
+
+- **Two of the three signers are Taskify team members**, so they can meet the threshold between themselves. The independent signer raises the bar and adds outside visibility; it does not yet make unilateral team action impossible. Broadening the signer set further is the intended direction.
+- **There is no timelock on upgrades.** Once two signers approve, the upgrade lands immediately — users get no enforced window to exit first. Adding a timelock (or a delay module on the Safe) is on the roadmap and is the next meaningful decentralisation step.
+
+### Verifying this yourself
+
+Nothing above requires trusting this README:
+
+```bash
+RPC=https://mezo.drpc.org
+PROXY=0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D
+SAFE=0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31
+
+cast call $PROXY "CONTRACT_OWNER()(address)"   --rpc-url $RPC   # -> $SAFE
+cast call $PROXY "treasuryAddress()(address)"  --rpc-url $RPC   # -> $SAFE
+cast call $SAFE  "getOwners()(address[])"      --rpc-url $RPC   # -> the 3 signers
+cast call $SAFE  "getThreshold()(uint256)"     --rpc-url $RPC   # -> 2
+```
+
+Every Safe transaction, including every upgrade, is visible on-chain and in the Safe's history at [safe.mezo.org](https://safe.mezo.org).
+
+---
+
 ## Security Model
 
 - **Reentrancy guard** — state-changing escrow functions (`createTask`, `createCommunityTask`, `approveAndRelease`, `rejectSubmission`, `cancelTask`, `markExpired`, `selectWinners`, `claimWaveReward`, `claimStrandedWaveFunds`) are wrapped in OpenZeppelin's `ReentrancyGuard`.
@@ -450,7 +512,7 @@ Sourced from [mezo.org/docs/users/resources/contracts-reference](https://mezo.or
 - **Experience gating is on-chain** — `applyForTask` enforces the range at the contract level for Development tasks; a non-conforming call reverts with `ExperienceMismatch()`. Community tasks intentionally have no such gate.
 - **Task-kind isolation** — `applyForTask`/`assignTask` revert `TaskKindMismatch()` on a Community task and vice versa for `joinCommunityTask`/`selectWinners`, so the two lifecycles can't cross-contaminate shared storage.
 - **Double-claim / double-vote protection** — `grantVoters` and `waveClaims` mappings prevent double voting and double claiming.
-- **Owner-only controls** — `setTreasuryAddress` (also rejects the zero address, see finding F-233721), `setVeBTCEscrow`, `setVeMEZOEscrow`, `setApprovedVoters`, and `transferOwnership` are restricted to `CONTRACT_OWNER`. `CONTRACT_OWNER` is mutable (not `immutable`) specifically so it can be rotated to a multisig or recovered from a compromised key via `transferOwnership` without a redeploy — see `TASKIFY_SECURITY_AUDIT.md` finding L-2. `advanceWave` is intentionally permissionless (pure time-check, no economic decision in it) so wave rewards can never get stuck on an inactive owner.
+- **Owner-only controls, held by a multisig** — `setTreasuryAddress` (also rejects the zero address, see finding F-233721), `setVeBTCEscrow`, `setVeMEZOEscrow`, `setApprovedVoters`, `transferOwnership` and `upgradeToAndCall` are restricted to `CONTRACT_OWNER`, which on mainnet is a 2-of-3 Safe rather than any single key — see [Governance & Ownership](#governance--ownership). `CONTRACT_OWNER` is mutable (not `immutable`) specifically so it could be rotated to that multisig, and can be recovered from a compromised key, without a redeploy — see `TASKIFY_SECURITY_AUDIT.md` finding L-2. No owner function can touch escrowed task funds. `advanceWave` is intentionally permissionless (pure time-check, no economic decision in it) so wave rewards can never get stuck on an inactive owner.
 - **Deployment requires the optimizer enabled** (`optimizer = true`, `via_ir = true` in `foundry.toml`) — with it off, the contract's runtime bytecode exceeds the EIP-170 24,576-byte limit and cannot be deployed to any EVM chain. Always confirm with `forge build --sizes` before deploying.
 
 For the current Solidity contract, see [`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md) — an internal review (one High, one Medium, two Low findings, all fixed and covered by regression tests in `contracts/test/SecurityAudit.t.sol`). That review is **not a substitute for a professional third-party audit**, which is still needed before deploying with real funds.

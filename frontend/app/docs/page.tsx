@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { GOVERNANCE, MEZO_EXPLORER_URL } from "@/lib/constants";
+
 interface DocSection {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ interface DocSection {
 }
 
 const MEZO_EARN_URL = "https://mezo.org/earn";
+const TASKIFY_PROXY = process.env.NEXT_PUBLIC_TASKIFY_CONTRACT ?? "";
 
 const SECTIONS: DocSection[] = [
   {
@@ -204,6 +207,97 @@ const SECTIONS: DocSection[] = [
     ),
   },
   {
+    id: "governance",
+    title: "Governance & contract control",
+    body: (
+      <>
+        <p>
+          Taskify&apos;s contract is upgradeable, so it matters a great deal who is allowed to upgrade it. Nobody
+          holds that power alone. Ownership of the deployed contract sits with a{" "}
+          <strong>2-of-3 Safe multisig</strong> on{" "}
+          <a href={GOVERNANCE.safeAppUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>safe.mezo.org</a>
+          {" "}— at least two of three independent signers must approve before any administrative change takes effect.
+        </p>
+        <p>
+          One of those three signers is a member of the <strong>Mezo g6 community</strong>, outside the Taskify team.
+          That means the team cannot reach the threshold on its own: no upgrade, no treasury change and no voter
+          approval can happen without someone independent signing it too.
+        </p>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
+              <th style={{ padding: "6px 8px" }}>Signer</th>
+              <th style={{ padding: "6px 8px" }}>Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {GOVERNANCE.signers.map(signer => (
+              <tr key={signer.address} style={{ borderTop: "1px solid var(--border)" }}>
+                <td style={{ padding: "8px", fontWeight: 600, color: "var(--text)" }}>{signer.role}</td>
+                <td style={{ padding: "8px", color: "var(--text-dim)", wordBreak: "break-all" }}>
+                  <a href={`${MEZO_EXPLORER_URL}/address/${signer.address}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>
+                    <code>{signer.address}</code>
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>
+          The Safe itself is{" "}
+          <a href={`${MEZO_EXPLORER_URL}/address/${GOVERNANCE.safeAddress}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>
+            <code>{GOVERNANCE.safeAddress}</code>
+          </a>. You don&apos;t have to take any of this on trust: read <code>getOwners()</code> and{" "}
+          <code>getThreshold()</code> on that address, then read <code>CONTRACT_OWNER()</code> and{" "}
+          <code>treasuryAddress()</code> on the Taskify contract
+          {TASKIFY_PROXY ? (
+            <>
+              {" "}(
+              <a href={`${MEZO_EXPLORER_URL}/address/${TASKIFY_PROXY}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>
+                <code>{TASKIFY_PROXY}</code>
+              </a>
+              )
+            </>
+          ) : null}
+          , and confirm all three match.
+        </p>
+
+        <h3>What the multisig can and cannot do</h3>
+        <p>To be clear about the tradeoffs, here is the full extent of the privileged powers:</p>
+        <ul>
+          <li>
+            <strong>Upgrade the contract</strong> (<code>upgradeToAndCall</code>) — this is the significant one. A
+            UUPS upgrade can change any of the rules described on this page, including the rules that govern escrowed
+            funds. It is what lets security fixes ship quickly, and it is also the power you are trusting the
+            signers with.
+          </li>
+          <li><strong>Change the treasury address</strong> (<code>setTreasuryAddress</code>) — where the protocol&apos;s fee share is sent.</li>
+          <li><strong>Set the veBTC / veMEZO escrow sources</strong> (<code>setVeBTCEscrow</code>, <code>setVeMEZOEscrow</code>) — which Mezo contracts voting weight is read from.</li>
+          <li><strong>Approve pilot voters</strong> (<code>setApprovedVoters</code>) — the invite-only grant-voting allowlist.</li>
+          <li><strong>Hand over ownership</strong> (<code>transferOwnership</code>, then <code>acceptOwnership</code> by the new owner) — a two-step transfer, so ownership can never be sent to an address that can&apos;t claim it.</li>
+        </ul>
+        <p>And what it cannot do, by construction:</p>
+        <ul>
+          <li>It <strong>cannot withdraw, move or release escrowed task funds</strong>. There is no function that lets any owner touch a task&apos;s escrow — release happens only through the normal lifecycle (creator approval, cancellation or expiry).</li>
+          <li>It <strong>cannot spend the grant pool</strong> outside an executed, community-approved grant.</li>
+          <li>It <strong>cannot change the outcome of a vote</strong>, or vote on your behalf.</li>
+          <li>It <strong>cannot redirect the payment tokens</strong> — the MUSD and MEZO addresses are immutable and fixed at deployment.</li>
+          <li>It <strong>cannot stall wave rewards</strong> — <code>advanceWave</code> is permissionless by design, so anyone can close a wave if the signers go quiet.</li>
+        </ul>
+
+        <h3>Honest limitations</h3>
+        <p>
+          Two of the three signers are Taskify team members, so this is a meaningful reduction in centralisation
+          rather than its elimination. There is also currently <strong>no timelock</strong>: once two signers approve
+          an upgrade, it takes effect immediately, with no enforced delay in which users could exit first. Adding a
+          timelock on upgrades is on the roadmap. Until it ships, please size your exposure with that in mind — and
+          see the{" "}
+          <Link href="/terms" style={{ color: "var(--primary)" }}>Terms</Link> for the formal statement of this risk.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "safety",
     title: "Escrow & wallet safety",
     body: (
@@ -278,6 +372,7 @@ export default function DocsPage() {
         .docs-body ul { margin: 0 0 14px; padding-left: 20px; }
         .docs-body li { margin-bottom: 8px; }
         .docs-body code { background: var(--neutral-tint); border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+        .docs-body h3 { font-size: 15px; font-weight: 700; color: var(--text); margin: 24px 0 10px; }
       `}</style>
     </div>
   );

@@ -60,6 +60,28 @@ export const CONTRACT_ADDRESSES = {
   },
 } as const;
 
+// Governance — the Safe multisig that owns the mainnet Taskify proxy. Since
+// 2026-09-16 `CONTRACT_OWNER` and `treasuryAddress` are both this Safe, not the
+// deployer EOA, so every admin call and every UUPS upgrade needs 2 of 3 signers.
+// Kept here as the single source of truth for the public-facing governance copy
+// on /docs, /faq, /terms and the landing page. Verify against the chain before
+// editing: `CONTRACT_OWNER()` on the proxy, `getOwners()`/`getThreshold()` on
+// the Safe.
+export const GOVERNANCE = {
+  safeAddress: "0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31",
+  safeAppUrl: "https://safe.mezo.org",
+  threshold: 2,
+  signers: [
+    { role: "Mezo community representative (g6)", address: "0x68Fe50235230e24f17c90f8Fb0Cd4626fbD34972" },
+    { role: "Taskify core team (deployer)", address: "0x91487d8BC1B573f0BC6c23dE7BA23d50F49F627B" },
+    { role: "Taskify core team", address: "0x4344c919B6b104Cd06b93fa31c9dB7FB659B8E64" },
+  ],
+} as const;
+
+export const MEZO_EXPLORER_URL = MEZO_IS_TESTNET
+  ? "https://explorer.test.mezo.org"
+  : "https://explorer.mezo.org";
+
 // Mock/demo data stores amounts as plain human-readable numbers (not raw
 // base units) since 18-decimal raw integers exceed JS's safe integer range.
 // Real on-chain reads should use viem's formatUnits(raw, MUSD_DECIMALS).
