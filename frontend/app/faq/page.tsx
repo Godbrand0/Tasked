@@ -33,7 +33,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Is my money safe in escrow?",
-        a: "Funds move only through Taskify itself: MUSD locks in at task creation and only leaves escrow when the creator approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no intermediary holding funds at any point.",
+        a: "Funds move only through Taskify itself: MUSD locks in at task creation and only leaves escrow when the creator approves submitted work, when a task is cancelled before assignment, or when a task expires past its deadline. There's no intermediary holding funds at any point, and no admin function that can pull funds out of an escrow. One thing to be aware of: the contract is upgradeable, and an upgrade could in principle change those rules — which is why upgrade authority sits with a 2-of-3 multisig that includes an independent Mezo community signer, not a single team wallet. See \"Governance & who controls the contract\" below for the full picture.",
       },
       {
         q: "What fees does Taskify take?",
@@ -45,7 +45,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Has Taskify been audited?",
-        a: "Taskify is under active review. Check the repository for the latest audit status before depositing meaningful funds, and always start with amounts you're comfortable testing with.",
+        a: "Taskify is under active review, and has not yet had a professional third-party audit — so treat it accordingly and start with amounts you're comfortable testing with. Internal and external reviews have been run and their findings fixed on mainnet; the most significant of those moved control of the contract from a single team wallet to a 2-of-3 Safe multisig. Check the repository for the latest audit status.",
       },
     ],
   },
@@ -114,6 +114,35 @@ const FAQ_GROUPS: FaqGroup[] = [
       {
         q: "How can I become a voter?",
         a: "Grant voting is currently in an invite-only pilot phase while the patron base grows. Holding real veBTC weight is necessary but not sufficient on its own; Taskify additionally maintains an approved-voter list, and only wallets on that list can cast a vote, even if they hold veBTC. If you hold veBTC and want to be considered for the pilot, reach out via X (@taskifyhq).",
+      },
+    ],
+  },
+  {
+    group: "Governance & who controls the contract",
+    items: [
+      {
+        q: "Who controls the Taskify contract?",
+        a: "A 2-of-3 Safe multisig on safe.mezo.org, at 0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31. No single person can change anything: at least two of the three signers must approve before any administrative action or contract upgrade takes effect. The contract used to be owned by a single team wallet; ownership was moved to the multisig in September 2026 after a security review flagged that as the most serious risk.",
+      },
+      {
+        q: "Who are the three signers?",
+        a: "One is a member of the Mezo g6 community, independent of the Taskify team (0x68Fe50235230e24f17c90f8Fb0Cd4626fbD34972), and two are Taskify core team members (0x91487d8BC1B573f0BC6c23dE7BA23d50F49F627B and 0x4344c919B6b104Cd06b93fa31c9dB7FB659B8E64). Because the threshold is 2 of 3, the two team signers can reach it between themselves — the independent signer raises the bar and adds outside visibility, but doesn't yet make team action impossible. We'd rather state that plainly than oversell it. You can verify the signer set yourself by calling getOwners() and getThreshold() on the Safe address.",
+      },
+      {
+        q: "Can the team take my escrowed funds?",
+        a: "No. There is no function in the contract that lets the owner — multisig or otherwise — withdraw, move or release funds locked in a task escrow. Escrowed funds leave only through the normal lifecycle: the creator approves submitted work, the task is cancelled before assignment, or it expires past its deadline. The owner also can't spend the grant pool outside an executed, community-approved grant, can't change a vote's outcome, and can't redirect the MUSD or MEZO token addresses (those are immutable).",
+      },
+      {
+        q: "What can the multisig actually do?",
+        a: "Five things: upgrade the contract, change the treasury address that receives the protocol fee share, set which Mezo contracts veBTC and veMEZO voting weight is read from, approve wallets for the grant-voting pilot, and hand ownership to a new address (a two-step transfer). The upgrade power is the significant one, because a UUPS upgrade can change any rule in the contract, including rules that govern escrowed funds. That's the tradeoff for being able to ship security fixes quickly, and it's why upgrade authority sits behind a multisig rather than one key.",
+      },
+      {
+        q: "Is there a timelock on upgrades?",
+        a: "Not yet, and this is a real limitation worth knowing about. Once two signers approve an upgrade it takes effect immediately, with no enforced delay in which users could withdraw first. Adding a timelock on upgrades is on the roadmap. Until it ships, please size your exposure accordingly — see the Terms for the formal statement of this risk.",
+      },
+      {
+        q: "How do I verify any of this for myself?",
+        a: "Don't take our word for it. On the Mezo explorer, read CONTRACT_OWNER() and treasuryAddress() on the Taskify contract — both should return the Safe address 0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31. Then read getOwners() and getThreshold() on that Safe: you should see three owners and a threshold of 2. Every Safe transaction, including every upgrade, is also visible on-chain and in the Safe's own history at safe.mezo.org.",
       },
     ],
   },

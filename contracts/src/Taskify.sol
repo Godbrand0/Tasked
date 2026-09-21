@@ -269,6 +269,7 @@ contract Taskify is Initializable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
     event StrandedWaveFundsClaimed(uint256 indexed waveId, uint256 amount);
     event Deposited(address indexed patron, uint256 amount, uint8 newTier);
     event VoterApproved(address indexed voter, bool approved);
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /// @dev Runs once per implementation deploy (not per proxy) — sets the
@@ -953,10 +954,21 @@ contract Taskify is Initializable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
         if (taskCount == 0) revert NoReward();
         if (waveClaims[waveId][msg.sender]) revert AlreadyClaimed();
 
-        uint256 reward = (snapshot.poolAmount * taskCount) / snapshot.totalTasks;
+        // Floor division strands up to totalTasks-1 wei per wave, so the claim
+        // that brings claimed tasks up to totalTasks takes whatever is left —
+        // the same remainder-to-last pattern selectWinners uses. Waves with
+        // claims made before these counters existed simply never hit the
+        // equality (the counters undercount), so they fall back to the plain
+        // floor payout and can never overpay.
+        uint256 claimedTasks = waveClaimedTasks[waveId] + taskCount;
+        uint256 reward = claimedTasks == snapshot.totalTasks
+            ? snapshot.poolAmount - waveClaimedAmount[waveId]
+            : (snapshot.poolAmount * taskCount) / snapshot.totalTasks;
         if (reward == 0) revert NoReward();
 
         waveClaims[waveId][msg.sender] = true;
+        waveClaimedTasks[waveId] = claimedTasks;
+        waveClaimedAmount[waveId] += reward;
 
         IERC20(musd).safeTransfer(msg.sender, reward);
 
@@ -1024,20 +1036,46 @@ contract Taskify is Initializable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
         }
     }
 
-    /// @notice Moves ownership to a new address — e.g. to a multisig, or to
-    /// recover from a compromised/lost key without a full redeploy. See
-    /// TASKIFY_SECURITY_AUDIT.md finding L-2.
+    /// @notice Step one of a two-step ownership move — e.g. to a multisig, or
+    /// to recover from a compromised/lost key without a full redeploy (see
+    /// TASKIFY_SECURITY_AUDIT.md finding L-2). Nothing changes hands until
+    /// newOwner calls acceptOwnership(), which proves the destination can
+    /// actually sign on this chain before it becomes the only key that
+    /// matters (SECURITY-REVIEW-2026-09-15 finding 2). Calling again
+    /// replaces the pending owner; passing address(0) is rejected, so a
+    /// mistaken proposal is cancelled by proposing the current owner.
     function transferOwnership(address newOwner) external {
         if (msg.sender != CONTRACT_OWNER) revert NotAuthorized();
         if (newOwner == address(0)) revert InvalidOwner();
-        address previousOwner = CONTRACT_OWNER;
-        CONTRACT_OWNER = newOwner;
-        emit OwnershipTransferred(previousOwner, newOwner);
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(CONTRACT_OWNER, newOwner);
     }
 
-    /// @dev Reserved storage so a future upgrade can append new state
-    /// variables without shifting the storage slot of anything declared
-    /// above — standard OZ upgradeable-contract convention. Shrink this by
-    /// exactly as many slots as any new variables added in an upgrade.
-    uint256[50] private __gap;
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotAuthorized();
+        address previousOwner = CONTRACT_OWNER;
+        CONTRACT_OWNER = msg.sender;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(previousOwner, msg.sender);
+    }
+
+    // ----- Storage added after the initial mainnet deployment -----
+    //
+    // UPGRADE STORAGE RULE: all new state goes here, in Taskify itself, in
+    // declaration order directly above __gap, with __gap shrunk by exactly
+    // the number of slots added. Never add state by inheriting from Taskify
+    // (as test/mocks/TaskifyV2Mock.sol does purely to exercise upgrade
+    // mechanics) — derived-contract state sits *after* __gap, so shrinking
+    // the gap in a later version would silently shift it onto different
+    // slots. Never reorder, retype, or delete anything above. Any change
+    // must keep storage-layout.txt's existing rows identical; see
+    // test/StorageLayout.t.sol.
+
+    address public pendingOwner;
+    mapping(uint256 => uint256) public waveClaimedTasks;
+    mapping(uint256 => uint256) public waveClaimedAmount;
+
+    /// @dev Reserved slots — see the upgrade storage rule above. 50 at the
+    /// initial deployment, minus the 3 slots added since.
+    uint256[47] private __gap;
 }

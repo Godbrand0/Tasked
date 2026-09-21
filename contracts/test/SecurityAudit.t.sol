@@ -205,6 +205,11 @@ contract SecurityAuditTest is Test {
     // path. transferOwnership() now allows rotation (e.g. to a multisig, or
     // recovering from a compromised key) without a redeploy.
     // ─────────────────────────────────────────────────────────────────────
+    //
+    // SECURITY-REVIEW-2026-09-15 finding 2 (fixed): the transfer is now
+    // two-step, so ownership only moves once the new address has proven it
+    // can sign by calling acceptOwnership().
+    // ─────────────────────────────────────────────────────────────────────
     function test_OwnershipCanBeTransferred() public {
         address newOwner = makeAddr("multisig");
 
@@ -213,7 +218,15 @@ contract SecurityAuditTest is Test {
         taskify.transferOwnership(newOwner);
 
         taskify.transferOwnership(newOwner);
+        assertEq(taskify.pendingOwner(), newOwner);
+        // Proposing moves nothing — the current owner keeps full control.
+        assertEq(taskify.CONTRACT_OWNER(), deployer);
+        taskify.setTreasuryAddress(deployer);
+
+        vm.prank(newOwner);
+        taskify.acceptOwnership();
         assertEq(taskify.CONTRACT_OWNER(), newOwner);
+        assertEq(taskify.pendingOwner(), address(0));
 
         // Old owner has lost all owner-gated access immediately.
         vm.expectRevert(Taskify.NotAuthorized.selector);
@@ -228,6 +241,105 @@ contract SecurityAuditTest is Test {
     function test_TransferOwnershipRejectsZeroAddress() public {
         vm.expectRevert(Taskify.InvalidOwner.selector);
         taskify.transferOwnership(address(0));
+    }
+
+    /// @notice A typo'd or undeployed destination can never take ownership,
+    /// and the current owner can simply re-propose to replace it.
+    function test_OnlyPendingOwnerCanAcceptOwnership() public {
+        address typo = makeAddr("typo");
+        address multisig = makeAddr("multisig");
+
+        // Nobody can accept when nothing is pending.
+        vm.prank(alice);
+        vm.expectRevert(Taskify.NotAuthorized.selector);
+        taskify.acceptOwnership();
+
+        taskify.transferOwnership(typo);
+
+        vm.prank(alice);
+        vm.expectRevert(Taskify.NotAuthorized.selector);
+        taskify.acceptOwnership();
+
+        // Re-proposing replaces the mistaken address.
+        taskify.transferOwnership(multisig);
+        vm.prank(typo);
+        vm.expectRevert(Taskify.NotAuthorized.selector);
+        taskify.acceptOwnership();
+        assertEq(taskify.CONTRACT_OWNER(), deployer);
+
+        vm.prank(multisig);
+        taskify.acceptOwnership();
+        assertEq(taskify.CONTRACT_OWNER(), multisig);
+
+        // Acceptance clears the pending slot, so it can't be replayed.
+        vm.prank(multisig);
+        vm.expectRevert(Taskify.NotAuthorized.selector);
+        taskify.acceptOwnership();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // SECURITY-REVIEW-2026-09-15 finding 4 (fixed): floor division in
+    // claimWaveReward used to strand the remainder permanently. The claim
+    // that completes a wave's task count now takes whatever is left.
+    // ─────────────────────────────────────────────────────────────────────
+    function test_WaveRewardsDrainPoolExactly() public {
+        address bob = makeAddr("bob");
+        vm.prank(bob);
+        taskify.registerUser("bob", Taskify.Role.Creator, 0, true, false);
+
+        // The review's PoC amounts: pool 36000000000000001 over 3 tasks.
+        _createFundedTask(alice, 1e18);
+        _createFundedTask(alice, 1e18);
+        _createFundedTask(bob, 1e18 + 34);
+
+        vm.warp(taskify.waveStartTime() + taskify.WAVE_EPOCH_DURATION());
+        taskify.advanceWave();
+        (uint256 poolAmount, uint256 totalTasks) = taskify.waveSnapshots(1);
+        assertEq(poolAmount, 36000000000000001);
+        assertEq(totalTasks, 3);
+
+        vm.prank(alice);
+        uint256 aliceReward = taskify.claimWaveReward(1);
+        vm.prank(bob);
+        uint256 bobReward = taskify.claimWaveReward(1);
+
+        assertEq(aliceReward, 24000000000000000); // floor(pool * 2 / 3)
+        assertEq(bobReward, 12000000000000001); // floor share + 1 wei remainder
+        assertEq(aliceReward + bobReward, poolAmount);
+    }
+
+    /// @notice Whatever the task amounts and claim order, a wave's claims
+    /// always sum to exactly its snapshotted pool — never less (stranded
+    /// dust) and never more (eating into task escrow).
+    function testFuzz_WaveRewardsSumToPool(uint96[3] memory rawAmounts, bool bobClaimsFirst) public {
+        address bob = makeAddr("bob");
+        vm.prank(bob);
+        taskify.registerUser("bob", Taskify.Role.Creator, 0, true, false);
+
+        _createFundedTask(alice, bound(rawAmounts[0], 1e18, 1e27));
+        _createFundedTask(bob, bound(rawAmounts[1], 1e18, 1e27));
+        _createFundedTask(alice, bound(rawAmounts[2], 1e18, 1e27));
+
+        vm.warp(taskify.waveStartTime() + taskify.WAVE_EPOCH_DURATION());
+        taskify.advanceWave();
+        (uint256 poolAmount,) = taskify.waveSnapshots(1);
+
+        (address first, address second) = bobClaimsFirst ? (bob, alice) : (alice, bob);
+        vm.prank(first);
+        uint256 total = taskify.claimWaveReward(1);
+        vm.prank(second);
+        total += taskify.claimWaveReward(1);
+
+        assertEq(total, poolAmount);
+        assertEq(taskify.waveClaimedAmount(1), poolAmount);
+    }
+
+    function _createFundedTask(address creator, uint256 amount) private {
+        musd.mint(amount, creator);
+        vm.startPrank(creator);
+        musd.approve(address(taskify), amount);
+        taskify.createTask("Wave task", amount, address(musd), 0, 4, block.timestamp + 7 days);
+        vm.stopPrank();
     }
 
     // ─────────────────────────────────────────────────────────────────────
