@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { TIERS } from "@/lib/constants";
+import { TIERS, MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { TASKIFY_ADDRESS, tokenAddress } from "@/lib/taskify";
 import { extractTaskId, toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
@@ -76,9 +76,11 @@ export default function CreatePage() {
   const feeAmt = numAmount * fee;
   const netAmt = numAmount - feeAmt;
   const perWinnerAmt = taskKind === "community" && maxWinners > 0 ? netAmt / maxWinners : netAmt;
+  const descriptionTooLong = description.trim().length > MAX_DESCRIPTION_LENGTH;
   const valid =
     title.trim().length > 0 &&
     numAmount >= 1 &&
+    !descriptionTooLong &&
     (taskKind === "development"
       ? expMin <= expMax && (fundingType === "self" || grantJustification.trim().length > 20)
       : maxWinners >= 1 && maxWinners <= 20);
@@ -119,9 +121,18 @@ export default function CreatePage() {
       const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`);
       if (!res.ok) throw new Error("Issue not found");
       const issue = await res.json();
+      const body: string = issue.body ?? "";
       setTitle(issue.title ?? "");
-      setDescription(issue.body ?? "");
+      setDescription(body);
       setGithubIssueData({ number: issue.number, repo: `${owner}/${repo}`, url: issue.html_url });
+      // A long issue body silently exceeds what the API accepts. Say so here
+      // rather than letting the create succeed on-chain and the description
+      // save fail afterwards.
+      if (body.trim().length > MAX_DESCRIPTION_LENGTH) {
+        setGithubIssueError(
+          `This issue's body is ${body.trim().length.toLocaleString()} characters, over the ${MAX_DESCRIPTION_LENGTH.toLocaleString()} limit. Trim the description below before posting — the GitHub link stays attached either way.`
+        );
+      }
     } catch {
       setGithubIssueError("Could not fetch issue. Check the URL and make sure the repo is public.");
     } finally {
@@ -371,7 +382,13 @@ export default function CreatePage() {
               placeholder="Describe the task scope, deliverables, acceptance criteria, and any technical requirements. Given the bounty size, keep this to a single well-defined fix or improvement (e.g. 'make the dashboard page responsive on mobile') rather than an open-ended feature." rows={8}
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.7, minHeight: 160 }}
               onFocus={e => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
-              onBlur={e => (e.target.style.borderColor = "var(--border)")} />
+              onBlur={e => (e.target.style.borderColor = descriptionTooLong ? "color-mix(in srgb, var(--danger) 45%, transparent)" : "var(--border)")} />
+            {description.trim().length > MAX_DESCRIPTION_LENGTH * 0.8 && (
+              <div style={{ marginTop: 6, fontSize: 12, color: descriptionTooLong ? "var(--danger)" : "var(--text-dim)", textAlign: "right" }}>
+                {description.trim().length.toLocaleString()} / {MAX_DESCRIPTION_LENGTH.toLocaleString()}
+                {descriptionTooLong && " — too long to save"}
+              </div>
+            )}
           </Field>
 
           {/* Grant justification */}

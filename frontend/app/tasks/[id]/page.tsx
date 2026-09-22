@@ -109,14 +109,12 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       const res = await fetch("/api/task-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskId,
-          description: descriptionDraft.trim(),
-          tags: offchainContent?.tags ?? [],
-          githubRepoUrl: offchainContent?.github_repo_url ?? null,
-          grantJustification: offchainContent?.grant_justification ?? null,
-          images: offchainContent?.images ?? [],
-        }),
+        // Only the description — this editor doesn't touch tags, the GitHub
+        // link, the grant justification or images, so it must not send them.
+        // The API patches the columns it receives, and resending them from
+        // this component's copy of the row would null whatever it hadn't
+        // loaded (see app/api/task-content/route.ts).
+        body: JSON.stringify({ taskId, description: descriptionDraft.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to save description");

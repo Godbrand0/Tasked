@@ -60,6 +60,12 @@ export const CONTRACT_ADDRESSES = {
   },
 } as const;
 
+// Max length of a task description, enforced by app/api/task-content's POST.
+// Shared with app/create so the form can warn before a submit that the API
+// would reject — a GitHub issue body can easily exceed this (issue #7's was
+// 11k chars), and a silent rejection there is what stranded task 7's content.
+export const MAX_DESCRIPTION_LENGTH = 10000;
+
 // Governance — the Safe multisig that owns the mainnet Taskify proxy. Since
 // 2026-09-16 `CONTRACT_OWNER` and `treasuryAddress` are both this Safe, not the
 // deployer EOA, so every admin call and every UUPS upgrade needs 2 of 3 signers.
