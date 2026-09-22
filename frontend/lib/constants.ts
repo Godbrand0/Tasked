@@ -78,6 +78,84 @@ export const GOVERNANCE = {
   ],
 } as const;
 
+// Security reviews — single source of truth for the public review record on
+// /docs#security-reviews, the landing page and the FAQ. Three rounds so far,
+// all findings resolved. None of these is a professional third-party audit;
+// say so wherever this data is rendered. Full write-ups live in
+// TASKIFY_SECURITY_AUDIT.md (rounds 1-2) and SECURITY-REVIEW-2026-09-17
+// (round 3, not published — it carries an internal/confidential marking).
+export const SECURITY_REVIEWS = {
+  rounds: [
+    {
+      name: "Round 1 — internal manual review",
+      date: "August 2026",
+      scope: "Line-by-line pass over the full contract",
+      result: "1 High, 1 Medium, 2 Low — all fixed, each with a regression test",
+    },
+    {
+      name: "Round 2 — external automated scan",
+      date: "August 2026",
+      scope: "Automated analysis of the task lifecycle",
+      result: "7 findings — all fixed, each with a regression test",
+    },
+    {
+      name: "Round 3 — internal review",
+      date: "September 2026",
+      scope:
+        "UUPS upgradeability and live mainnet operations — the areas rounds 1 and 2 predated",
+      result: "1 High, 2 Medium, 1 Low — all resolved",
+    },
+  ],
+  // Round 3 in detail: it is the review that produced the multisig migration,
+  // so its findings are the ones users are most likely to ask about.
+  latest: {
+    date: "September 2026",
+    commit: "main @ e13205d",
+    verification: "45 Foundry tests passing; 5 purpose-written proof-of-concept tests executed",
+    findings: [
+      {
+        severity: "High",
+        title: "A single key held upgrade authority over live funds",
+        detail:
+          "The contract owner on mainnet was one externally-owned account. That key alone could have replaced the implementation and drained escrow.",
+        resolution:
+          "Resolved on-chain by transferring ownership and the treasury to the Safe multisig. No single key can authorise an upgrade any more.",
+      },
+      {
+        severity: "Medium",
+        title: "Ownership transfer was single-step and irreversible",
+        detail:
+          "transferOwnership moved authority in one transaction without proving the destination could actually sign. A mistyped or undeployed address would have locked every admin function permanently.",
+        resolution:
+          "Resolved in code. Transfers are now two-step: the current owner nominates, and the new owner must call acceptOwnership from that address before authority moves.",
+      },
+      {
+        severity: "Medium",
+        title: "Storage-gap guidance contradicted the demonstrated upgrade pattern",
+        detail:
+          "Two conflicting upgrade conventions coexisted in the repository. Following the wrong one during a future upgrade could have silently corrupted live storage — no compiler warning, no failing test.",
+        resolution:
+          "Resolved in code. One convention is now stated unambiguously in the contract, and a committed storage-layout test fails the build on any slot shift.",
+      },
+      {
+        severity: "Low",
+        title: "Wave reward rounding stranded dust",
+        detail:
+          "Floor division left a remainder of a few wei per wave with no way to withdraw it. Sub-cent amounts, no attacker control.",
+        resolution:
+          "Resolved in code. The final claimant of a wave now receives the remainder, matching the pattern the payout path already used.",
+      },
+    ],
+    alsoTested: [
+      "Wave reward over-payment — tested and disproved",
+      "Escrow commingling between tasks and the wave pool — tested and disproved",
+      "Upgrade initialisation front-running — blocked, covered by tests",
+      "State continuity across an upgrade — confirmed intact",
+      "Token approval scoping — no admin function can touch a third party's allowance",
+    ],
+  },
+} as const;
+
 export const MEZO_EXPLORER_URL = MEZO_IS_TESTNET
   ? "https://explorer.test.mezo.org"
   : "https://explorer.mezo.org";

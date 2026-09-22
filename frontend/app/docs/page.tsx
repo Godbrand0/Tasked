@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { GOVERNANCE, MEZO_EXPLORER_URL } from "@/lib/constants";
+import { GOVERNANCE, MEZO_EXPLORER_URL, SECURITY_REVIEWS } from "@/lib/constants";
 
 interface DocSection {
   id: string;
@@ -293,6 +293,96 @@ const SECTIONS: DocSection[] = [
           timelock on upgrades is on the roadmap. Until it ships, please size your exposure with that in mind — and
           see the{" "}
           <Link href="/terms" style={{ color: "var(--primary)" }}>Terms</Link> for the formal statement of this risk.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "security-reviews",
+    title: "Security reviews",
+    body: (
+      <>
+        <p>
+          The contract has been through <strong>three security reviews</strong>. Every finding raised across all
+          three has been resolved. Start with the caveat, though, because it matters more than the rest of this
+          section: <strong>none of these was a professional third-party audit.</strong> Two were internal reviews by
+          the team, one was an external automated scan. A paid audit by an independent firm is planned before the
+          contract holds larger sums, and until it happens you should size your exposure accordingly.
+        </p>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
+              <th style={{ padding: "6px 8px" }}>Review</th>
+              <th style={{ padding: "6px 8px" }}>Scope</th>
+              <th style={{ padding: "6px 8px" }}>Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SECURITY_REVIEWS.rounds.map(r => (
+              <tr key={r.name} style={{ borderTop: "1px solid var(--border)" }}>
+                <td style={{ padding: "8px", fontWeight: 600, color: "var(--text)" }}>
+                  {r.name}
+                  <div style={{ fontWeight: 400, color: "var(--text-faint)", fontSize: 12 }}>{r.date}</div>
+                </td>
+                <td style={{ padding: "8px", color: "var(--text-dim)" }}>{r.scope}</td>
+                <td style={{ padding: "8px", color: "var(--text-dim)" }}>{r.result}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h3>The September 2026 review in detail</h3>
+        <p>
+          This is the round worth reading, because it is the one that produced the multisig described above. It
+          deliberately targeted what the earlier rounds could not have covered: the contract had become upgradeable,
+          and it had gone live on mainnet holding real funds. Reviewed at <code>{SECURITY_REVIEWS.latest.commit}</code>;
+          findings were confirmed by execution rather than by reading alone ({SECURITY_REVIEWS.latest.verification}).
+        </p>
+        {SECURITY_REVIEWS.latest.findings.map(f => (
+          <div key={f.title} style={{ borderLeft: "2px solid var(--border)", paddingLeft: 14, margin: "0 0 18px" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+                {f.severity}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--success)" }}>
+                · Resolved
+              </span>
+            </div>
+            <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{f.title}</div>
+            <p style={{ margin: "0 0 6px" }}>{f.detail}</p>
+            <p style={{ margin: 0, color: "var(--text-dim)" }}>{f.resolution}</p>
+          </div>
+        ))}
+        <p>
+          Note that the first of those was never a flaw in the code — the upgrade gate was implemented correctly. It
+          was an operational problem with who held the key, and it was closed by an on-chain transaction rather than
+          a code change. The remaining three were latent: none was exploitable by an outside attacker, and each would
+          have bitten during a future upgrade or ownership change. All three are now fixed in the deployed
+          implementation.
+        </p>
+
+        <h3>Also tested and found sound</h3>
+        <p>Knowing what was checked and held is part of the result, so these are recorded too:</p>
+        <ul>
+          {SECURITY_REVIEWS.latest.alsoTested.map(t => <li key={t}>{t}</li>)}
+        </ul>
+
+        <h3>What is still outstanding</h3>
+        <ul>
+          <li>
+            <strong>No professional third-party audit yet.</strong> The most important gap, and the reason to treat
+            everything above as necessary but not sufficient.
+          </li>
+          <li>
+            <strong>No timelock on upgrades.</strong> Recommended by the September review and still open — see{" "}
+            <a href="#governance" style={{ color: "var(--primary)" }}>Governance &amp; contract control</a>.
+          </li>
+        </ul>
+        <p>
+          One recommendation from that review has since been completed beyond what it asked for: it suggested moving
+          the 2-of-2 Safe to 2-of-3 for key-loss redundancy, which has been done, with the third signer drawn from
+          the Mezo community rather than the team. The full write-ups for the first two rounds live in{" "}
+          <code>TASKIFY_SECURITY_AUDIT.md</code> in the repository.
         </p>
       </>
     ),

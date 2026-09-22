@@ -45,7 +45,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Has Taskify been audited?",
-        a: "Taskify is under active review, and has not yet had a professional third-party audit — so treat it accordingly and start with amounts you're comfortable testing with. Internal and external reviews have been run and their findings fixed on mainnet; the most significant of those moved control of the contract from a single team wallet to a 2-of-3 Safe multisig. Check the repository for the latest audit status.",
+        a: "Three security reviews so far — two internal and one external automated scan — and every finding from all three has been resolved. The most serious, from the September 2026 review, was that a single key held upgrade authority over live funds; that was closed by moving ownership to a 2-of-3 Safe multisig. But be clear on the caveat: none of these was a professional third-party audit. A paid independent audit is planned before the contract holds larger sums, and until then you should treat the reviews as necessary but not sufficient and start with amounts you're comfortable testing with. The full findings are on the Docs page under Security reviews.",
       },
     ],
   },
@@ -139,6 +139,10 @@ const FAQ_GROUPS: FaqGroup[] = [
       {
         q: "Is there a timelock on upgrades?",
         a: "Not yet, and this is a real limitation worth knowing about. Once two signers approve an upgrade it takes effect immediately, with no enforced delay in which users could withdraw first. Adding a timelock on upgrades is on the roadmap. Until it ships, please size your exposure accordingly — see the Terms for the formal statement of this risk.",
+      },
+      {
+        q: "What did the September 2026 security review find?",
+        a: "Four findings: one High, two Medium, one Low. All four are resolved. The High was that a single key held upgrade authority over live funds — closed by moving ownership to the multisig. The two Mediums were that ownership transfer was single-step (a mistyped address would have permanently locked every admin function) and that conflicting storage-gap guidance could have silently corrupted state during a future upgrade; both are fixed in the deployed code. The Low was a few wei of rounding dust stranded per wave reward, also fixed. Worth noting what the review also tested and found sound: wave-reward over-payment and escrow commingling were both specifically investigated and disproved. Full detail is on the Docs page under Security reviews.",
       },
       {
         q: "How do I verify any of this for myself?",

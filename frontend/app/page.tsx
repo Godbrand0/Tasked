@@ -3,7 +3,7 @@
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
 import { TASKIFY_ADDRESS } from "@/lib/taskify";
-import { MEZO_NETWORK_NAME, GOVERNANCE, MEZO_EXPLORER_URL } from "@/lib/constants";
+import { MEZO_NETWORK_NAME, GOVERNANCE, MEZO_EXPLORER_URL, SECURITY_REVIEWS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -600,7 +600,8 @@ function ProtocolSection() {
           </h2>
         </Reveal>
 
-        <Reveal style={{ maxWidth: 640, margin: "0 auto" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 24, maxWidth: 900, margin: "0 auto", alignItems: "start" }}>
+        <Reveal>
           {/* Task lifecycle */}
           <Card>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Task Lifecycle (Development)</div>
@@ -622,6 +623,30 @@ function ProtocolSection() {
             </div>
           </Card>
         </Reveal>
+
+        {/* Security reviews */}
+        <Reveal delay={150}>
+          <Card>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 20 }}>Security reviews</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {SECURITY_REVIEWS.rounds.map((r, i) => (
+                <div key={r.name} style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "12px 0", borderBottom: i < SECURITY_REVIEWS.rounds.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <span style={{ color: "var(--success)", flexShrink: 0, marginTop: 2 }}><IconCheck /></span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{r.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>{r.date} — {r.result}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 14, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
+              Every finding across all three is resolved. None was a professional third-party audit, though — that
+              is still planned, and until it happens this is necessary but not sufficient.{" "}
+              <a href="/docs#security-reviews" style={{ color: "var(--primary)", textDecoration: "none" }}>Read the findings →</a>
+            </div>
+          </Card>
+        </Reveal>
+        </div>
       </div>
     </section>
   );
@@ -867,6 +892,7 @@ function Footer() {
     ],
     Legal: [
       { label: "Governance & multisig", href: "/docs#governance" },
+      { label: "Security reviews", href: "/docs#security-reviews" },
       { label: "FAQ", href: "/faq" },
       { label: "Terms & Conditions", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
