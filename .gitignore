@@ -1,2 +1,6 @@
 # Supabase CLI local scratch
 supabase/.temp/
+
+# Internal security reviews — marked confidential, not for the public repo
+SECURITY-REVIEW-*.pdf
+contracts/src/*.zip

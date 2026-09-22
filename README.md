@@ -513,6 +513,34 @@ Every Safe transaction, including every upgrade, is visible on-chain and in the 
 - **Task-kind isolation** — `applyForTask`/`assignTask` revert `TaskKindMismatch()` on a Community task and vice versa for `joinCommunityTask`/`selectWinners`, so the two lifecycles can't cross-contaminate shared storage.
 - **Double-claim / double-vote protection** — `grantVoters` and `waveClaims` mappings prevent double voting and double claiming.
 - **Owner-only controls, held by a multisig** — `setTreasuryAddress` (also rejects the zero address, see finding F-233721), `setVeBTCEscrow`, `setVeMEZOEscrow`, `setApprovedVoters`, `transferOwnership` and `upgradeToAndCall` are restricted to `CONTRACT_OWNER`, which on mainnet is a 2-of-3 Safe rather than any single key — see [Governance & Ownership](#governance--ownership). `CONTRACT_OWNER` is mutable (not `immutable`) specifically so it could be rotated to that multisig, and can be recovered from a compromised key, without a redeploy — see `TASKIFY_SECURITY_AUDIT.md` finding L-2. No owner function can touch escrowed task funds. `advanceWave` is intentionally permissionless (pure time-check, no economic decision in it) so wave rewards can never get stuck on an inactive owner.
+- **Two-step ownership transfer** — `transferOwnership` only nominates a `pendingOwner`; authority moves when that address itself calls `acceptOwnership`. This proves the destination can sign before it becomes the only key that matters, so a mistyped or undeployed address can't permanently brick every admin function — see SECURITY-REVIEW-2026-09-17 finding 2.
+- **One storage rule, enforced in CI** — all new state is declared inside `Taskify` directly above `__gap`, with `__gap` shrunk to match; adding state by inheritance is forbidden (`TaskifyV2Mock` does it only to exercise upgrade mechanics). `contracts/test/StorageLayout.t.sol` fails the build on any slot shift, because the failure mode here is silent storage corruption with no compiler warning — see SECURITY-REVIEW-2026-09-17 finding 3.
+- **Wave rounding leaves nothing stranded** — `claimWaveReward` awards the floor-division remainder to the claim that completes a wave, matching `selectWinners`, so no dust is locked — see SECURITY-REVIEW-2026-09-17 finding 4.
 - **Deployment requires the optimizer enabled** (`optimizer = true`, `via_ir = true` in `foundry.toml`) — with it off, the contract's runtime bytecode exceeds the EIP-170 24,576-byte limit and cannot be deployed to any EVM chain. Always confirm with `forge build --sizes` before deploying.
 
-For the current Solidity contract, see [`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md) — an internal review (one High, one Medium, two Low findings, all fixed and covered by regression tests in `contracts/test/SecurityAudit.t.sol`). That review is **not a substitute for a professional third-party audit**, which is still needed before deploying with real funds.
+### Review record
+
+Three rounds so far. **Every finding across all three is resolved**, and 45 Foundry tests pass including a stateful invariant suite.
+
+| Round | Date | Scope | Findings |
+|---|---|---|---|
+| 1 — internal manual review | Aug 2026 | Line-by-line pass over the contract | 1 High, 1 Medium, 2 Low — all fixed ([`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md)) |
+| 2 — external automated scan | Aug 2026 | Task lifecycle | 7 findings — all fixed ([`TASKIFY_SECURITY_AUDIT.md`](TASKIFY_SECURITY_AUDIT.md)) |
+| 3 — internal review | Sep 2026 | UUPS upgradeability and live mainnet operations — deliberately the areas rounds 1 and 2 predated | 1 High, 2 Medium, 1 Low — all resolved (SECURITY-REVIEW-2026-09-17) |
+
+Round 3 findings and their resolutions:
+
+| # | Severity | Finding | Resolution |
+|---|---|---|---|
+| 1 | High | A single EOA held unilateral upgrade authority over live mainnet funds | Resolved **on-chain**, not in code — ownership and treasury moved to the Safe. See [Governance & Ownership](#governance--ownership). |
+| 2 | Medium | Single-step `transferOwnership` could permanently brick the contract | Resolved in code — two-step `pendingOwner` / `acceptOwnership`. |
+| 3 | Medium | Storage-gap guidance contradicted the repo's only demonstrated upgrade pattern | Resolved in code — one stated rule, plus `StorageLayout.t.sol` as a CI guard. |
+| 4 | Low | Wave reward floor division stranded unclaimable dust | Resolved in code — remainder goes to the claim that completes the wave. |
+
+Round 3 also specifically tested and **disproved** two candidate findings — wave-reward over-payment and escrow commingling — and confirmed upgrade-initialization front-running is blocked and state survives upgrades intact.
+
+Two recommendations remain open: **an upgrade timelock** (see [Governance & Ownership](#governance--ownership)), and the standing one below.
+
+> **None of these three rounds is a professional third-party audit.** Two were internal, one was an automated scan. An independent paid audit is still needed before the contract holds larger sums, and nothing above substitutes for it.
+
+Round 3's own closing note is worth repeating: the most serious issue it found was not in the Solidity at all — it was an operational key-management gap that only became High severity the moment the contract went to mainnet.

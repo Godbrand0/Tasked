@@ -79,15 +79,18 @@ March 2027: contributor growth
 
 5. Security report
 
-• Reviews completed: two internal security reviews, in August and September 2026.
+• Reviews completed: three rounds — an internal manual review and an external automated scan in August 2026, and a further internal review in September 2026 that deliberately targeted what the first two predated: the contract becoming upgradeable, and going live on mainnet with real funds. The September round raised one High, two Medium and one Low finding. All four are now resolved.
 • All findings fixed on mainnet. The most important fix moved control of the contract from a single wallet to a multisig (Safe) at safe.mezo.org. All fixes went live within a day of the September review.
 • Governance is now live and public. The contract and the treasury are both owned by a 2-of-3 Safe at 0xcfeC02DfC63FcA293b5F9c2856bb1370965D2a31. Two of the three signers must approve before any administrative change or contract upgrade takes effect. One of the three is a member of the Mezo g6 community, independent of our team, so we cannot make changes entirely among ourselves without an outside signer seeing them. Anyone can verify this by reading CONTRACT_OWNER() on the contract and getOwners()/getThreshold() on the Safe.
 • No owner function can touch funds locked in escrow. The multisig can upgrade the contract, change the fee treasury address, set the voting-weight sources and approve pilot voters; it cannot withdraw a user's escrowed funds, spend the grant pool outside an approved grant, or change a vote.
 • Remaining gap, stated plainly: there is no timelock on upgrades yet, so an approved upgrade takes effect immediately. That is the next item on our roadmap. We have documented this limitation publicly on the site (in the docs, FAQ and Terms) rather than leaving users to discover it.
-• Testing: 49 automated tests, including tests that run thousands of random actions to check that funds always balance and can never be paid twice.
+• Testing: 45 automated tests, including a stateful invariant suite that runs thousands of random action sequences to check that funds always balance and can never be paid twice. Adding this suite closes the one standing recommendation the September review left open on testing.
 • Full reports: available on GitHub.
 
-Taskify has not yet had a third-party audit, so we are requesting a security review from the Mezo team, and we plan a third-party audit before larger amounts are held in the contract.
+• What the September review found, in plain terms: the most serious problem was not in the contract code at all. The code correctly restricted upgrades to the owner; the problem was that the owner was a single key. That became a High severity issue the moment real money was in the contract, and we closed it by moving ownership to the multisig. The other three findings were latent rather than active: none could be exploited by an outsider, and each would only have caused harm during a future upgrade or ownership change. We fixed all three before that could happen.
+• The review also tested two suspected problems and found them not to be real — wave reward over-payment and mixing of escrow funds with the reward pool. We mention this because knowing what was checked and held is as much part of the result as the findings.
+
+Taskify has not yet had a third-party audit. All three of our reviews so far were internal or automated, and we are clear on the site that this is necessary but not sufficient. We are requesting a security review from the Mezo team, and we plan a paid third-party audit before larger amounts are held in the contract.
 
 
 6. Three-month marketing and launch plan
