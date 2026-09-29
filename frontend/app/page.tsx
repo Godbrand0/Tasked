@@ -103,7 +103,7 @@ function LandingNavbar() {
       <style>{`.taskify-nav-link:hover { color: var(--text) !important; } .landing-btn-outline:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important; color: var(--text) !important; box-shadow: var(--shadow-md) !important; } .landing-btn-primary:hover { background: var(--primary-strong) !important; }`}</style>
       {/* maxWidth is 1200 + 2×24px padding (not 1200) so the padded content area itself is exactly
           1200px wide, lining up with the unpadded maxWidth:1200 containers every section below uses */}
-      <div style={{ maxWidth: 1248, margin: "0 auto", padding: "0 24px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", height: 64 }}>
+      <div className="nav-inner" style={{ maxWidth: 1248, margin: "0 auto", boxSizing: "border-box", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "start" }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", position: "relative", flexShrink: 0 }}>
             <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
@@ -112,17 +112,17 @@ function LandingNavbar() {
         </div>
 
         {/* Centered against the full bar width via the grid's auto middle column, not left/right sibling widths */}
-        <div style={{ alignItems: "center", gap: 32, justifySelf: "center" }} className="hidden sm:flex">
+        <div style={{ alignItems: "center", gap: 32, justifySelf: "center" }} className="hidden min-[1200px]:flex">
           {LANDING_NAV_LINKS.map(([href, label]) => (
             <a key={label} href={href} className="taskify-nav-link" style={{ color: "var(--text-muted)", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.15s" }}>{label}</a>
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16, justifySelf: "end" }}>
+        <div className="nav-actions landing-nav-actions" style={{ display: "flex", alignItems: "center", justifySelf: "end" }}>
           <ThemeToggle />
           {/* Connect Wallet: shows abbreviated address when connected (with a disconnect dropdown) — hidden on mobile, Launch App covers the same action */}
           {connected ? (
-            <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden sm:block">
+            <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden min-[1200px]:block">
               <button
                 onClick={() => setAddressDropdownOpen(o => !o)}
                 className="landing-btn-outline btn-motion"
@@ -153,7 +153,7 @@ function LandingNavbar() {
           ) : (
             <button
               onClick={connect}
-              className="landing-btn-outline btn-motion hidden sm:flex"
+              className="landing-btn-outline btn-motion hidden min-[1200px]:flex"
               style={{ alignItems: "center", gap: 8, color: "var(--text)", fontSize: 14, fontWeight: 600, padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 8, boxShadow: "var(--shadow-md)", cursor: "pointer", transition: "all 0.15s" }}>
               Connect Wallet
             </button>
@@ -165,7 +165,7 @@ function LandingNavbar() {
               if (!connected) { connect(); return; }
               router.push(isRegistered ? dashboardHref : "/register");
             }}
-            className="landing-btn-primary btn-motion"
+            className="landing-btn-primary btn-motion nav-mobile-btn"
             style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent)", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
             Launch App <IconArrow />
           </button>
@@ -173,7 +173,7 @@ function LandingNavbar() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(o => !o)}
-            className="flex sm:hidden"
+            className="flex min-[1200px]:hidden"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
             style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-muted)", cursor: "pointer", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
@@ -189,7 +189,7 @@ function LandingNavbar() {
 
       {/* Mobile menu panel */}
       {mobileMenuOpen && (
-        <div className="flex sm:hidden" style={{ borderTop: "1px solid var(--border)", padding: "12px 24px 20px", flexDirection: "column", gap: 4, background: "var(--bg)" }}>
+        <div className="flex min-[1200px]:hidden nav-mobile-panel" style={{ borderTop: "1px solid var(--border)", padding: "12px 24px 20px", flexDirection: "column", gap: 4, background: "var(--bg)" }}>
           {LANDING_NAV_LINKS.map(([href, label]) => (
             <a key={label} href={href} onClick={() => setMobileMenuOpen(false)}
               style={{ padding: "10px 12px", borderRadius: 8, color: "var(--text-muted)", fontSize: 15, fontWeight: 500, textDecoration: "none" }}>
@@ -261,11 +261,11 @@ function FloatingBadge({ style, className, children }: { style: React.CSSPropert
 function Hero() {
   const { connect } = useWallet();
   return (
-    <section style={{ padding: "96px 24px 80px", position: "relative", overflow: "hidden" }}>
+    <section className="hero-section" style={{ padding: "96px 24px 80px", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 800, height: 600, background: "radial-gradient(ellipse, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", top: 100, right: 100, width: 400, height: 400, background: "radial-gradient(ellipse, color-mix(in srgb, var(--secondary) 6%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="block sm:grid">
+      <div style={{ maxWidth: 1200, margin: "0 auto", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="block min-[1200px]:grid">
         <div>
           <div className="hero-in" style={{ marginBottom: 24, animationDelay: "0ms" }}>
             <Badge color="orange">
@@ -290,7 +290,7 @@ function Hero() {
               Find Work
             </a>
           </div>
-          <div className="hero-in" style={{ marginTop: 36, display: "flex", gap: 32, flexWrap: "wrap", animationDelay: "240ms" }}>
+          <div className="hero-in hero-stats" style={{ marginTop: 36, display: "flex", gap: 32, flexWrap: "wrap", animationDelay: "240ms" }}>
             {[
               { val: "3–5%", label: "Platform fee" },
               { val: "30-day", label: "Wave rewards" },
@@ -305,7 +305,7 @@ function Hero() {
         </div>
 
         {/* Right side: task card mockup — each piece bobs on its own out-of-phase float loop for a livelier, less synchronized feel */}
-        <div className="hero-in" style={{ display: "flex", justifyContent: "center", position: "relative", animationDelay: "150ms" }}>
+        <div className="hero-in hero-visual" style={{ display: "flex", justifyContent: "center", position: "relative", animationDelay: "150ms" }}>
           <FloatingBadge className="float" style={{ top: -12, left: 20, color: "var(--success)", animationDuration: "2.2s", animationDelay: "0.1s" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
             MUSD locked in escrow
@@ -902,7 +902,7 @@ function Footer() {
   return (
     <footer style={{ borderTop: "1px solid var(--border)", padding: "60px 24px 40px", background: "linear-gradient(180deg, var(--bg) 0, var(--bg-alt) 64px, var(--bg-alt) 100%)" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block sm:grid">
+        <div style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block min-[1200px]:grid">
           {/* Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>

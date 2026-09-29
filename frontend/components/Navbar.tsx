@@ -64,14 +64,14 @@ export default function Navbar() {
         .nav-link:hover { color: var(--text) !important; }
         .wallet-dropdown-item:hover { background: var(--border) !important; }
       `}</style>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", height: 64 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, justifySelf: "start" }}>
+      <div className="nav-inner" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "start", minWidth: 0 }}>
           <BackButton />
           <TaskedLogo />
         </div>
 
         {/* Desktop nav links — centered against the full bar width via the grid's auto middle column, not left/right sibling widths */}
-        <div style={{ alignItems: "center", gap: 32, justifySelf: "center" }} className="hidden sm:flex">
+        <div style={{ alignItems: "center", gap: 32, justifySelf: "center" }} className="hidden min-[1200px]:flex">
           {NAV_LINKS.map(({ href, label }) => (
             <Link key={href} href={href} className="nav-link"
               style={{ color: pathname === href ? "var(--text)" : "var(--text-muted)", fontSize: 14, fontWeight: pathname === href ? 600 : 500, textDecoration: "none", transition: "color 0.15s" }}>
@@ -89,17 +89,17 @@ export default function Navbar() {
         </div>
 
         {/* Right side */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
+        <div className="nav-actions" style={{ display: "flex", alignItems: "center", justifySelf: "end" }}>
           <ThemeToggle />
           {!connected ? (
             /* Not connected: connect + launch (Connect Wallet text button hidden on mobile — Launch App does the same thing) */
             <>
-              <div className="hidden sm:flex">
+              <div className="hidden min-[1200px]:flex">
                 <Button onClick={connect} variant="outline" style={{ fontWeight: 500 }}>
                   Connect Wallet
                 </Button>
               </div>
-              <Button onClick={connect} variant="primary">
+              <Button onClick={connect} variant="primary" className="nav-mobile-btn">
                 Launch App
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Button>
@@ -107,7 +107,7 @@ export default function Navbar() {
           ) : !isRegistered ? (
             /* Connected, not registered */
             <>
-              <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden sm:block">
+              <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden min-[1200px]:block">
                 <button
                   onClick={() => setAddressDropdownOpen(o => !o)}
                   style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontFamily: "var(--font-geist-mono)", color: "var(--text-dim)", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }}>
@@ -135,7 +135,7 @@ export default function Navbar() {
                   </DropdownPanel>
                 )}
               </div>
-              <Button href="/register" variant="primary">
+              <Button href="/register" variant="primary" className="nav-mobile-btn">
                 Launch App
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Button>
@@ -143,7 +143,7 @@ export default function Navbar() {
           ) : (
             /* Registered: MUSD + MEZO balances (desktop only), notifications, profile avatar */
             <>
-              <div className="hidden sm:flex" style={{ alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
+              <div className="hidden min-[1200px]:flex" style={{ alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
                 <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
                 <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
                 <span style={{ color: "var(--border-strong)" }}>·</span>
@@ -157,7 +157,8 @@ export default function Navbar() {
                 <button
                   onClick={() => setDropdownOpen(o => !o)}
                   title={username}
-                  style={{ width: 42, height: 42, borderRadius: "50%", background: "none", border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", padding: 0 }}
+                  className="nav-avatar-btn"
+                  style={{ borderRadius: "50%", background: "none", border: `2px solid ${roleColor}50`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "border-color 0.15s", padding: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = roleColor)}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = `${roleColor}50`)}
                 >
@@ -215,7 +216,7 @@ export default function Navbar() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(o => !o)}
-            className="flex sm:hidden"
+            className="flex min-[1200px]:hidden"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
             style={{ width: 34, height: 34, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-muted)", cursor: "pointer", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
@@ -231,7 +232,7 @@ export default function Navbar() {
 
       {/* Mobile menu panel */}
       {mobileMenuOpen && (
-        <div className="flex sm:hidden" style={{ borderTop: "1px solid var(--border)", padding: "12px 24px 20px", flexDirection: "column", gap: 4, background: "var(--bg)" }}>
+        <div className="flex min-[1200px]:hidden nav-mobile-panel" style={{ borderTop: "1px solid var(--border)", padding: "12px 24px 20px", flexDirection: "column", gap: 4, background: "var(--bg)" }}>
           {NAV_LINKS.map(({ href, label }) => (
             <Link key={href} href={href}
               style={{ padding: "10px 12px", borderRadius: "var(--radius-sm)", color: pathname === href ? "var(--text)" : "var(--text-muted)", background: pathname === href ? "var(--surface)" : "transparent", fontSize: 15, fontWeight: pathname === href ? 600 : 500, textDecoration: "none" }}>

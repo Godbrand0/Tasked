@@ -28,6 +28,7 @@ export default function TasksPage() {
   const [tierFilter, setTierFilter] = useState<number | null>(null);
   const [fundingFilter, setFundingFilter] = useState<"all" | "self" | "grant">("all");
   const [kindFilter, setKindFilter] = useState<"all" | "development" | "community">("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
@@ -55,6 +56,7 @@ export default function TasksPage() {
     return true;
   });
 
+  const activeFilterCount = [statusFilter !== "All", kindFilter !== "all", tierFilter !== null, fundingFilter !== "all"].filter(Boolean).length;
   const isContributor = connected && isRegistered && role === "contributor";
   const isCreator = connected && isRegistered && role === "creator";
   const canJoinCommunity = connected && isRegistered && role !== "creator";
@@ -62,11 +64,11 @@ export default function TasksPage() {
   return (
     <PageShell>
       {/* Header */}
-      <div style={{ padding: "40px 24px 32px", borderBottom: "1px solid transparent", borderImage: "linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent) 1" }}>
+      <div className="tasks-page-header" style={{ padding: "40px 24px 32px", borderBottom: "1px solid transparent", borderImage: "linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent) 1" }}>
         <Container style={{ padding: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
+              <h1 className="tasks-page-title" style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Browse Bounties</h1>
               <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
                 {tasks.filter(t => t.status === "OPEN").length} open tasks · matched automatically by experience
               </p>
@@ -99,11 +101,11 @@ export default function TasksPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr]" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px", gap: 32, alignItems: "start" }}>
+      <div className="tasks-layout grid grid-cols-1 md:grid-cols-[260px_1fr]" style={{ maxWidth: 1200, margin: "0 auto", alignItems: "start" }}>
         {/* Sidebar filters */}
-        <aside style={{ position: "sticky", top: 80 }}>
+        <aside className="filters" data-open={filtersOpen}>
           {/* Search */}
-          <div style={{ marginBottom: 24 }}>
+          <div className="filters-search">
             <div style={{ position: "relative" }}>
               <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -115,6 +117,12 @@ export default function TasksPage() {
             </div>
           </div>
 
+          <button type="button" className="filters-toggle" onClick={() => setFiltersOpen(o => !o)} aria-expanded={filtersOpen}>
+            <span>Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: filtersOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+
+          <div className="filters-body">
           {/* Status */}
           <FilterGroup label="Status">
             <FilterSelect value={statusFilter} onChange={setStatusFilter}>
@@ -147,18 +155,19 @@ export default function TasksPage() {
               <option value="grant">Grant-Funded</option>
             </FilterSelect>
           </FilterGroup>
+          </div>
         </aside>
 
         {/* Task grid */}
         <main>
           {tasksLoading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            <div className="task-grid" style={{ display: "grid", gap: 20 }}>
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
             <EmptyState size="lg" icon={IconSearch} title="No tasks match your filters" description="Try adjusting your search or filters" />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            <div className="task-grid" style={{ display: "grid", gap: 20 }}>
               {filtered.map(task => {
                 const showAction = task.status === "OPEN" && ((task.kind === "community" && canJoinCommunity) || (task.kind === "development" && isContributor));
                 return (

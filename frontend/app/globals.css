@@ -301,3 +301,85 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Mobile layout (≤640px) ─────────────────────────────────────────────
+ * Compact navbar + page gutters, and the Browse Tasks filter panel.
+ * ------------------------------------------------------------------- */
+
+.nav-inner { padding: 0 24px; height: 64px; }
+.nav-actions { gap: 10px; }
+.landing-nav-actions { gap: 16px; }
+.nav-avatar-btn { width: 42px; height: 42px; }
+
+.tasks-layout { padding: 32px 24px; gap: 32px; }
+.tasks-page-header { padding: 40px 24px 32px; }
+.tasks-page-title { font-size: 32px; }
+.task-grid { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); }
+
+/* Filters: sticky sidebar on desktop; collapsible, non-sticky panel on
+   mobile so the task list scrolls normally instead of sliding under it. */
+.filters { position: sticky; top: 80px; }
+.filters-search { margin-bottom: 24px; }
+.filters-toggle { display: none; }
+
+/* Tablet and down (≤1199px): navbar collapses to the hamburger; hero stacks. */
+@media (max-width: 1199px) {
+  /* flex + space-between pins the logo far left and the action cluster far right, whatever is hidden in between */
+  .nav-inner { padding: 0 14px; height: 56px; display: flex !important; justify-content: space-between; align-items: center; gap: 16px; }
+  .nav-inner > :last-child { margin-left: auto; }
+  .nav-actions { gap: 6px; }
+  .nav-avatar-btn { width: 36px; height: 36px; }
+  .nav-avatar-btn > * { width: 30px !important; height: 30px !important; }
+  .nav-mobile-btn { padding: 7px 12px !important; font-size: 12px !important; }
+  .nav-mobile-panel { padding: 8px 14px 16px !important; }
+  .nav-mobile-panel a, .nav-mobile-panel > button { font-size: 14px !important; }
+
+  .hero-section { padding: 56px 24px 64px !important; }
+  .hero-visual { margin-top: 56px; }
+}
+
+/* Below the md breakpoint the Browse Tasks sidebar stacks above the grid
+   (≤767px), so it must not be sticky there and collapses behind a toggle. */
+@media (max-width: 767px) {
+  .tasks-layout { padding: 16px 14px 32px; gap: 16px; }
+  .tasks-page-header { padding: 24px 14px 20px !important; }
+  .tasks-page-title { font-size: 24px !important; }
+  .tasks-page-header p { text-align: left !important; font-size: 14px !important; }
+
+  .filters { position: static; }
+  .filters-search { margin-bottom: 0; }
+  .filters-toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    width: 100%; margin-top: 10px; padding: 10px 12px;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .filters-body { display: none; padding-top: 14px; }
+  .filters[data-open="true"] .filters-body { display: block; }
+  .filters-body select { font-size: 16px; } /* 16px stops iOS/MetaMask webview zooming on focus */
+  .filters input { font-size: 16px !important; }
+}
+
+/* Phones (≤640px) */
+@media (max-width: 640px) {
+  .dropdown-panel { top: 66px !important; }
+
+  /* Justified text makes ragged gaps on narrow screens */
+  p { text-align: left !important; }
+
+  /* Big desktop section/page paddings → phone gutters */
+  section[style*="96px 24px"] { padding: 56px 16px !important; }
+  .page-container { padding-left: 16px !important; padding-right: 16px !important; }
+  h1 { overflow-wrap: anywhere; }
+
+  .hero-section { padding: 40px 16px 56px !important; }
+  .hero-stats { gap: 20px !important; }
+
+  .podium { gap: 8px !important; margin-bottom: 32px !important; }
+  .podium-card { padding: 14px 8px !important; height: auto !important; min-height: 150px; }
+
+  /* Long addresses/hashes and wide tables must never widen the page */
+  p, li, td, th, h1, h2, h3, code { overflow-wrap: anywhere; word-break: break-word; }
+  html, body { overflow-x: clip; }
+  table { display: block; overflow-x: auto; max-width: 100%; }
+}
