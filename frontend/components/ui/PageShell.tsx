@@ -22,5 +22,5 @@ export function Container({
   maxWidth?: number;
   style?: React.CSSProperties;
 }) {
-  return <div style={{ maxWidth, margin: "0 auto", padding: "0 24px", ...style }}>{children}</div>;
+  return <div className="page-container" style={{ maxWidth, margin: "0 auto", padding: "0 24px", ...style }}>{children}</div>;
 }
