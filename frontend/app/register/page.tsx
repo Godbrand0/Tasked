@@ -8,6 +8,7 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 import { formatContractError } from "@/lib/errors";
+import { assertGoogleAvailable } from "@/lib/identity";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconBriefcase, IconZap, IconLock } from "@/components/icons";
 
@@ -156,6 +157,9 @@ function RegisterPageInner() {
     setRegisterError("");
     setNeedsGasHelp(false);
     try {
+      // First, before the gas top-up spends sponsor BTC on a wallet that
+      // registration is about to reject.
+      if (address) await assertGoogleAvailable(googleEmail, address);
       if (!(await ensureGas())) return;
       // Google's email doubles as the notification email automatically —
       // wallet-context's register() syncs it to profiles.email directly.

@@ -7,6 +7,7 @@ import { formatUnits } from "viem";
 import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
 import { ROLE_ID, roleToString } from "@/lib/taskify";
 import { useTaskifyTx, useTaskifyUser } from "@/lib/use-taskify";
+import { assertGoogleAvailable } from "@/lib/identity";
 import type { UserRole } from "@/lib/mock";
 
 const ERC20_BALANCE_ABI = [
@@ -234,19 +235,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     googleAvatar?: string;
   }) {
     if (!address) throw new Error("No wallet connected");
-    // One Google account per wallet. registerUser is on-chain and can't be
-    // undone, so check BEFORE sending it — the profile write that follows
-    // would reject a duplicate too, but only after the account already exists.
-    if (data.googleEmail) {
-      const res = await fetch("/api/identity/google-available", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.googleEmail, address }),
-      });
-      if (res.ok && !(await res.json()).available) {
-        throw new Error("This Google account is already linked to another Taskify wallet. Connect that wallet instead.");
-      }
-    }
+    // Also checked earlier by /register (before the gas top-up); repeated here
+    // because registerUser is on-chain and can't be undone.
+    await assertGoogleAvailable(data.googleEmail, address);
     // GitHub/X are no longer collected at registration — both on-chain
     // flags start false; linkGithub/linkX set them (or the off-chain
     // equivalent) afterward, from Settings.
