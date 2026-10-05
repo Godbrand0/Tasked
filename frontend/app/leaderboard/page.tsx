@@ -92,14 +92,14 @@ export default function LeaderboardPage() {
         ) : (
           <>
             {/* Top 3 podium */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 48, alignItems: "end" }}>
+            <div className="podium" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 48, alignItems: "end" }}>
               {[top3[1], top3[0], top3[2]].map((creator, visualIdx) => {
                 if (!creator) return <div key={visualIdx} />;
                 const rank = sorted.indexOf(creator);
                 const heights = [160, 200, 140];
                 return (
                   <Link key={creator.address} href={`/profile/${creator.address}`} style={{ textDecoration: "none" }}>
-                    <div className="card-hover" style={{ background: rank === 0 ? "linear-gradient(180deg, color-mix(in srgb, var(--primary) 9%, transparent) 0%, var(--surface) 100%)" : "var(--surface)", border: `1px solid ${rank === 0 ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: "24px 20px", textAlign: "center", height: heights[visualIdx], display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                    <div className="card-hover podium-card" style={{ background: rank === 0 ? "linear-gradient(180deg, color-mix(in srgb, var(--primary) 9%, transparent) 0%, var(--surface) 100%)" : "var(--surface)", border: `1px solid ${rank === 0 ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "var(--border)"}`, borderRadius: 16, padding: "24px 20px", textAlign: "center", height: heights[visualIdx], display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                       <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
                         <IconMedal size={28} color={MEDAL_COLORS[rank]} />
                       </div>

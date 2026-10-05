@@ -712,7 +712,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       <div style={{ maxWidth: 1160, margin: "0 auto", padding: "40px 24px" }}>
         {/* Breadcrumb */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28, fontSize: 13, color: "var(--text-dim)" }}>
-          <Link href="/tasks" style={{ color: "var(--text-dim)", textDecoration: "none" }}>Tasks</Link>
+          <Link href="/tasks" style={{ color: "var(--text-dim)", textDecoration: "none", whiteSpace: "nowrap" }}>Tasks</Link>
           <span>/</span>
           <span style={{ color: "var(--text)" }}>#{task.id} {task.title}</span>
         </div>
