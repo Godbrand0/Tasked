@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/ui/Avatar";
@@ -53,10 +53,9 @@ function SettingsPageInner() {
     githubVerified, githubHandle, linkGithub, unlinkGithub,
     xVerified, xHandle, linkX, unlinkX,
     googleVerified, googleEmail, googleName, linkGoogle,
-    avatarUrl, customAvatar, uploadAvatar, removeAvatar, updateDisplayName,
+    avatarUrl, customAvatar, uploadAvatar, removeAvatar, updateDisplayName, disconnect,
   } = useWallet();
   const { address } = useAccount();
-  const { disconnect } = useDisconnect();
   const { send } = useTaskifyTx();
   const { data: onchainTasks } = useAllTasks();
   const searchParams = useSearchParams();

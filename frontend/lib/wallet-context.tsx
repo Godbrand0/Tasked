@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useAccount, useBalance, useDisconnect, useReadContract } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useAccount, useBalance, useReadContract } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { formatUnits } from "viem";
 import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
 import { ROLE_ID, roleToString } from "@/lib/taskify";
@@ -92,8 +92,7 @@ const WalletCtx = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
-  const { disconnect: wagmiDisconnect } = useDisconnect();
-  const { openConnectModal } = useConnectModal();
+  const { login, logout } = usePrivy();
   const { send } = useTaskifyTx();
 
   const { user: onchainUser, refetch: refetchUser } = useTaskifyUser(address);
@@ -170,11 +169,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }
 
   function handleConnect() {
-    openConnectModal?.();
+    login();
   }
 
   function handleDisconnect() {
-    wagmiDisconnect();
+    // Privy ignores wagmi's useDisconnect; logout() ends the Privy session and
+    // disconnects the wagmi connector with it.
+    void logout();
   }
 
   // Best-effort sync to the off-chain profiles table (bio, linked-handle
