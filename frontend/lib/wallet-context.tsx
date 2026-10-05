@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useAccount, useBalance, useReadContract } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useCreateWallet, usePrivy } from "@privy-io/react-auth";
 import { formatUnits } from "viem";
 import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
 import { ROLE_ID, roleToString } from "@/lib/taskify";
@@ -95,7 +95,9 @@ const WalletCtx = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
-  const { login, logout, ready, authenticated, getAccessToken } = usePrivy();
+  const { login, logout, ready, authenticated, user, getAccessToken } = usePrivy();
+  const { createWallet } = useCreateWallet();
+  const creatingWallet = useRef(false);
   const [identityConflict, setIdentityConflict] = useState<string | null>(null);
   const { send } = useTaskifyTx();
 
@@ -201,7 +203,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return r.data?.value ?? BigInt(0);
   }
 
+  // Signed in to Privy (e.g. Google) but no wallet linked: createOnLogin can
+  // leave a user in this state, and calling login() again just warns
+  // ("already logged in"). Create the wallet explicitly, and log Privy's real
+  // error if it fails — the login modal otherwise sits on "Creating your wallet".
+  async function ensureWallet() {
+    if (creatingWallet.current) return;
+    creatingWallet.current = true;
+    try {
+      await createWallet({ createAdditional: false });
+    } catch (err) {
+      console.error("[privy] wallet creation failed:", err);
+    } finally {
+      creatingWallet.current = false;
+    }
+  }
+
+  const hasLinkedWallet = Boolean(user?.linkedAccounts.some((a) => a.type === "wallet"));
+  useEffect(() => {
+    if (!ready || !authenticated || !user || hasLinkedWallet) return;
+    const t = setTimeout(() => { void ensureWallet(); }, 4000); // give createOnLogin its chance first
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, user?.id, hasLinkedWallet]);
+
   function handleConnect() {
+    if (authenticated) {
+      if (!hasLinkedWallet) void ensureWallet();
+      return;
+    }
     login();
   }
 
