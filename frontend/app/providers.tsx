@@ -6,6 +6,7 @@ import { http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { defineChain } from "viem";
 import { WalletProvider } from "@/lib/wallet-context";
+import { IdentityConflictGate } from "@/components/IdentityConflictGate";
 import { useTheme } from "@/lib/theme-context";
 import { MEZO_CHAIN_ID, MEZO_IS_TESTNET, MEZO_NETWORK_NAME } from "@/lib/constants";
 
@@ -98,7 +99,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={config}>
-          <WalletProvider>{children}</WalletProvider>
+          <WalletProvider>
+            {children}
+            <IdentityConflictGate />
+          </WalletProvider>
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>

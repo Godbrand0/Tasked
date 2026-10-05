@@ -62,6 +62,8 @@ export interface WalletState {
 interface WalletContextValue extends WalletState {
   connect: () => void;
   disconnect: () => void;
+  /** Masked address of the wallet this login's Gmail/email is already tied to, when it isn't this one. Null when there's no conflict (or it hasn't been checked). */
+  identityConflict: string | null;
   register: (data: {
     username: string;
     role: UserRole;
@@ -92,8 +94,38 @@ const WalletCtx = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
-  const { login, logout } = usePrivy();
+  const { login, logout, ready, authenticated, getAccessToken } = usePrivy();
+  const [identityConflict, setIdentityConflict] = useState<string | null>(null);
   const { send } = useTaskifyTx();
+
+  // After a Privy login, ask the server whether this login's Gmail/email is
+  // already linked to a different wallet (see /api/identity/check). Fails open
+  // on errors: the unique index on profiles.google_email_normalized is the
+  // hard guard for the off-chain record; this is the up-front block.
+  useEffect(() => {
+    if (!ready || !authenticated || !address) {
+      setIdentityConflict(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch("/api/identity/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ address }),
+        });
+        if (!res.ok) return;
+        const data: { conflict?: boolean; linkedAddress?: string } = await res.json();
+        if (!cancelled) setIdentityConflict(data.conflict ? data.linkedAddress ?? "another wallet" : null);
+      } catch (err) {
+        console.error("[identity-check] failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ready, authenticated, address, getAccessToken]);
 
   const { user: onchainUser, refetch: refetchUser } = useTaskifyUser(address);
   // githubHandle/xHandle display info (avatar, verified flags) lives off-chain
@@ -202,6 +234,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     googleAvatar?: string;
   }) {
     if (!address) throw new Error("No wallet connected");
+    // One Google account per wallet. registerUser is on-chain and can't be
+    // undone, so check BEFORE sending it — the profile write that follows
+    // would reject a duplicate too, but only after the account already exists.
+    if (data.googleEmail) {
+      const res = await fetch("/api/identity/google-available", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.googleEmail, address }),
+      });
+      if (res.ok && !(await res.json()).available) {
+        throw new Error("This Google account is already linked to another Taskify wallet. Connect that wallet instead.");
+      }
+    }
     // GitHub/X are no longer collected at registration — both on-chain
     // flags start false; linkGithub/linkX set them (or the off-chain
     // equivalent) afterward, from Settings.
@@ -345,6 +390,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     totalEarned: Number(formatUnits(onchainUser.totalEarned, MUSD_DECIMALS)),
     connect: handleConnect,
     disconnect: handleDisconnect,
+    identityConflict,
     register,
     linkX,
     unlinkX,

@@ -63,6 +63,18 @@ create type notification_type as enum (
 -- 1. OFF-CHAIN CONTENT
 -- ============================================================================
 
+-- Canonical email for one-identity-per-wallet checks (see migrations/0018 and
+-- lib/email-normalize.ts, which must match): lowercase; for gmail.com /
+-- googlemail.com also drop dots and any +tag in the local part.
+create or replace function normalize_email(raw text) returns text
+language sql immutable strict as $$
+  select case
+    when split_part(lower(btrim(raw)), '@', 2) in ('gmail.com', 'googlemail.com')
+      then replace(split_part(split_part(lower(btrim(raw)), '@', 1), '+', 1), '.', '') || '@gmail.com'
+    else lower(btrim(raw))
+  end
+$$;
+
 -- Off-chain extension of the on-chain User (users_onchain, below). One row
 -- per wallet, created the first time that address touches the app (doesn't
 -- require on-chain registration — e.g. a visitor who links GitHub/X before
@@ -80,6 +92,7 @@ create table profiles (
   google_email         text, -- the required identity as of the Google-first registration flow
   google_name          text,
   google_avatar_url    text,
+  google_email_normalized text generated always as (normalize_email(google_email)) stored, -- unique; see migrations/0018
   custom_avatar_url    text, -- user-uploaded profile picture (data URI), takes priority over provider avatars
   email                text, -- optional, opt-in; only used to mirror in-app notifications
   notification_prefs   jsonb not null default jsonb_build_object(
@@ -94,6 +107,10 @@ create table profiles (
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
+
+create unique index profiles_google_email_normalized_key
+  on profiles (google_email_normalized)
+  where google_email_normalized is not null;
 
 -- Rich task content the contract doesn't store (Task.sol only persists
 -- `title`). One row per on-chain task id — created off-chain at the same
