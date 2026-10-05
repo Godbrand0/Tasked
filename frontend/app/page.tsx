@@ -330,6 +330,7 @@ function TrustBar() {
     { icon: <IconGithub />, label: "GitHub or X verified" },
     { icon: <IconLock />, label: "Trustless escrow" },
     { icon: <IconCoins />, label: "MUSD + MEZO native" },
+    { icon: <IconUsers />, label: "Sign in with email, Google or a wallet" },
   ];
   return (
     <div className="hidden md:block" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "20px 24px" }}>

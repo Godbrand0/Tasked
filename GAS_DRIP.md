@@ -17,6 +17,8 @@ Scope, deliberately narrow:
 - **Only** first-time contributor onboarding: `registerUser`, then the first few
   things they do (`applyForTask` / `joinCommunityTask` / `submitTask` / `setXVerified`).
 - **One drip per Google identity, ever. One drip per wallet address, ever.**
+- **Google-verified identities only.** Email-only Privy logins get no grant: a throwaway email
+  address is free to create, which would break the economics below.
 - Creators and patrons pay their own gas — those actions move real money and are
   economically self-limiting.
 - Not "gasless forever" — no relayer, no paymaster, no contract change.
@@ -32,6 +34,15 @@ stopped farming (a farmer owns all their fake wallets) and only added a visible
 prompt; the fresh-wallet checks + per-`sub` dedupe do the real work.
 
 ## How it works
+
+There are two ways to prove the Google identity; both end at the same `/api/gas-drip` call
+with the same kind of token, so the drip endpoint doesn't care which was used:
+
+- **Privy login with Google** — `/api/identity/me` verifies the Privy session server-side, reads the
+  linked Google account's `subject` (Google's stable per-user id, the same value the standalone OAuth
+  path calls `sub`) and mints the grant from it. One Google account is therefore one drip however it
+  signed in. `/register` skips the separate Google step for these users.
+- **Wallet login (MetaMask/Rabby/…) + the Google step on `/register`** — the flow below, unchanged.
 
 ```
 /register
@@ -51,14 +62,15 @@ prompt; the fresh-wallet checks + per-`sub` dedupe do the real work.
                 send GAS_DRIP_AMOUNT_WEI BTC -> address, wait for receipt
                 write tx_hash onto the reserved row
         client: poll balance until it lands, then call registerUser
-        -> one MetaMask prompt (the register tx), paid from the top-up
+        -> one wallet prompt (the register tx), paid from the top-up
 ```
 
 Only visible on failure (cap hit / sponsor dry): one line pointing to the FAQ's
 "how to get BTC on Mezo", instead of a doomed transaction.
 
 Files: `frontend/app/api/gas-drip/route.ts`, `frontend/lib/gas-grant.ts`,
-`frontend/app/api/auth/google/callback/route.ts` (mints the token),
+`frontend/app/api/auth/google/callback/route.ts` (mints the token for the Google step),
+`frontend/app/api/identity/me/route.ts` (mints it for Privy Google logins),
 `frontend/app/register/page.tsx` (`ensureGas` inside `handleRegister`),
 `frontend/lib/wallet-context.tsx` (`nativeBalance` / `refetchNativeBalance`),
 `supabase/migrations/0017_gas_drips.sql`.
@@ -91,6 +103,12 @@ The feature is **completely dormant** until `GAS_DRIP_PRIVATE_KEY`,
 Supabase + `NEXT_PUBLIC_TASKIFY_CONTRACT` are configured, which they already are).
 Without them: the callback skips the token, `/register` shows a plain "you'll
 need BTC" note with a link, and `/api/gas-drip` returns 503.
+
+### 3b. Privy logins (optional)
+
+The Privy path additionally needs `NEXT_PUBLIC_PRIVY_APP_ID` and `PRIVY_APP_SECRET` (server-only) so
+`/api/identity/me` can verify sessions. Without them Privy users still register but get no grant, and
+see the "you'll need BTC" note — wallet logins using the Google step are unaffected.
 
 ### 4. Calibrate `GAS_DRIP_AMOUNT_WEI`
 

@@ -40,8 +40,8 @@ const FAQ_GROUPS: FaqGroup[] = [
         a: "3% on self-funded tasks, 5% on grant-funded tasks. 60% of every fee goes to the Taskify treasury and 40% goes into the wave pool, which is redistributed to active self-funded creators roughly every 30 days.",
       },
       {
-        q: "What wallets are supported?",
-        a: "Any standard Ethereum wallet via RainbowKit: MetaMask, Rabby, Rainbow, WalletConnect-compatible mobile wallets, or any browser-injected wallet.",
+        q: "How do I sign in, and what wallets are supported?",
+        a: "Two ways. Sign in with your email or Google account and a wallet is created for you automatically, with no extension or seed phrase to set up. Or connect a wallet you already have: MetaMask, Rabby, other browser wallets, or any WalletConnect-compatible mobile wallet. Either way you end up with a normal Mezo address, and everything on Taskify works the same.",
       },
       {
         q: "Has Taskify been audited?",
@@ -70,8 +70,20 @@ const FAQ_GROUPS: FaqGroup[] = [
     group: "Account, GitHub & X",
     items: [
       {
+        q: "Do I need a crypto wallet to sign up?",
+        a: "No. Choose email or Google when you sign in and Taskify creates a wallet for you, so you can register, apply for tasks and get paid without installing anything. That wallet is created and managed by Privy, our login provider. It's convenient for getting started, but for larger balances a self-custody wallet you control is the safer home: you can send your earnings there any time from the Wallet page.",
+      },
+      {
+        q: "Can I use the same Gmail or email on more than one wallet?",
+        a: "No. Each Google or email identity can be linked to one Taskify account. Gmail addresses are compared ignoring capital letters, dots and plus-tags, so a.b+tasks@gmail.com and ab@gmail.com count as the same account. This keeps one person from opening several accounts to farm rewards or the one-time gas top-up.",
+      },
+      {
+        q: "It says my account already exists when I sign in. What do I do?",
+        a: "The Google account or email you signed in with is already linked to a different wallet, shown partly hidden on the screen. Sign out, then connect that wallet (or sign in the way you did the first time) to get back to your account. If you can no longer access that wallet, message the team on X (@taskifyhq) or Telegram and we'll look into it. There's no self-serve way to move an account to a new wallet yet.",
+      },
+      {
         q: "Do I need to connect GitHub or X? What are the benefits?",
-        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet — though every action on Taskify needs a small amount of BTC for network fees (see \"Do I need BTC to use Taskify?\" under Wallet safety). That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
+        a: "No, neither is required to use Taskify's core features. You can register, browse and apply for tasks, post tasks, and deposit as a Patron with just a wallet or an email/Google sign-in — though every action on Taskify needs a small amount of BTC for network fees (see \"Do I need BTC to use Taskify?\" under Wallet safety). That said, both are worth connecting: GitHub verification (real OAuth, in Settings) is the strongest signal a creator has that a Development-task applicant is a real, working developer, and it's what most creators look for before assigning work; it also shows your actual GitHub handle instead of a raw wallet address across the app. X verification links your handle to your profile and to any proof-of-participation link you submit on Community tasks, which creators use to vet submissions before picking winners; a submission tied to a verified handle is easier to trust than an anonymous link, even though it isn't a hard requirement to join.",
       },
       {
         q: "I linked GitHub/X but it's not showing as verified. What happened?",
@@ -84,11 +96,11 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: "Which wallet should I connect when I register?",
-        a: "Use a self-custody wallet you personally hold the seed phrase for — never an exchange-custodied address, and a hardware wallet for anything holding real value. If you plan to vote on grants, connect the exact address that holds your veBTC: your voting weight is read from that specific address live via Mezo's own system, so registering with a different wallet leaves you with zero weight even if you hold veBTC elsewhere.",
+        a: "Use a self-custody wallet you personally hold the seed phrase for — never an exchange-custodied address, and a hardware wallet for anything holding real value. If you plan to vote on grants, connect the exact address that holds your veBTC: your voting weight is read from that specific address live via Mezo's own system, so registering with a different wallet leaves you with zero weight even if you hold veBTC elsewhere. If you signed in with email or Google, your wallet is the one Privy created, so use a wallet you already own if you plan to vote.",
       },
       {
         q: "Do I need BTC to use Taskify?",
-        a: "Yes — a little. Every action on Mezo (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in network fees, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several actions. After that you cover network fees yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
+        a: "Yes — a little. Every action on Mezo (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in network fees, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet verified through Google, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several actions. Email-only sign-ins don't get the top-up, so add a little BTC to that wallet before you register. After that you cover network fees yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
       },
       {
         q: "Will Taskify ever ask for my seed phrase or private key?",
@@ -101,6 +113,27 @@ const FAQ_GROUPS: FaqGroup[] = [
       {
         q: "How do I make sure I'm on the real Taskify site?",
         a: "Bookmark the official URL and use the bookmark every time. Don't reach Taskify through links in DMs, replies, ads, or search results — those are the most common phishing vectors. The only official account is @taskifyhq on X.",
+      },
+    ],
+  },
+  {
+    group: "Sending tokens",
+    items: [
+      {
+        q: "Can I send the MUSD or MEZO I earned to another wallet?",
+        a: "Yes. Open Wallet from your dashboard, pick MUSD or MEZO, enter the recipient address and amount (or tap Max), review, and confirm. It works from any wallet, including the one created by an email or Google sign-in. Only MUSD and MEZO can be sent from this page.",
+      },
+      {
+        q: "What does sending cost?",
+        a: "Taskify charges nothing. Like every action on Mezo, the network fee is paid in BTC and is a small fraction of a cent, so the wallet you're sending from needs a little BTC. If it has none, the page tells you before you confirm.",
+      },
+      {
+        q: "What if I send tokens to the wrong address?",
+        a: "Transfers are final: Taskify can't reverse, recover or cancel one. That's why the review step shows the full address in groups of four characters for you to check, and why the form blocks your own address, the zero address, and the MUSD, MEZO, BTC and Taskify contracts, where funds would be lost for good. Send a small test amount first when you're using a new address.",
+      },
+      {
+        q: "Where can I see my past transfers?",
+        a: "On the History tab of the Wallet page: transfers in and out for MUSD and MEZO, including task payouts and refunds, each linking to the Mezo explorer. A transfer can take a moment to appear after it confirms.",
       },
     ],
   },

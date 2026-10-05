@@ -221,10 +221,10 @@ function RegisterPageInner() {
 
       <div style={{ textAlign: "center", marginBottom: 36 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
-          {step === "wallet" ? "Connect your wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
+          {step === "wallet" ? "Sign in or connect a wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
-          {step === "wallet" ? "Your wallet address is your identity on Taskify." : step === "identity" ? "This information verifies your identity and isn't shared publicly." : step === "role" ? "Your role shapes your Taskify experience." : ""}
+          {step === "wallet" ? "Use email, Google, or a wallet you already have. You get a Mezo address that identifies you on Taskify." : step === "identity" ? "This information verifies your identity and isn't shared publicly." : step === "role" ? "Your role shapes your Taskify experience." : ""}
         </p>
       </div>
 
@@ -245,16 +245,16 @@ function RegisterPageInner() {
         <div style={{ width: "100%", maxWidth: 440, textAlign: "center" }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: 32, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconLock size={44} /></div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>No wallet connected</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>Not signed in</h2>
             <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 24px" }}>
-              Connect your Ethereum wallet to begin registration. Your wallet address becomes your permanent identity on Taskify.
+              Sign in with email or Google and we'll create a wallet for you, or connect one you already own. Your wallet address becomes your permanent identity on Taskify.
             </p>
             <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
-              Connect Wallet →
+              Sign in or connect wallet →
             </button>
           </div>
           <div style={{ fontSize: 12, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", lineHeight: 1.6 }}>
-            Supports MetaMask, Rabby, and other Ethereum wallets via RainbowKit. Next, you'll link a Google account too; it's what we use to email you about your tasks.
+            Supports email, Google, MetaMask, Rabby, and WalletConnect wallets. If you connect a wallet, you'll link a Google account next; it's what we use to email you about your tasks. Email and Google sign-ins use that account automatically.
           </div>
         </div>
       )}

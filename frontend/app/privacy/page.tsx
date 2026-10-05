@@ -13,7 +13,8 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "2. Information You Provide",
     body: [
-      "Identity verification (required to register): registration uses Google OAuth, from which Taskify receives your email address, name, and profile picture URL. You may additionally link a GitHub or X (Twitter) account, from which Taskify receives your handle, display name, and avatar URL. Taskify requests only read-level scopes and never posts, modifies, or deletes anything in those accounts.",
+      "Identity verification (required to register): registration uses a Google account or email address, verified either through your Privy sign-in or through Google OAuth. Taskify receives your email address and name (and, through Google OAuth, your profile picture URL), and stores a normalized form of the email (lowercased, and for Gmail with dots and plus-tags removed) so that one identity can only be linked to one wallet. You may additionally link a GitHub or X (Twitter) account, from which Taskify receives your handle, display name, and avatar URL. Taskify requests only read-level scopes and never posts, modifies, or deletes anything in those accounts.",
+      "Sign-in and wallet creation: you can sign in through Privy with an email address, a Google account, or an existing wallet (such as MetaMask, Rabby, or a WalletConnect wallet). If you sign in with email or Google, Privy creates a wallet for you. Privy receives the sign-in details you give it and operates under its own terms and privacy policy; Taskify receives a verified session from Privy and the wallet address, and never sees your Google password.",
       "Profile details: an optional display name, bio, and a profile picture you upload (stored as an image on your profile record).",
       "Notification email (optional, opt-in): if you add an email address in settings, it is used only to mirror in-app notifications by email. Leave it blank and no email is ever sent to you.",
       "Content you submit: task titles and descriptions, tags, repository links, grant justifications, images attached to tasks, the motivation text you write when applying to a task, pull-request and issue links you submit as work, and comments you post on task threads. This content is stored off-chain and is visible to other users of the app.",
@@ -48,7 +49,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "6. Service Providers",
     body: [
-      "Taskify shares information with a small set of processors that act on its instructions: Vercel (website hosting and privacy-friendly analytics); Supabase (the database and image storage for off-chain profiles, task content, comments, and notifications); Google, GitHub, and X (identity verification via OAuth — the data flow to them is governed by their own policies and by the permission screen you approve); and an email delivery provider used to send transactional notification emails only if you supplied an email address.",
+      "Taskify shares information with a small set of processors that act on its instructions: Vercel (website hosting and privacy-friendly analytics); Supabase (the database and image storage for off-chain profiles, task content, comments, and notifications); Privy (sign-in, and wallet creation for email and Google sign-ins — governed by its own policies); Google, GitHub, and X (identity verification via OAuth — the data flow to them is governed by their own policies and by the permission screen you approve); Mezo's public block explorer API (Taskify's servers request your wallet's transfer history from it when you open the Wallet page, using your public wallet address); and an email delivery provider used to send transactional notification emails only if you supplied an email address.",
       "Information may also be disclosed if required by law, or to protect the rights, safety, or property of Taskify, its users, or the public.",
     ],
   },
@@ -56,7 +57,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
     title: "7. Cookies and Local Storage",
     body: [
       "Taskify does not use tracking or advertising cookies. When you link an X account, a few short-lived, HTTP-only cookies are set to carry the OAuth security tokens through that single sign-in flow and are deleted immediately after.",
-      "The app uses your browser's local storage to remember interface state such as your connected wallet and preferences. This stays in your browser and is not transmitted to Taskify as a tracking identifier.",
+      "The app uses your browser's local storage to remember interface state such as your connected wallet and preferences. This stays in your browser and is not transmitted to Taskify as a tracking identifier. Privy also keeps a sign-in session in your browser so you stay signed in.",
     ],
   },
   {
