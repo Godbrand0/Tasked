@@ -5,6 +5,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyGasGrant } from "@/lib/gas-grant";
 import { sendWithRetry } from "@/lib/send-with-retry";
+import { classifyGasDripError } from "@/lib/gas-drip-reason";
 import { ERC20_ABI, MEZO_ADDRESS, TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
 
 // One-time gas sponsorship for first-time contributors. Mezo's gas token is
@@ -207,7 +208,10 @@ export async function POST(req: NextRequest) {
 
   if (outcome.kind === "failed") {
     await releaseReservation();
-    return NextResponse.json({ error: "The gas top-up transaction failed — try again shortly." }, { status: 502 });
+    // A category + scrubbed message (no URLs/keys) so a failure can be diagnosed
+    // from the browser; the full error is in the server log above.
+    const { reason, detail } = classifyGasDripError(outcome.errors[outcome.errors.length - 1]);
+    return NextResponse.json({ error: "The gas top-up transaction failed — try again shortly.", reason, detail }, { status: 502 });
   }
   if (outcome.kind === "landed-unknown-hash") {
     // An earlier attempt went through but we never saw its hash. The wallet is
