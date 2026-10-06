@@ -399,8 +399,16 @@ X_CLIENT_SECRET=
 
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
-# WalletConnect Cloud project ID — get one at https://cloud.walletconnect.com
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
+# Privy app ID (public) — create an app at https://dashboard.privy.io, enable the
+# email, Google and wallet login methods, and add your origins (localhost:3000,
+# production domain) under allowed origins. The app secret is only needed
+# server-side (keep it out of NEXT_PUBLIC_ vars): /api/identity/check uses it to
+# verify Privy sessions and block a Gmail/email already linked to another
+# wallet. Without it that check is off. Also run supabase/migrations/0018.
+NEXT_PUBLIC_PRIVY_APP_ID=
+PRIVY_APP_SECRET=
+# Optional: WebSocket RPC for Mezo, if Privy asks for one for the custom chain
+NEXT_PUBLIC_MEZO_WS_URL=
 
 # Mezo network (defaults below already match mainnet if unset — override
 # with the Mezo Testnet values from Contract Addresses to point at testnet

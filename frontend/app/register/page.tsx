@@ -8,6 +8,8 @@ import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 import { formatContractError } from "@/lib/errors";
+import { assertGoogleAvailable } from "@/lib/identity";
+import { usePrivy } from "@privy-io/react-auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconBriefcase, IconZap, IconLock } from "@/components/icons";
 
@@ -52,6 +54,7 @@ function RegisterPageInner() {
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [gasGrant, setGasGrant] = useState("");
+  const { ready: privyReady, authenticated: privyAuthed, getAccessToken } = usePrivy();
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const [needsGasHelp, setNeedsGasHelp] = useState(false);
@@ -69,6 +72,37 @@ function RegisterPageInner() {
     }
     prevConnected.current = connected;
   }, [connected, step]);
+
+  // A Privy email/Google login already proved who this is: use that verified
+  // identity instead of asking for a second, unrelated Google sign-in (which
+  // would let someone log in as Gmail A and register as Gmail B). Wallet-only
+  // logins (MetaMask/Rabby) get identity:null and keep the Google step below.
+  useEffect(() => {
+    if (!privyReady || !privyAuthed || !address) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch("/api/identity/me", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ address }),
+        });
+        if (!res.ok) return;
+        const data: { identity: { email: string; name: string } | null; gasGrant: string | null } = await res.json();
+        if (cancelled || !data.identity) return;
+        setGoogleEmail(data.identity.email);
+        setGoogleName(data.identity.name);
+        setGoogleAvatar("");
+        setGoogleVerified(true);
+        setGasGrant(data.gasGrant ?? "");
+      } catch (err) {
+        console.error("[identity-me] failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [privyReady, privyAuthed, address, getAccessToken]);
 
   // Read Google profile back from OAuth callback redirect
   useEffect(() => {
@@ -156,6 +190,9 @@ function RegisterPageInner() {
     setRegisterError("");
     setNeedsGasHelp(false);
     try {
+      // First, before the gas top-up spends sponsor BTC on a wallet that
+      // registration is about to reject.
+      if (address) await assertGoogleAvailable(googleEmail, address);
       if (!(await ensureGas())) return;
       // Google's email doubles as the notification email automatically —
       // wallet-context's register() syncs it to profiles.email directly.

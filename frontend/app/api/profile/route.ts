@@ -22,6 +22,11 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin.from("profiles").select("*").eq("address", address).maybeSingle();
   if (error) {
+    // profiles_google_email_normalized_key: that Google account is already
+    // linked to a different wallet (see migrations/0018).
+    if (error.code === "23505" && error.message.includes("google_email_normalized")) {
+      return NextResponse.json({ error: "That Google account is already linked to another wallet." }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ profile: data });
@@ -65,6 +70,11 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
+    // profiles_google_email_normalized_key: that Google account is already
+    // linked to a different wallet (see migrations/0018).
+    if (error.code === "23505" && error.message.includes("google_email_normalized")) {
+      return NextResponse.json({ error: "That Google account is already linked to another wallet." }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ profile: data });

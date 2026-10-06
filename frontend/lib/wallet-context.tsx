@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useAccount, useBalance, useDisconnect, useReadContract } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { useAccount, useBalance, useReadContract } from "wagmi";
+import { useCreateWallet, usePrivy } from "@privy-io/react-auth";
 import { formatUnits } from "viem";
 import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
 import { ROLE_ID, roleToString } from "@/lib/taskify";
 import { useTaskifyTx, useTaskifyUser } from "@/lib/use-taskify";
+import { assertGoogleAvailable } from "@/lib/identity";
 import type { UserRole } from "@/lib/mock";
 
 const ERC20_BALANCE_ABI = [
@@ -62,6 +63,8 @@ export interface WalletState {
 interface WalletContextValue extends WalletState {
   connect: () => void;
   disconnect: () => void;
+  /** Masked address of the wallet this login's Gmail/email is already tied to, when it isn't this one. Null when there's no conflict (or it hasn't been checked). */
+  identityConflict: string | null;
   register: (data: {
     username: string;
     role: UserRole;
@@ -92,9 +95,40 @@ const WalletCtx = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
-  const { disconnect: wagmiDisconnect } = useDisconnect();
-  const { openConnectModal } = useConnectModal();
+  const { login, logout, ready, authenticated, user, getAccessToken } = usePrivy();
+  const { createWallet } = useCreateWallet();
+  const creatingWallet = useRef(false);
+  const [identityConflict, setIdentityConflict] = useState<string | null>(null);
   const { send } = useTaskifyTx();
+
+  // After a Privy login, ask the server whether this login's Gmail/email is
+  // already linked to a different wallet (see /api/identity/check). Fails open
+  // on errors: the unique index on profiles.google_email_normalized is the
+  // hard guard for the off-chain record; this is the up-front block.
+  useEffect(() => {
+    if (!ready || !authenticated || !address) {
+      setIdentityConflict(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch("/api/identity/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ address }),
+        });
+        if (!res.ok) return;
+        const data: { conflict?: boolean; linkedAddress?: string } = await res.json();
+        if (!cancelled) setIdentityConflict(data.conflict ? data.linkedAddress ?? "another wallet" : null);
+      } catch (err) {
+        console.error("[identity-check] failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ready, authenticated, address, getAccessToken]);
 
   const { user: onchainUser, refetch: refetchUser } = useTaskifyUser(address);
   // githubHandle/xHandle display info (avatar, verified flags) lives off-chain
@@ -169,12 +203,42 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return r.data?.value ?? BigInt(0);
   }
 
+  // Signed in to Privy (e.g. Google) but no wallet linked: createOnLogin can
+  // leave a user in this state, and calling login() again just warns
+  // ("already logged in"). Create the wallet explicitly, and log Privy's real
+  // error if it fails — the login modal otherwise sits on "Creating your wallet".
+  async function ensureWallet() {
+    if (creatingWallet.current) return;
+    creatingWallet.current = true;
+    try {
+      await createWallet({ createAdditional: false });
+    } catch (err) {
+      console.error("[privy] wallet creation failed:", err);
+    } finally {
+      creatingWallet.current = false;
+    }
+  }
+
+  const hasLinkedWallet = Boolean(user?.linkedAccounts.some((a) => a.type === "wallet"));
+  useEffect(() => {
+    if (!ready || !authenticated || !user || hasLinkedWallet) return;
+    const t = setTimeout(() => { void ensureWallet(); }, 4000); // give createOnLogin its chance first
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, user?.id, hasLinkedWallet]);
+
   function handleConnect() {
-    openConnectModal?.();
+    if (authenticated) {
+      if (!hasLinkedWallet) void ensureWallet();
+      return;
+    }
+    login();
   }
 
   function handleDisconnect() {
-    wagmiDisconnect();
+    // Privy ignores wagmi's useDisconnect; logout() ends the Privy session and
+    // disconnects the wagmi connector with it.
+    void logout();
   }
 
   // Best-effort sync to the off-chain profiles table (bio, linked-handle
@@ -201,6 +265,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     googleAvatar?: string;
   }) {
     if (!address) throw new Error("No wallet connected");
+    // Also checked earlier by /register (before the gas top-up); repeated here
+    // because registerUser is on-chain and can't be undone.
+    await assertGoogleAvailable(data.googleEmail, address);
     // GitHub/X are no longer collected at registration — both on-chain
     // flags start false; linkGithub/linkX set them (or the off-chain
     // equivalent) afterward, from Settings.
@@ -344,6 +411,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     totalEarned: Number(formatUnits(onchainUser.totalEarned, MUSD_DECIMALS)),
     connect: handleConnect,
     disconnect: handleDisconnect,
+    identityConflict,
     register,
     linkX,
     unlinkX,
