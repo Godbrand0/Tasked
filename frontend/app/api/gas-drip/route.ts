@@ -199,9 +199,7 @@ export async function POST(req: NextRequest) {
     hasLanded: async () => (await publicClient.getBalance({ address })) > BigInt(0),
     onError: (err, attempt) =>
       console.error(`[gas-drip] send attempt ${attempt} failed:`, {
-        name: (err as Error)?.name,
-        message: ((err as { shortMessage?: string })?.shortMessage ?? (err as Error)?.message ?? "").slice(0, 300),
-        details: ((err as { details?: string })?.details ?? "").slice(0, 300),
+        ...classifyGasDripError(err), // reason + root-cause detail, not just viem's generic outer message
         rpc: new URL(RPC_URL).host,
       }),
   });
