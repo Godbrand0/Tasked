@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
 import { privyServer } from "@/lib/privy-server";
-import { mintGasGrant } from "@/lib/gas-grant";
+import { isGasDripConfigured, mintGasGrant } from "@/lib/gas-grant";
 
 // The identity Privy has verified for this login, for /register to use instead
 // of a second, unrelated Google sign-in. Without this, someone could log in
@@ -17,6 +17,9 @@ import { mintGasGrant } from "@/lib/gas-grant";
 // account dedupes to one drip however it signed in. Email-only logins get NO
 // grant: a throwaway email is free to create, so dripping on it would break
 // the farm-resistance the drip is sized around (see GAS_DRIP.md).
+//
+// An email-only login gets no grant, but may link a Google account from /register
+// to claim one — once linked, this route returns the Google identity and a grant.
 //
 // Returns { identity: null } for wallet-only logins (MetaMask/Rabby with no
 // email linked) — /register then falls back to its own Google step.
@@ -65,6 +68,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       identity: { email: email.address, name: email.address.split("@")[0], source: "email" },
       gasGrant: null,
+      // No drip for email alone (free to fake), but linking a Google account
+      // earns one: the next call finds the google_oauth account above.
+      canClaimGasByLinkingGoogle: isGasDripConfigured(),
     });
   }
 

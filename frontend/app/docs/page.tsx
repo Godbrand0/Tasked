@@ -61,8 +61,8 @@ const SECTIONS: DocSection[] = [
         <p>
           Email and Google sign-ins register with the identity they verified, with no separate Google step.
           Wallet sign-ins still connect a Google account when they register. New contributor wallets verified
-          through Google also get a one-time BTC top-up so their first actions work, and email-only sign-ins do
-          not. See <Link href="/faq#account-github-x" style={{ color: "var(--primary)" }}>the FAQ</Link> for
+          through Google also get a one-time BTC top-up so their first actions work. Email-only sign-ins can claim
+          it too by linking a Google account on the registration page. See <Link href="/faq#account-github-x" style={{ color: "var(--primary)" }}>the FAQ</Link> for
           common questions.
         </p>
       </>

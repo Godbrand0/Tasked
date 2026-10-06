@@ -9,7 +9,7 @@ import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 import { formatContractError } from "@/lib/errors";
 import { assertGoogleAvailable } from "@/lib/identity";
-import { usePrivy } from "@privy-io/react-auth";
+import { useLinkAccount, usePrivy } from "@privy-io/react-auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconBriefcase, IconZap, IconLock } from "@/components/icons";
 
@@ -54,7 +54,16 @@ function RegisterPageInner() {
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [gasGrant, setGasGrant] = useState("");
-  const { ready: privyReady, authenticated: privyAuthed, getAccessToken } = usePrivy();
+  const { ready: privyReady, authenticated: privyAuthed, user: privyUser, getAccessToken } = usePrivy();
+  // Email-only logins get no gas top-up (a throwaway email is free to fake), but
+  // linking a Google account earns one — see /api/identity/me.
+  const [canLinkGoogleForGas, setCanLinkGoogleForGas] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const { linkGoogle } = useLinkAccount({
+    onError: (err) => setLinkError(`Couldn't link Google (${String(err).replace(/_/g, " ")}). Try again, or add a little BTC to your wallet instead.`),
+  });
+  // Changes when an account is linked, so the identity below is re-read (Google now wins).
+  const linkedAccountCount = privyUser?.linkedAccounts?.length ?? 0;
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const [needsGasHelp, setNeedsGasHelp] = useState(false);
@@ -90,19 +99,20 @@ function RegisterPageInner() {
           body: JSON.stringify({ address }),
         });
         if (!res.ok) return;
-        const data: { identity: { email: string; name: string } | null; gasGrant: string | null } = await res.json();
+        const data: { identity: { email: string; name: string } | null; gasGrant: string | null; canClaimGasByLinkingGoogle?: boolean } = await res.json();
         if (cancelled || !data.identity) return;
         setGoogleEmail(data.identity.email);
         setGoogleName(data.identity.name);
         setGoogleAvatar("");
         setGoogleVerified(true);
         setGasGrant(data.gasGrant ?? "");
+        setCanLinkGoogleForGas(Boolean(data.canClaimGasByLinkingGoogle) && !data.gasGrant);
       } catch (err) {
         console.error("[identity-me] failed:", err);
       }
     })();
     return () => { cancelled = true; };
-  }, [privyReady, privyAuthed, address, getAccessToken]);
+  }, [privyReady, privyAuthed, address, getAccessToken, linkedAccountCount]);
 
   // Read Google profile back from OAuth callback redirect
   useEffect(() => {
@@ -319,6 +329,20 @@ function RegisterPageInner() {
               </div>
             )}
           </div>
+
+          {hasIdentity && canLinkGoogleForGas && (
+            <div style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRadius: 14, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Get a free gas top-up</div>
+              <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 12 }}>
+                Every action on Mezo needs a little BTC for network fees. Link a Google account and we'll send a one-time top-up to your new wallet, enough for your first few actions. Skip it and you'll need to add BTC yourself before registering.
+              </div>
+              {linkError && <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 10 }}>{linkError}</div>}
+              <button type="button" onClick={() => { setLinkError(""); linkGoogle(); }} className="btn-motion"
+                style={{ background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 10, border: "none", cursor: "pointer" }}>
+                Link Google for gas
+              </button>
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button

@@ -280,7 +280,7 @@ Registration rules, enforced in the interface and the database:
 
 - **One Google/email identity per wallet.** A Gmail that is already linked to a wallet cannot be used to open a second account. Gmail addresses are compared ignoring capitals, dots and `+tags` (`A.B+x@gmail.com` is `ab@gmail.com`); other providers are compared ignoring capitals only. This is backed by a unique index on `profiles.google_email_normalized` (migration `0018`), and `/api/identity/check` verifies the Privy session server-side and blocks the login screen with a pointer to the wallet that already holds the account.
 - **The identity Privy verified is the identity that gets stored.** Email/Google users skip the separate Google step on `/register` (`/api/identity/me`); wallet-only users still complete it.
-- **Gas top-up** (see [`GAS_DRIP.md`](GAS_DRIP.md)) goes to new contributor wallets verified through Google. Email-only logins do not get one — throwaway emails are free, which would defeat the farm-resistance the drip is sized around.
+- **Gas top-up** (see [`GAS_DRIP.md`](GAS_DRIP.md)) goes to new contributor wallets verified through Google. Email-only logins do not get one by themselves — throwaway emails are free, which would defeat the farm-resistance the drip is sized around — but they can link a Google account from `/register` ("Link Google for gas") and claim it, since the identity check then finds a Google account.
 
 Limits worth knowing: `registerUser` on the contract is open to anyone, so these checks guard the website and the off-chain profile, not the contract itself; and there is no flow yet to move a Gmail to a different wallet if the original wallet is lost.
 

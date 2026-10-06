@@ -17,8 +17,11 @@ Scope, deliberately narrow:
 - **Only** first-time contributor onboarding: `registerUser`, then the first few
   things they do (`applyForTask` / `joinCommunityTask` / `submitTask` / `setXVerified`).
 - **One drip per Google identity, ever. One drip per wallet address, ever.**
-- **Google-verified identities only.** Email-only Privy logins get no grant: a throwaway email
-  address is free to create, which would break the economics below.
+- **Google-verified identities only.** Email-only Privy logins get no grant on their own: a throwaway
+  email address is free to create, which would break the economics below. An email user can still
+  claim by linking a Google account on `/register` (Privy `linkGoogle`); `/api/identity/me` then
+  finds the `google_oauth` account and mints the grant from its subject. The offer is only shown when
+  the drip is fully configured (`isGasDripConfigured()` in `lib/gas-grant.ts`).
 - Creators and patrons pay their own gas — those actions move real money and are
   economically self-limiting.
 - Not "gasless forever" — no relayer, no paymaster, no contract change.

@@ -100,7 +100,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Do I need BTC to use Taskify?",
-        a: "Yes — a little. Every action on Mezo (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in network fees, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet verified through Google, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several actions. Email-only sign-ins don't get the top-up, so add a little BTC to that wallet before you register. After that you cover network fees yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
+        a: "Yes — a little. Every action on Mezo (registering, applying, submitting work, joining a Community task) costs a small amount of BTC in network fees, separate from the MUSD you earn or escrow. If you register as a contributor with a brand-new, empty wallet verified through Google, Taskify covers a one-time top-up automatically — registration just works, and it's enough to get you through your first several actions. If you signed in with email only, link a Google account on the registration page to claim the same top-up (a throwaway email is too easy to fake to get one by itself), or add a little BTC to your wallet yourself. After that you cover network fees yourself: earn MUSD on a task and swap a sliver to BTC, or bring BTC over from elsewhere on Mezo.",
       },
       {
         q: "Will Taskify ever ask for my seed phrase or private key?",
