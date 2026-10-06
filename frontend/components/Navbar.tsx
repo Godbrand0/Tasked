@@ -143,13 +143,13 @@ export default function Navbar() {
           ) : (
             /* Registered: MUSD + MEZO balances (desktop only), notifications, profile avatar */
             <>
-              <div className="hidden min-[1200px]:flex" style={{ alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
+              <Link href="/wallet" title="Open your wallet" className="hidden min-[1200px]:flex btn-motion" style={{ textDecoration: "none",  alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "5px 12px", fontSize: 12, fontWeight: 600 }}>
                 <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
                 <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
                 <span style={{ color: "var(--border-strong)" }}>·</span>
                 <span style={{ color: "var(--secondary-light)" }}>{formatBalance(mezoBalance)}</span>
                 <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MEZO</span>
-              </div>
+              </Link>
 
               <NotificationBell />
 
@@ -269,13 +269,13 @@ export default function Navbar() {
             </div>
           )}
           {connected && isRegistered && (
-            <div style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <Link href="/wallet" style={{ textDecoration: "none",  padding: "10px 12px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: "var(--success)" }}>{formatBalance(musdBalance)}</span>
               <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MUSD</span>
               <span style={{ color: "var(--border-strong)" }}>·</span>
               <span style={{ color: "var(--secondary-light)" }}>{formatBalance(mezoBalance)}</span>
               <span style={{ color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}>MEZO</span>
-            </div>
+            </Link>
           )}
           {!connected && (
             <button onClick={connect} style={{ marginTop: 8, padding: "10px 12px", borderRadius: "var(--radius-sm)", color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", fontSize: 15, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
