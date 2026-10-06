@@ -175,7 +175,10 @@ function RegisterPageInner() {
       // gas from elsewhere; fall through and let registerUser try. Otherwise
       // surface the "get some BTC" path.
       if (res.status !== 409) {
-        setRegisterError(data.error ?? "We couldn't finish setting up your wallet automatically.");
+        setRegisterError(
+          (data.error ?? "We couldn't finish setting up your wallet automatically.") +
+            (data.reason ? ` [${data.reason}${data.detail ? `: ${data.detail}` : ""}]` : ""),
+        );
         setNeedsGasHelp(true);
         return false;
       }
