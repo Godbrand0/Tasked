@@ -33,6 +33,8 @@ const SECTIONS: { title: string; body: string[] }[] = [
     title: "5. Wallets and Account Security",
     body: [
       "You are solely responsible for the security of your wallet, private keys, and seed phrase. Taskify never asks for your seed phrase and has no mechanism to recover a lost wallet or reverse a transaction signed from a compromised key.",
+      "If you sign in with email or Google, a wallet is created for you by Privy, our sign-in provider, and your access to it depends on that email or Google account and on Privy's own terms. You are responsible for keeping that account secure, and for moving significant balances to a wallet whose keys you control. Each Google or email identity may be linked to one Taskify account only; Taskify may block a sign-in that would link an identity to a second wallet.",
+      "Token transfers you send from the Wallet page, like every on-chain transaction, are final. Taskify cannot reverse, recover, or cancel a transfer, including one sent to a wrong address or to a contract that cannot return it.",
     ],
   },
   {

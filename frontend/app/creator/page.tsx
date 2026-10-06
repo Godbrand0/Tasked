@@ -14,7 +14,7 @@ import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { formatMUSD, formatEarnedBreakdown, MUSD_DECIMALS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
-import { IconClipboard, IconZap, IconCheck, IconLock, IconLandmark, IconUser } from "@/components/icons";
+import { IconClipboard, IconZap, IconCheck, IconLock, IconLandmark, IconUser, IconSend } from "@/components/icons";
 import {
   useAllTasks,
   useCurrentWave,
@@ -313,6 +313,12 @@ export default function CreatorPage() {
                 </Link>
                 <Link href="/create?type=grant" className="btn-motion" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", color: "var(--secondary-light)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                   <IconLandmark size={15} /> Apply for grant
+                </Link>
+                <Link href="/wallet?tab=send" className="btn-motion" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconSend size={15} /> Send tokens
+                </Link>
+                <Link href="/wallet?tab=history" className="btn-motion" style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconClipboard size={15} /> Transfer history
                 </Link>
                 <Link href={`/profile/${displayAddress}`} className="btn-motion" style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                   <IconUser size={15} /> View public profile

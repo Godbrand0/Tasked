@@ -40,6 +40,10 @@ export interface WalletState {
   mezoBalance: number;
   /** Native BTC balance in wei — Mezo's gas token. */
   nativeBalance: bigint;
+  /** Exact on-chain token balances (18 decimals) — the number fields above are lossy, so use these for Max/validation. */
+  musdRawBalance: bigint;
+  mezoRawBalance: bigint;
+  refetchTokenBalances: () => Promise<void>;
   /** Whether the connected wallet holds any BTC to pay gas with. */
   hasGas: boolean;
   githubVerified: boolean;
@@ -173,7 +177,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, [address]);
 
-  const { data: musdRaw } = useReadContract({
+  const { data: musdRaw, refetch: refetchMusd } = useReadContract({
     address: MUSD_ADDRESS,
     abi: ERC20_BALANCE_ABI,
     functionName: "balanceOf",
@@ -181,7 +185,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     query: { enabled: Boolean(address && MUSD_ADDRESS) },
   });
 
-  const { data: mezoRaw } = useReadContract({
+  const { data: mezoRaw, refetch: refetchMezo } = useReadContract({
     address: MEZO_ADDRESS,
     abi: ERC20_BALANCE_ABI,
     functionName: "balanceOf",
@@ -197,6 +201,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     query: { enabled: Boolean(address) },
   });
   const nativeBalance = nativeBal?.value ?? BigInt(0);
+  const musdRawBalance = (musdRaw as bigint | undefined) ?? BigInt(0);
+  const mezoRawBalance = (mezoRaw as bigint | undefined) ?? BigInt(0);
+  async function refetchTokenBalances() {
+    await Promise.all([refetchMusd(), refetchMezo(), refetchNativeBal()]);
+  }
   const hasGas = nativeBalance > BigInt(0);
   async function refetchNativeBalance(): Promise<bigint> {
     const r = await refetchNativeBal();
@@ -379,6 +388,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     musdBalance,
     mezoBalance,
     nativeBalance,
+    musdRawBalance,
+    mezoRawBalance,
+    refetchTokenBalances,
     hasGas,
     refetchNativeBalance,
     // Off-chain display_name overrides the permanent on-chain username for

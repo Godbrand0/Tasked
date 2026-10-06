@@ -9,7 +9,7 @@ import { useWallet } from "@/lib/wallet-context";
 import type { UserRole } from "@/lib/mock";
 import { formatContractError } from "@/lib/errors";
 import { assertGoogleAvailable } from "@/lib/identity";
-import { usePrivy } from "@privy-io/react-auth";
+import { useLinkAccount, usePrivy } from "@privy-io/react-auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconBriefcase, IconZap, IconLock } from "@/components/icons";
 
@@ -54,7 +54,16 @@ function RegisterPageInner() {
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [gasGrant, setGasGrant] = useState("");
-  const { ready: privyReady, authenticated: privyAuthed, getAccessToken } = usePrivy();
+  const { ready: privyReady, authenticated: privyAuthed, user: privyUser, getAccessToken } = usePrivy();
+  // Email-only logins get no gas top-up (a throwaway email is free to fake), but
+  // linking a Google account earns one — see /api/identity/me.
+  const [canLinkGoogleForGas, setCanLinkGoogleForGas] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const { linkGoogle } = useLinkAccount({
+    onError: (err) => setLinkError(`Couldn't link Google (${String(err).replace(/_/g, " ")}). Try again, or add a little BTC to your wallet instead.`),
+  });
+  // Changes when an account is linked, so the identity below is re-read (Google now wins).
+  const linkedAccountCount = privyUser?.linkedAccounts?.length ?? 0;
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const [needsGasHelp, setNeedsGasHelp] = useState(false);
@@ -90,19 +99,20 @@ function RegisterPageInner() {
           body: JSON.stringify({ address }),
         });
         if (!res.ok) return;
-        const data: { identity: { email: string; name: string } | null; gasGrant: string | null } = await res.json();
+        const data: { identity: { email: string; name: string } | null; gasGrant: string | null; canClaimGasByLinkingGoogle?: boolean } = await res.json();
         if (cancelled || !data.identity) return;
         setGoogleEmail(data.identity.email);
         setGoogleName(data.identity.name);
         setGoogleAvatar("");
         setGoogleVerified(true);
         setGasGrant(data.gasGrant ?? "");
+        setCanLinkGoogleForGas(Boolean(data.canClaimGasByLinkingGoogle) && !data.gasGrant);
       } catch (err) {
         console.error("[identity-me] failed:", err);
       }
     })();
     return () => { cancelled = true; };
-  }, [privyReady, privyAuthed, address, getAccessToken]);
+  }, [privyReady, privyAuthed, address, getAccessToken, linkedAccountCount]);
 
   // Read Google profile back from OAuth callback redirect
   useEffect(() => {
@@ -221,10 +231,10 @@ function RegisterPageInner() {
 
       <div style={{ textAlign: "center", marginBottom: 36 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
-          {step === "wallet" ? "Connect your wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
+          {step === "wallet" ? "Sign in or connect a wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
-          {step === "wallet" ? "Your wallet address is your identity on Taskify." : step === "identity" ? "This information verifies your identity and isn't shared publicly." : step === "role" ? "Your role shapes your Taskify experience." : ""}
+          {step === "wallet" ? "Use email, Google, or a wallet you already have. You get a Mezo address that identifies you on Taskify." : step === "identity" ? "This information verifies your identity and isn't shared publicly." : step === "role" ? "Your role shapes your Taskify experience." : ""}
         </p>
       </div>
 
@@ -245,16 +255,16 @@ function RegisterPageInner() {
         <div style={{ width: "100%", maxWidth: 440, textAlign: "center" }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: 32, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconLock size={44} /></div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>No wallet connected</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 12px" }}>Not signed in</h2>
             <p style={{ fontSize: 14, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, margin: "0 0 24px" }}>
-              Connect your Ethereum wallet to begin registration. Your wallet address becomes your permanent identity on Taskify.
+              Sign in with email or Google and we'll create a wallet for you, or connect one you already own. Your wallet address becomes your permanent identity on Taskify.
             </p>
             <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
-              Connect Wallet →
+              Sign in or connect wallet →
             </button>
           </div>
           <div style={{ fontSize: 12, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", lineHeight: 1.6 }}>
-            Supports MetaMask, Rabby, and other Ethereum wallets via RainbowKit. Next, you'll link a Google account too; it's what we use to email you about your tasks.
+            Supports email, Google, MetaMask, Rabby, and WalletConnect wallets. If you connect a wallet, you'll link a Google account next; it's what we use to email you about your tasks. Email and Google sign-ins use that account automatically.
           </div>
         </div>
       )}
@@ -319,6 +329,20 @@ function RegisterPageInner() {
               </div>
             )}
           </div>
+
+          {hasIdentity && canLinkGoogleForGas && (
+            <div style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRadius: 14, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Get a free gas top-up</div>
+              <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 12 }}>
+                Every action on Mezo needs a little BTC for network fees. Link a Google account and we'll send a one-time top-up to your new wallet, enough for your first few actions. Skip it and you'll need to add BTC yourself before registering.
+              </div>
+              {linkError && <div style={{ fontSize: 12, color: "var(--danger)", marginBottom: 10 }}>{linkError}</div>}
+              <button type="button" onClick={() => { setLinkError(""); linkGoogle(); }} className="btn-motion"
+                style={{ background: "var(--text)", color: "var(--bg)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 10, border: "none", cursor: "pointer" }}>
+                Link Google for gas
+              </button>
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button

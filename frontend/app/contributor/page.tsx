@@ -9,7 +9,7 @@ import Avatar from "@/components/ui/Avatar";
 import { Badge, TierBadge, StatusBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import SocialLinksCard from "@/components/ui/SocialLinksCard";
-import { IconCheck, IconCoins, IconAward, IconTarget } from "@/components/icons";
+import { IconCheck, IconCoins, IconAward, IconTarget, IconSend, IconClipboard } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
@@ -267,6 +267,19 @@ export default function ContributorPage() {
                   View public profile →
                 </Link>
               )}
+            </div>
+
+            {/* Quick actions: move earnings to another wallet */}
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>Quick Actions</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <Link href="/wallet?tab=send" className="btn-motion" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconSend size={15} /> Send tokens
+                </Link>
+                <Link href="/wallet?tab=history" className="btn-motion" style={{ background: "var(--neutral-tint)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 14, padding: "11px 16px", borderRadius: 10, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconClipboard size={15} /> Transfer history
+                </Link>
+              </div>
             </div>
 
             {/* Update experience */}

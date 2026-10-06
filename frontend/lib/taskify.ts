@@ -54,6 +54,16 @@ export const ERC20_ABI = [
     ],
     outputs: [{ type: "bool" }],
   },
+  {
+    type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+  },
 ] as const;
 
 // Mirrors Taskify.sol's Role enum (0=None, 1=Creator, 2=Contributor).

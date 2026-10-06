@@ -14,12 +14,13 @@ import SocialLinksCard from "@/components/ui/SocialLinksCard";
 import { IconClipboard, IconSearch, IconTrophy, IconLandmark, IconBallot } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, TIERS, MUSD_DECIMALS, ROLE_LABELS } from "@/lib/constants";
 import { useWallet, formatAddress } from "@/lib/wallet-context";
+import { formatTokenAmount } from "@/lib/send-tokens";
 import Address from "@/components/ui/Address";
 import { useAllTasks, useCurrentWave, useUsersBatch, mapOnChainTask } from "@/lib/use-taskify";
 
 export default function DashboardPage() {
   const { address } = useAccount();
-  const { username, role, experienceLevel, tasksCompleted, githubVerified } = useWallet();
+  const { username, role, experienceLevel, tasksCompleted, githubVerified, musdRawBalance, mezoRawBalance } = useWallet();
   const displayUsername = username || formatAddress(address ?? "");
 
   const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
@@ -173,6 +174,25 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Wallet: balances + shortcuts to /wallet */}
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>Wallet</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, gap: 12 }}>
+                  <span style={{ color: "var(--text-dim)" }}>MUSD</span>
+                  <span className="figure" style={{ color: "var(--success)", fontWeight: 600, overflowWrap: "anywhere", textAlign: "right" }}>{formatTokenAmount(musdRawBalance)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, gap: 12 }}>
+                  <span style={{ color: "var(--text-dim)" }}>MEZO</span>
+                  <span className="figure" style={{ color: "var(--primary)", fontWeight: 600, overflowWrap: "anywhere", textAlign: "right" }}>{formatTokenAmount(mezoRawBalance)}</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button href="/wallet?tab=send" variant="subtle" size="sm" style={{ flex: 1 }}>Send</Button>
+                <Button href="/wallet?tab=history" variant="outline" size="sm" style={{ flex: 1 }}>History</Button>
+              </div>
+            </div>
+
             {/* Profile card */}
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>

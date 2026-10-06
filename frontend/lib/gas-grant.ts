@@ -45,3 +45,18 @@ export function verifyGasGrant(token: string | null | undefined): string | null 
     return null;
   }
 }
+
+/**
+ * True when the whole gas-drip feature is switched on — the same pieces
+ * /api/gas-drip requires before it will send anything. Lets the UI offer the
+ * "link Google to claim gas" step only when claiming can actually succeed.
+ */
+export function isGasDripConfigured(): boolean {
+  const amount = process.env.GAS_DRIP_AMOUNT_WEI;
+  return Boolean(
+    SECRET &&
+      process.env.GAS_DRIP_PRIVATE_KEY &&
+      amount && /^\d+$/.test(amount) && BigInt(amount) > BigInt(0) &&
+      Number(process.env.GAS_DRIP_DAILY_CAP ?? "0") > 0,
+  );
+}

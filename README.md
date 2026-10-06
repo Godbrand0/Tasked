@@ -20,7 +20,7 @@ Two kinds of task live side by side on one board:
 2. [Experience Matching](#experience-matching)
 3. [Repository Structure](#repository-structure)
 4. [Smart Contract Reference](#smart-contract-reference)
-5. [User Roles & Identity](#user-roles--identity)
+5. [User Roles & Identity](#user-roles--identity) — incl. [Signing In](#signing-in--accounts) and [Wallet & Sending Tokens](#wallet--sending-tokens)
 6. [Financial Model](#financial-model)
 7. [Token Roles](#token-roles)
 8. [Tech Stack](#tech-stack)
@@ -107,27 +107,36 @@ Taskify/
 │   │   ├── vote/page.tsx             # veBTC voting power display, grant voting
 │   │   ├── leaderboard/page.tsx      # Top creators by self-funded tasks posted this wave
 │   │   ├── profile/[address]/page.tsx # Public profile
-│   │   ├── dashboard/page.tsx        # General dashboard
+│   │   ├── dashboard/page.tsx        # General dashboard (wallet card → /wallet)
+│   │   ├── wallet/page.tsx           # Send MUSD/MEZO to another wallet + transfer history
 │   │   ├── settings/page.tsx         # Account settings, GitHub/X connect
 │   │   ├── terms/page.tsx            # Terms & Conditions
-│   │   └── api/auth/github/          # GitHub OAuth initiate + callback routes
+│   │   ├── api/auth/                 # Google / GitHub / X OAuth initiate + callback routes
+│   │   ├── api/identity/             # One-Gmail-per-wallet checks + Privy-verified identity
+│   │   ├── api/gas-drip/             # One-time BTC gas top-up for new contributor wallets
+│   │   └── api/wallet/history/       # MUSD/MEZO transfer history (proxies Mezo's explorer API)
 │   ├── components/
 │   │   ├── Navbar.tsx
+│   │   ├── IdentityConflictGate.tsx  # Blocks the UI when a login's Gmail belongs to another wallet
 │   │   └── ui/
 │   │       ├── Badge.tsx
 │   │       └── TaskCard.tsx
 │   ├── lib/
 │   │   ├── constants.ts              # Contract addresses, tiers, fee helpers
 │   │   ├── mock.ts                   # Mock data for UI development
-│   │   ├── wallet-context.tsx        # wagmi-backed wallet/profile state
+│   │   ├── wallet-context.tsx        # wagmi + Privy-backed wallet/profile state
+│   │   ├── send-tokens.ts            # Pure send-form rules: address/amount validation, formatting
+│   │   ├── email-normalize.ts        # Canonical Gmail form (must match SQL normalize_email)
+│   │   ├── privy-server.ts           # Server-side Privy client (identity checks)
 │   │   └── stubs/                    # Build-time stubs (see next.config.ts)
-│   ├── app/providers.tsx             # wagmi + RainbowKit + react-query setup
+│   ├── app/providers.tsx             # Privy + wagmi + react-query setup
 │   ├── next.config.ts
 │   ├── package.json
 │   └── pnpm-lock.yaml
 │
 ├── supabase/
-│   └── schema.sql                    # Off-chain content + on-chain indexed-cache schema
+│   ├── schema.sql                    # Off-chain content + on-chain indexed-cache schema
+│   └── migrations/                   # Apply in order; 0018 adds the one-Gmail-per-wallet index
 │                                      # (see file header — not wired into the app yet)
 │
 ├── TASKIFY_SECURITY_AUDIT.md          # Internal review of contracts/Taskify.sol (see below)
@@ -261,6 +270,28 @@ Any registered wallet, Creator or Contributor, can support the grant pool and/or
 ### GitHub vs. X verification
 Both are self-declared booleans on `User` (`githubVerified`, `xVerified`) — the contract trusts whatever the frontend passes at registration (or later, for X, via `setXVerified`). GitHub verification is backed by real OAuth today (see `frontend/app/api/auth/github`); X verification is currently self-declared, a placeholder for real OAuth later.
 
+### Signing In & Accounts
+Taskify signs people in with [Privy](https://privy.io), so there are two ways in and both end up as a normal Mezo address:
+
+- **Email or Google** — Privy creates a wallet for the person, so no extension is needed. The wallet is created and managed by Privy; this is the low-friction path for people new to crypto.
+- **An existing wallet** — MetaMask, Rabby (and other detected browser wallets), or any WalletConnect mobile wallet.
+
+Registration rules, enforced in the interface and the database:
+
+- **One Google/email identity per wallet.** A Gmail that is already linked to a wallet cannot be used to open a second account. Gmail addresses are compared ignoring capitals, dots and `+tags` (`A.B+x@gmail.com` is `ab@gmail.com`); other providers are compared ignoring capitals only. This is backed by a unique index on `profiles.google_email_normalized` (migration `0018`), and `/api/identity/check` verifies the Privy session server-side and blocks the login screen with a pointer to the wallet that already holds the account.
+- **The identity Privy verified is the identity that gets stored.** Email/Google users skip the separate Google step on `/register` (`/api/identity/me`); wallet-only users still complete it.
+- **Gas top-up** (see [`GAS_DRIP.md`](GAS_DRIP.md)) goes to new contributor wallets verified through Google. Email-only logins do not get one by themselves — throwaway emails are free, which would defeat the farm-resistance the drip is sized around — but they can link a Google account from `/register` ("Link Google for gas") and claim it, since the identity check then finds a Google account.
+
+Limits worth knowing: `registerUser` on the contract is open to anyone, so these checks guard the website and the off-chain profile, not the contract itself; and there is no flow yet to move a Gmail to a different wallet if the original wallet is lost.
+
+### Wallet & Sending Tokens
+`/wallet` lets a signed-in user move the MUSD and MEZO they've earned to any other address, from either kind of wallet. Reach it from the **Wallet** card on the dashboard.
+
+- **Send** — pick MUSD or MEZO, enter a recipient and amount (or **Max**), review, confirm. The review step shows the full address in groups of four characters and the estimated network fee. Transfers are plain ERC-20 `transfer` calls signed by the user's own wallet; nothing is routed through Taskify and nothing is stored.
+- **Guard rails** — the form rejects invalid or bad-checksum addresses, your own address, the zero address, and the MUSD, MEZO, BTC and Taskify contracts (funds sent there are unrecoverable). Any other smart-contract recipient needs an explicit acknowledgement. Amounts are parsed as exact decimal strings, never floats. A transfer that was broadcast but couldn't be confirmed in time shows a "check the explorer" notice instead of returning to the form, so it can't be sent twice.
+- **Network fee** — paid in BTC, like everything on Mezo; measured at roughly 51k gas for a MUSD transfer and 25k for MEZO, a small fraction of a cent. A wallet with no BTC is told so before it confirms.
+- **History** — transfers in and out for both tokens, with task payouts and refunds labelled, fetched from Mezo's Blockscout API through `/api/wallet/history`. Set `MEZO_EXPLORER_API_URL` to enable it on testnet (the default points at mainnet).
+
 ---
 
 ## Financial Model
@@ -309,7 +340,7 @@ The `token` field on each task stores an ERC-20 contract address, restricted to 
 | Contract Tooling | Foundry (forge, via-ir + optimizer enabled — see [Security Model](#security-model)) |
 | Contract Testing | Forge (Solidity tests) |
 | Frontend | Next.js 16, TypeScript |
-| Wallet Integration | wagmi, viem, RainbowKit |
+| Wallet Integration & Login | Privy (email, Google, external wallets), wagmi, viem |
 | Off-chain data (planned) | Supabase / Postgres — see `supabase/schema.sql` |
 | Package Manager | pnpm (frontend), Foundry (contracts) |
 
@@ -409,6 +440,9 @@ NEXT_PUBLIC_PRIVY_APP_ID=
 PRIVY_APP_SECRET=
 # Optional: WebSocket RPC for Mezo, if Privy asks for one for the custom chain
 NEXT_PUBLIC_MEZO_WS_URL=
+# Optional: Mezo explorer API for /wallet history. Defaults to mainnet
+# (https://api.explorer.mezo.org); set it to enable history on testnet.
+MEZO_EXPLORER_API_URL=
 
 # Mezo network (defaults below already match mainnet if unset — override
 # with the Mezo Testnet values from Contract Addresses to point at testnet
@@ -425,6 +459,16 @@ NEXT_PUBLIC_MEZO_CONTRACT=0x7B7c000000000000000000000000000000000001
 # read/write in the app; leave unset only if you haven't deployed yet.
 NEXT_PUBLIC_TASKIFY_CONTRACT=0x02548E2071b2Fc6Cc2f34E7a8eFD88e0Fd792A8D
 ```
+
+### Privy setup
+
+1. Create an app at [dashboard.privy.io](https://dashboard.privy.io) (use separate apps for development and production). Copy the **App ID** into `NEXT_PUBLIC_PRIVY_APP_ID`; create an **App Secret** and put it in `PRIVY_APP_SECRET` (server-only — never give it a `NEXT_PUBLIC_` prefix).
+2. Under login methods, enable **Email**, **Google** and **Wallets**.
+3. Add **allowed origins**: `http://localhost:3000` for development and your production domain over HTTPS (both `www` and non-`www`). Vercel preview URLs need a subdomain you control; a generic `*.vercel.app` is not accepted.
+4. Run `supabase/migrations/0018_google_email_unique.sql` in the Supabase SQL editor. If it fails, two wallets already share a Gmail — the file's comments show how to find them.
+5. Rabby has no dedicated Privy entry; it appears through detected browser wallets.
+
+Without `PRIVY_APP_SECRET` the login still works but the server-side "this Gmail already belongs to another wallet" check is off (the registration-time check and the database index still apply).
 
 ---
 

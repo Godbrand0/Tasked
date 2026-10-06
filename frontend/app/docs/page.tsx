@@ -33,6 +33,42 @@ const SECTIONS: DocSection[] = [
     ),
   },
   {
+    id: "accounts",
+    title: "Signing in & accounts",
+    body: (
+      <>
+        <p>
+          There are two ways to sign in, and both end up as an ordinary Mezo wallet address:
+        </p>
+        <ul>
+          <li>
+            <strong>Email or Google</strong> — a wallet is created for you automatically (by Privy, the sign-in
+            provider), so you need no extension or seed phrase. It&apos;s the easiest way to start; for larger
+            balances, send your earnings to a wallet whose keys you control.
+          </li>
+          <li>
+            <strong>An existing wallet</strong> — MetaMask, Rabby and other browser wallets, or any
+            WalletConnect mobile wallet.
+          </li>
+        </ul>
+        <p>
+          <strong>One identity, one account.</strong> Each Google or email identity can be linked to a single
+          Taskify wallet. Gmail addresses are compared ignoring capitals, dots and plus-tags, so
+          a.b+x@gmail.com and ab@gmail.com are the same identity. If you sign in with an identity that already
+          belongs to another wallet, Taskify blocks the sign-in and points you to that wallet instead of opening
+          a second account.
+        </p>
+        <p>
+          Email and Google sign-ins register with the identity they verified, with no separate Google step.
+          Wallet sign-ins still connect a Google account when they register. New contributor wallets verified
+          through Google also get a one-time BTC top-up so their first actions work. Email-only sign-ins can claim
+          it too by linking a Google account on the registration page. See <Link href="/faq#account-github-x" style={{ color: "var(--primary)" }}>the FAQ</Link> for
+          common questions.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "task-types",
     title: "Task types",
     body: (
@@ -388,6 +424,40 @@ const SECTIONS: DocSection[] = [
     ),
   },
   {
+    id: "wallet",
+    title: "Wallet & sending tokens",
+    body: (
+      <>
+        <p>
+          The <Link href="/wallet" style={{ color: "var(--primary)" }}>Wallet</Link> page (linked from your
+          dashboard) shows your MUSD, MEZO and BTC balances and lets you send MUSD or MEZO to any other address.
+          It works from every kind of wallet, including one created by an email or Google sign-in.
+        </p>
+        <ul>
+          <li>
+            <strong>Send</strong> — choose the token, enter a recipient and amount (or Max), review, and confirm
+            in your wallet. The review step shows the full address in groups of four characters so you can check
+            it. The transfer is a standard token transfer signed by you; it doesn&apos;t pass through Taskify.
+          </li>
+          <li>
+            <strong>Protections</strong> — the form rejects invalid or bad-checksum addresses, your own address,
+            the zero address, and the MUSD, MEZO, BTC and Taskify contracts, where funds would be lost. Other
+            smart-contract recipients need an explicit acknowledgement.
+          </li>
+          <li>
+            <strong>Fees</strong> — Taskify charges nothing. The network fee is paid in BTC and is a small
+            fraction of a cent, so the sending wallet needs a little BTC.
+          </li>
+          <li>
+            <strong>History</strong> — transfers in and out, with task payouts and refunds labelled, each linking
+            to the Mezo explorer.
+          </li>
+        </ul>
+        <p>Transfers are final: Taskify can&apos;t reverse or recover one, so send a small test amount to a new address first.</p>
+      </>
+    ),
+  },
+  {
     id: "safety",
     title: "Escrow & wallet safety",
     body: (
@@ -399,7 +469,7 @@ const SECTIONS: DocSection[] = [
           an approval for the exact amount about to be escrowed — never unlimited.
         </p>
         <p>
-          For wallet setup and phishing-safety guidance, see the{" "}
+          For wallet setup and phishing-safety guidance, and how sending works, see the{" "}
           <Link href="/faq#wallet-safety" style={{ color: "var(--primary)" }}>Wallet safety</Link> section of the
           FAQ.
         </p>

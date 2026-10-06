@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "pbs.twimg.com" },
     ],
   },
+  // NOTE: added when the app used RainbowKit, which has since been replaced by
+  // Privy (see app/providers.tsx). Check whether this stub is still needed
+  // before removing it — it may still be pulled in by another dependency.
   // RainbowKit's default wallet list statically references a Coinbase Wallet
   // connector that pulls in @coinbase/cdp-sdk purely for an x402 paid-API
   // flow we never use (we build our own explicit wallet list without it —
