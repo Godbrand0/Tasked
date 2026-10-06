@@ -4,6 +4,7 @@ import { createPublicClient, createWalletClient, defineChain, getAddress, http, 
 import { privateKeyToAccount } from "viem/accounts";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyGasGrant } from "@/lib/gas-grant";
+import { sendWithRetry } from "@/lib/send-with-retry";
 import { ERC20_ABI, MEZO_ADDRESS, TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
 
 // One-time gas sponsorship for first-time contributors. Mezo's gas token is
@@ -20,7 +21,10 @@ import { ERC20_ABI, MEZO_ADDRESS, TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/tas
 // Dormant unless fully configured. See GAS_DRIP.md for the design, the
 // eligibility rules, calibration, and the kill switch.
 
-const RPC_URL = process.env.NEXT_PUBLIC_MEZO_RPC_URL || "https://mezo.drpc.org";
+// Server-side RPC. A dedicated, API-keyed endpoint via GAS_DRIP_RPC_URL is the
+// reliable option — the keyless public one sheds load, and from a serverless
+// host it fails more often than from a laptop. Falls back to the app's RPC.
+const RPC_URL = process.env.GAS_DRIP_RPC_URL || process.env.NEXT_PUBLIC_MEZO_RPC_URL || "https://mezo.drpc.org";
 const CHAIN_ID = Number(process.env.NEXT_PUBLIC_MEZO_CHAIN_ID ?? 31612);
 const PRIVATE_KEY = process.env.GAS_DRIP_PRIVATE_KEY as `0x${string}` | undefined;
 const IP_SALT = process.env.GAS_DRIP_SECRET || "";
@@ -185,18 +189,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Gas sponsorship is temporarily unavailable — please fund your wallet manually." }, { status: 503 });
   }
 
-  // 7. Send
+  // 7. Send — retried, because one flaky RPC call anywhere inside a send fails
+  //    the whole thing. Retries stop as soon as the wallet shows as funded, so a
+  //    lost response can never pay twice.
   const walletClient = createWalletClient({ account, chain: mezoChain, transport: http(RPC_URL) });
-  let txHash: `0x${string}`;
-  try {
-    txHash = await walletClient.sendTransaction({ to: address, value: amountWei });
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
-  } catch (err) {
-    console.error("[gas-drip] send failed:", err);
+  const outcome = await sendWithRetry({
+    send: () => walletClient.sendTransaction({ to: address, value: amountWei }),
+    hasLanded: async () => (await publicClient.getBalance({ address })) > BigInt(0),
+    onError: (err, attempt) =>
+      console.error(`[gas-drip] send attempt ${attempt} failed:`, {
+        name: (err as Error)?.name,
+        message: ((err as { shortMessage?: string })?.shortMessage ?? (err as Error)?.message ?? "").slice(0, 300),
+        details: ((err as { details?: string })?.details ?? "").slice(0, 300),
+        rpc: new URL(RPC_URL).host,
+      }),
+  });
+
+  if (outcome.kind === "failed") {
     await releaseReservation();
     return NextResponse.json({ error: "The gas top-up transaction failed — try again shortly." }, { status: 502 });
   }
+  if (outcome.kind === "landed-unknown-hash") {
+    // An earlier attempt went through but we never saw its hash. The wallet is
+    // funded, so keep the reservation (this is the user's one drip) and succeed.
+    console.error("[gas-drip] funded by an earlier attempt whose hash was lost:", { sub, addressLc });
+    return NextResponse.json({ txHash: null });
+  }
+  const txHash = outcome.hash;
 
+  // Record the hash BEFORE waiting for the receipt, so a slow or failing receipt
+  // lookup can't leave a sent drip looking unsent.
   // 8. Finalise the reservation with the real hash
   const { error: finalErr } = await sb
     .from("gas_drips")
@@ -205,6 +227,14 @@ export async function POST(req: NextRequest) {
   if (finalErr) {
     // The BTC already went out — log loudly, don't fail the user.
     console.error("[gas-drip] failed to finalise record after send:", finalErr, { sub, addressLc, txHash });
+  }
+
+  // Best effort: the client polls the balance itself, so an unconfirmed receipt
+  // is not a failure — the BTC is on its way and the reservation must stay.
+  try {
+    await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: 30_000, checkReplacement: false });
+  } catch (err) {
+    console.error("[gas-drip] sent but couldn't confirm the receipt in time:", { txHash, message: (err as Error)?.message?.slice(0, 200) });
   }
 
   return NextResponse.json({ txHash });

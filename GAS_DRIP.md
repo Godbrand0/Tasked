@@ -100,6 +100,7 @@ Run `supabase/migrations/0017_gas_drips.sql` in the Supabase SQL editor.
 | `GAS_DRIP_AMOUNT_WEI` | drip size, in wei (BTC has 18 decimals) — ~5 transactions' worth, see calibration | `1282051282051` (~0.0000013 BTC, $0.10 at $78k/BTC) |
 | `GAS_DRIP_DAILY_CAP` | max drips per rolling 24h. **`0` disables the whole feature.** | `10` (pilot — see below) |
 | `GAS_DRIP_MIN_SIGNER_BALANCE_WEI` | keep this much in the sponsor wallet as a reserve; below `amount + this`, the endpoint 503s | `0` |
+| `GAS_DRIP_RPC_URL` | optional, server-only Mezo RPC for the drip. Use an API-keyed endpoint here: the keyless public RPC sheds load and fails more often from a serverless host. Falls back to `NEXT_PUBLIC_MEZO_RPC_URL`. | `https://…/your-key` |
 
 The feature is **completely dormant** until `GAS_DRIP_PRIVATE_KEY`,
 `GAS_DRIP_AMOUNT_WEI` (> 0), and `GAS_DRIP_DAILY_CAP` (> 0) are all set (and
@@ -141,6 +142,15 @@ endpoint) can't drain the whole float before you notice:
   seen real organic demand and the float can support it.
 - The float itself is the harder limit day-to-day: 10/day empties a $5 float
   in 5 days flat-out, so also watch the sponsor wallet balance, not just the cap.
+
+## Reliability
+
+The send is retried up to 3 times with backoff, because one flaky RPC call anywhere inside a send
+(nonce, gas estimate, fees, broadcast) fails the whole thing. Before each retry the wallet's balance
+is checked: if it is already funded, an earlier attempt landed and nothing is sent again, so a lost
+response can never pay twice. The transaction hash is recorded before the receipt is awaited, and a
+receipt that can't be confirmed in time is logged but is not a failure — the client polls the balance
+itself. Failures log `[gas-drip] send attempt N failed:` with the error name, message and RPC host.
 
 ## Operating it
 
