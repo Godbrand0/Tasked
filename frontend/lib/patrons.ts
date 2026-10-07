@@ -1,9 +1,8 @@
 import "server-only";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, fallback, http } from "viem";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
-
-const RPC_URL = process.env.NEXT_PUBLIC_MEZO_RPC_URL || "https://mezo.drpc.org";
+import { MEZO_RPC_URLS } from "@/lib/rpc";
 
 // Who can actually vote lives on-chain only (no indexer running yet — see
 // supabase/schema.sql's "ON-CHAIN CACHE" section), so it can't be answered
@@ -22,7 +21,7 @@ export async function getApprovedVoterAddresses(): Promise<string[]> {
   const addresses = (data ?? []).map(r => r.address as string);
   if (addresses.length === 0) return [];
 
-  const client = createPublicClient({ transport: http(RPC_URL) });
+  const client = createPublicClient({ transport: fallback(MEZO_RPC_URLS.map((url) => http(url))) });
   const results = await Promise.all(
     addresses.map(async (addr) => {
       try {

@@ -2,13 +2,14 @@
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { createConfig, WagmiProvider } from "@privy-io/wagmi";
-import { http } from "wagmi";
+import { fallback, http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { defineChain } from "viem";
 import { WalletProvider } from "@/lib/wallet-context";
 import { IdentityConflictGate } from "@/components/IdentityConflictGate";
 import { useTheme } from "@/lib/theme-context";
 import { MEZO_CHAIN_ID, MEZO_IS_TESTNET, MEZO_NETWORK_NAME } from "@/lib/constants";
+import { MEZO_RPC_URLS } from "@/lib/rpc";
 
 const mezoChain = defineChain({
   id: MEZO_CHAIN_ID,
@@ -16,7 +17,8 @@ const mezoChain = defineChain({
   nativeCurrency: { name: "Bitcoin", symbol: "BTC", decimals: 18 },
   rpcUrls: {
     default: {
-      http: [process.env.NEXT_PUBLIC_MEZO_RPC_URL ?? "https://mezo.drpc.org"],
+      // Every endpoint, so wallets that add the chain (and Privy) get a backup too
+      http: MEZO_RPC_URLS,
       // Privy's custom-chain docs list a WebSocket RPC as required. Optional
       // here so the app works without one; set it if Privy asks for it.
       ...(process.env.NEXT_PUBLIC_MEZO_WS_URL ? { webSocket: [process.env.NEXT_PUBLIC_MEZO_WS_URL] } : {}),
@@ -57,7 +59,9 @@ const mezoChain = defineChain({
 // would ship to every browser).
 const config = createConfig({
   chains: [mezoChain],
-  transports: { [mezoChain.id]: http(undefined, { batch: true }) },
+  // Tried in order; a request that one endpoint rejects or drops is retried on the
+  // next, which is what keeps a single rate-limited public RPC from breaking a form.
+  transports: { [mezoChain.id]: fallback(MEZO_RPC_URLS.map((url) => http(url, { batch: true }))) },
   batch: { multicall: true },
   ssr: true,
 });
