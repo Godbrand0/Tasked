@@ -383,3 +383,19 @@ body {
   html, body { overflow-x: clip; }
   table { display: block; overflow-x: auto; max-width: 100%; }
 }
+
+/* Global footer: brand column + four link columns on wide screens, stacking down to two columns on phones. */
+.site-footer-grid { display: grid; gap: 36px 32px; grid-template-columns: 1.6fr repeat(4, 1fr); }
+.site-footer-link:hover { color: var(--text) !important; border-color: var(--border-strong) !important; }
+@media (max-width: 1023px) {
+  .site-footer-grid { grid-template-columns: repeat(2, 1fr); }
+  .site-footer-brand { grid-column: 1 / -1; }
+}
+
+/* Page wrappers set min-height: 100vh, which would push the global footer a full
+   screen below short pages. Let them grow to fill the space above the footer instead
+   (body is a flex column), so the footer sits right under the content, or at the
+   bottom of the screen when the page is short. */
+body > [style*="min-height:100vh"],
+body > [style*="min-height:100vh"],
+body > [style*="min-height: 100vh"] { min-height: 0 !important; flex: 1 0 auto; }

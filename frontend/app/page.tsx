@@ -2,8 +2,7 @@
 
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
-import { TASKIFY_ADDRESS } from "@/lib/taskify";
-import { MEZO_NETWORK_NAME, GOVERNANCE, MEZO_EXPLORER_URL, SECURITY_REVIEWS } from "@/lib/constants";
+import { GOVERNANCE, MEZO_EXPLORER_URL, SECURITY_REVIEWS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -869,109 +868,6 @@ function CTASection() {
   );
 }
 
-// ─── Footer ───────────────────────────────────────────────────────────────────
-
-function Footer() {
-  const links: Record<string, { label: string; href: string }[]> = {
-    Platform: [
-      { label: "How it works", href: "/docs" },
-      { label: "Task escrow", href: "/docs#lifecycle" },
-      { label: "Grant pool", href: "/docs#patrons" },
-      { label: "Wave rewards", href: "/wave" },
-    ],
-    Builders: [
-      { label: "Browse tasks", href: "/tasks" },
-      { label: "Leaderboard", href: "/leaderboard" },
-      { label: "Docs", href: "/docs" },
-      { label: "GitHub", href: "#" },
-    ],
-    Tokens: [
-      { label: "MUSD", href: "#tokens" },
-      { label: "veBTC voting", href: "#tokens" },
-      { label: "Patron tiers", href: "#tokens" },
-      { label: "Grant voting", href: "#tokens" },
-    ],
-    Legal: [
-      { label: "Governance & multisig", href: "/docs#governance" },
-      { label: "Security reviews", href: "/docs#security-reviews" },
-      { label: "FAQ", href: "/faq" },
-      { label: "Terms & Conditions", href: "/terms" },
-      { label: "Privacy Policy", href: "/privacy" },
-    ],
-  };
-
-  return (
-    <footer style={{ borderTop: "1px solid var(--border)", padding: "60px 24px 40px", background: "linear-gradient(180deg, var(--bg) 0, var(--bg-alt) 64px, var(--bg-alt) 100%)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }} className="block min-[1200px]:grid">
-          {/* Brand */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", position: "relative", flexShrink: 0 }}>
-                <Image src="/logo.jpg" alt="Taskify" fill sizes="32px" style={{ objectFit: "cover" }} />
-              </div>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "var(--text)" }}>Taskify</span>
-            </div>
-            <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, maxWidth: 280, margin: "0 0 16px" }}>
-              The trustless bounty board for the Mezo community. Secure escrow, community grants, Development and Community tasks alike.
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }} />
-              <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>{MEZO_NETWORK_NAME}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <a href="https://x.com/taskifyhq" target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", color: "var(--text-dim)" }}
-                aria-label="Taskify on X">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-              </a>
-              <a href="https://t.me/+W1fXHQWioTA2ZDlk" target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", color: "var(--text-dim)" }}
-                aria-label="Taskify on Telegram">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21.944 4.667a1.44 1.44 0 0 0-1.47-.245L3.36 11.06c-.9.354-.885 1.64.02 1.973l4.263 1.567 1.65 5.303c.196.63 1 .81 1.446.325l2.377-2.586 4.28 3.155c.53.39 1.29.1 1.43-.55l3.06-14.2a1.44 1.44 0 0 0-.522-1.373zM9.9 14.38l7.06-4.45c.13-.082.26.096.15.2l-5.83 5.42a.9.9 0 0 0-.28.53l-.2 1.98c-.02.16-.24.18-.29.03z"/></svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Link columns */}
-          {Object.entries(links).map(([group, items]) => (
-            <div key={group}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 16 }}>{group}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {items.map((item) => (
-                  <a key={item.label} href={item.href} style={{ fontSize: 13, color: "var(--text-dim)", textDecoration: "none" }}>{item.label}</a>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 28, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>
-            © 2025 Taskify. Built on <span style={{ color: "var(--primary)" }}>Mezo</span>, secured by Bitcoin.
-          </div>
-          <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6 }}>
-            <span>Contract:</span>
-            {TASKIFY_ADDRESS ? (
-              <Address value={TASKIFY_ADDRESS}>
-                <a
-                  href={`${process.env.NEXT_PUBLIC_MEZO_EXPLORER_URL ?? "https://explorer.mezo.org"}/address/${TASKIFY_ADDRESS}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "var(--primary)", textDecoration: "none" }}
-                >
-                  {formatAddress(TASKIFY_ADDRESS)} ↗
-                </a>
-              </Address>
-            ) : (
-              <span style={{ color: "var(--text-dim)" }}>0x…TBD</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -989,7 +885,6 @@ export default function Home() {
       <TokensSection />
       <GovernanceSection />
       <CTASection />
-      <Footer />
     </div>
   );
 }

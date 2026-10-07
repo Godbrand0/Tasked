@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "./providers";
+import SiteFooter from "@/components/SiteFooter";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme-context";
 import "./globals.css";
 
@@ -37,7 +38,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <SiteFooter />
+          </Providers>
         </ThemeProvider>
         <Analytics />
       </body>
