@@ -448,7 +448,10 @@ MEZO_EXPLORER_API_URL=
 # with the Mezo Testnet values from Contract Addresses to point at testnet
 # instead, e.g. for free experimentation)
 NEXT_PUBLIC_MEZO_CHAIN_ID=31612
-NEXT_PUBLIC_MEZO_RPC_URL=https://mezo.drpc.org
+# Optional dedicated RPC, tried FIRST. The app also falls back, in order, to the public
+# Validation Cloud and dRPC endpoints, so one rate-limited endpoint no longer breaks
+# reads (see lib/rpc.ts). This value ships to the browser: use an origin-restricted key.
+NEXT_PUBLIC_MEZO_RPC_URL=
 NEXT_PUBLIC_MEZO_EXPLORER_URL=https://explorer.mezo.org
 
 # Token contracts — both default to the real Mezo mainnet deployments if unset
