@@ -14,7 +14,7 @@ import { formatContractError } from "@/lib/errors";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconUser, IconAward, IconBell, IconLock, IconAlertTriangle, IconCheck } from "@/components/icons";
 
-const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
+const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true, new_dev_task: false, new_community_task: false };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
 
 const NOTIF_ITEMS: { key: NotifKey; label: string; desc: string }[] = [
@@ -27,6 +27,8 @@ const NOTIF_ITEMS: { key: NotifKey; label: string; desc: string }[] = [
   { key: "comment_reply",         label: "Comment Reply",     desc: "When someone replies to your comment" },
   { key: "grant_vote_opened",     label: "Grant Vote Opened", desc: "When a new grant application enters voting" },
   { key: "wave_reward_ready",     label: "Wave Reward Ready", desc: "When a wave ends and your reward is claimable" },
+  { key: "new_dev_task",          label: "New Development tasks", desc: "When anyone posts a new Development task (off by default)" },
+  { key: "new_community_task",    label: "New Community tasks",   desc: "When anyone posts a new Community task (off by default)" },
 ];
 
 type Section = "profile" | "experience" | "notifications" | "wallet" | "danger";
@@ -71,6 +73,9 @@ function SettingsPageInner() {
   const [saveError, setSaveError] = useState("");
   const [notifs, setNotifs] = useState<typeof DEFAULT_NOTIFS>(DEFAULT_NOTIFS);
   const [email, setEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailNotice, setEmailNotice] = useState("");
+  const [resending, setResending] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
   const [xConnecting, setXConnecting] = useState(false);
@@ -224,14 +229,48 @@ function SettingsPageInner() {
     if (!address) return;
     fetch(`/api/profile?address=${address}`)
       .then(res => res.json())
-      .then((data: { profile: { bio?: string; email?: string; notification_prefs?: Partial<typeof DEFAULT_NOTIFS> } | null }) => {
+      .then((data: { profile: { bio?: string; email?: string; email_verified?: boolean; notification_prefs?: Partial<typeof DEFAULT_NOTIFS> } | null }) => {
         if (!data.profile) return;
         if (typeof data.profile.bio === "string") setBio(data.profile.bio);
         if (typeof data.profile.email === "string") setEmail(data.profile.email);
+        setEmailVerified(data.profile.email_verified === true);
         if (data.profile.notification_prefs) setNotifs(n => ({ ...n, ...data.profile!.notification_prefs }));
       })
       .catch(() => setLoadError("Couldn't load saved settings."));
   }, [address]);
+
+  // The confirmation link in the email lands here as /settings?email=verified|invalid.
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get("email");
+    if (result === "verified") {
+      setEmailVerified(true);
+      setEmailNotice("Email confirmed. You'll now receive the alerts you've turned on.");
+      setActive("notifications");
+    } else if (result === "invalid") {
+      setEmailNotice("That confirmation link is invalid or has expired. Save your email again to get a new one.");
+      setActive("notifications");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function resendVerification() {
+    if (!address) return;
+    setResending(true);
+    setEmailNotice("");
+    try {
+      const res = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+      const data = await res.json().catch(() => null);
+      setEmailNotice(res.ok ? "Confirmation email sent. Check your inbox (and spam)." : data?.error ?? "Couldn't send the confirmation email.");
+    } catch {
+      setEmailNotice("Couldn't send the confirmation email.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleSave() {
     if (!address) return;
@@ -255,6 +294,10 @@ function SettingsPageInner() {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error(data?.error ?? "Failed to save");
+        if (data?.profile) setEmailVerified(data.profile.email_verified === true);
+        if (data?.verification === "sent") setEmailNotice("We sent a confirmation link to that address. Click it to start receiving emails.");
+        else if (data?.verification === "cooldown") setEmailNotice("A confirmation email was sent to that address recently. Check your inbox (and spam).");
+        else if (data?.verification === "unavailable") setEmailNotice("Saved, but email confirmation isn't available right now, so emails can't be sent yet.");
       } else if (active === "experience" && expTier !== experienceLevel) {
         await send("updateExperience", [expTier]);
       }
@@ -489,6 +532,25 @@ function SettingsPageInner() {
                     style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }}
                     onFocus={(e) => (e.target.style.borderColor = "color-mix(in srgb, var(--primary) 31%, transparent)")}
                     onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
+                  {email.trim() && (
+                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 12 }}>
+                      {emailVerified ? (
+                        <span style={{ color: "var(--success)", fontWeight: 600 }}>✓ Verified</span>
+                      ) : (
+                        <>
+                          <span style={{ color: "var(--text-dim)" }}>Not verified yet. Save, then click the link we email you.</span>
+                          <button type="button" onClick={resendVerification} disabled={resending}
+                            style={{ background: "none", border: "none", padding: 0, color: "var(--primary)", fontWeight: 600, fontSize: 12, cursor: resending ? "wait" : "pointer" }}>
+                            {resending ? "Sending…" : "Resend confirmation"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {emailNotice && <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{emailNotice}</div>}
+                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.5 }}>
+                    New-task alerts are emailed only to a verified address. In-app alerts work without one.
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>

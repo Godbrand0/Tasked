@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendVerificationEmail } from "@/lib/verify-email-send";
 
 // Off-chain profile extension (bio, linked-account handles, notification
 // prefs) — see supabase/schema.sql: profiles. Registration itself
@@ -62,6 +63,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
   }
   if (update.email === "") update.email = null;
+  if (typeof update.email === "string") update.email = update.email.trim().toLowerCase();
+
+  // A changed email is unverified until its owner clicks the emailed link. The
+  // flag is server-controlled: email_verified is not in ALLOWED_FIELDS, so a
+  // client can never set it. An unchanged email keeps its verified status.
+  let emailChanged = false;
+  if ("email" in update) {
+    const { data: existing } = await supabaseAdmin.from("profiles").select("email").eq("address", address).maybeSingle();
+    const previous = (existing?.email ?? null) as string | null;
+    emailChanged = (update.email ?? null) !== previous;
+    if (emailChanged) update.email_verified = false;
+  }
 
   const { data, error } = await supabaseAdmin
     .from("profiles")
@@ -77,5 +90,10 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ profile: data });
+  // Best-effort: saving the profile must not fail because a confirmation email couldn't go out.
+  let verification: "sent" | "cooldown" | "unavailable" | null = null;
+  if (emailChanged && typeof update.email === "string") {
+    verification = await sendVerificationEmail(address, update.email).catch(() => "unavailable" as const);
+  }
+  return NextResponse.json({ profile: data, verification });
 }
