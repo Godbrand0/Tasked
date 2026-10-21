@@ -284,6 +284,11 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [payingWinners, setPayingWinners] = useState(false);
   const [payError, setPayError] = useState("");
 
+  // Profile lookups for the applications and participants lists (issue #5 —
+  // these two lists previously showed only a letter badge + truncated address).
+  const { data: applicantProfiles } = useProfilesBatch(applications.map(a => a.address));
+  const { data: participantProfiles } = useProfilesBatch(submissions.map(s => s.address));
+
   // Per-submission feedback thread (owner ↔ that participant)
   const [feedbackByParticipant, setFeedbackByParticipant] = useState<Record<string, LiveFeedback[]>>({});
   const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, string>>({});
@@ -970,12 +975,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               {isSelected && "✓"}
                             </button>
                           )}
-                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: s.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                            {s.author.charAt(0).toUpperCase()}
-                          </div>
+                          <Link href={`/profile/${s.address}`} style={{ textDecoration: "none", flexShrink: 0, cursor: "pointer" }}>
+                            <Avatar src={participantProfiles?.[s.address.toLowerCase()]?.avatarUrl ?? undefined} alt={participantProfiles?.[s.address.toLowerCase()]?.displayName ?? s.author} size={36} fontSize={14} gradient={s.avatarColor} />
+                          </Link>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{s.author}</span>
+                              <Link href={`/profile/${s.address}`} style={{ color: "inherit", textDecoration: "none" }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{participantProfiles?.[s.address.toLowerCase()]?.displayName ?? s.author}</span>
+                              </Link>
                               <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(s.createdAt)}</span>
                               {s.isWinner && (
                                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>WINNER</span>
@@ -1096,12 +1103,14 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     {applications.map((a, i) => (
                       <div key={a.id} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < applications.length - 1 ? "1px solid var(--border)" : "none" }}>
-                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: a.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                          {a.author.charAt(0).toUpperCase()}
-                        </div>
+                        <Link href={`/profile/${a.address}`} style={{ textDecoration: "none", flexShrink: 0, cursor: "pointer" }}>
+                          <Avatar src={applicantProfiles?.[a.address.toLowerCase()]?.avatarUrl ?? undefined} alt={applicantProfiles?.[a.address.toLowerCase()]?.displayName ?? a.author} size={36} fontSize={14} gradient={a.avatarColor} />
+                        </Link>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{a.author}</span>
+                            <Link href={`/profile/${a.address}`} style={{ color: "inherit", textDecoration: "none" }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{applicantProfiles?.[a.address.toLowerCase()]?.displayName ?? a.author}</span>
+                            </Link>
                             <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(a.createdAt)}</span>
                             {task.status === "OPEN" && isTaskCreator && (
                               <button
@@ -1140,7 +1149,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                               <Link href={`/profile/${c.address}`} style={{ color: "inherit", textDecoration: "none" }}>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{c.author}</span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{commentProfiles?.[c.address.toLowerCase()]?.displayName ?? c.author}</span>
                               </Link>
                               {c.isCreator && (
                                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>OWNER</span>
@@ -1195,7 +1204,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                                         <Link href={`/profile/${r.address}`} style={{ color: "inherit", textDecoration: "none" }}>
-                                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{r.author}</span>
+                                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{commentProfiles?.[r.address.toLowerCase()]?.displayName ?? r.author}</span>
                                         </Link>
                                         {r.isCreator && (
                                           <span style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 9%, transparent)", padding: "1px 6px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--primary) 19%, transparent)" }}>OWNER</span>

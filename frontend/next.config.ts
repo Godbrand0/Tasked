@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       { protocol: "https", hostname: "pbs.twimg.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
   },
   // NOTE: added when the app used RainbowKit, which has since been replaced by
