@@ -16,10 +16,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_DESCRIPTION =
+  "Trustless task escrow, community-governed grant funding, and experience-matched or open-to-anyone bounties built on Mezo.";
+
 export const metadata: Metadata = {
+  // Resolves relative URLs in og:image / canonical to absolute ones; link scrapers need absolute URLs.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://www.taskifybounties.com"),
   title: "Taskify: On-Chain Bounties for the Mezo Community",
-  description:
-    "Trustless task escrow, community-governed grant funding, and experience-matched or open-to-anyone bounties built on Mezo.",
+  description: SITE_DESCRIPTION,
+  openGraph: { type: "website", siteName: "Taskify", title: "Taskify: On-Chain Bounties for the Mezo Community", description: SITE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: "Taskify: On-Chain Bounties for the Mezo Community", description: SITE_DESCRIPTION },
 };
 
 export default function RootLayout({
