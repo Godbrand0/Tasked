@@ -5,6 +5,8 @@ import { Badge, TierRangeBadge, StatusBadge } from "./Badge";
 import Avatar from "./Avatar";
 import Countdown from "./Countdown";
 import { IconMegaphone } from "@/components/icons";
+import ShareButton from "@/components/ui/ShareButton";
+import { absoluteUrl } from "@/lib/url";
 
 const TERMINAL_STATUSES = ["FUNDS_RELEASED", "CANCELLED", "GRANT_REJECTED"];
 
@@ -54,6 +56,13 @@ export default function TaskCard({ task, creatorAvatarUrl, reserveActionSpace = 
                   {count && <span style={{ whiteSpace: "nowrap" }}>{count.n} {count.noun}{count.n !== 1 ? "s" : ""}</span>}
                 </div>
               )}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                <ShareButton
+                  variant="icon"
+                  url={absoluteUrl(`/tasks/${task.id}`)}
+                  title={`${task.title} — ${formatMUSD(task.amount)} ${task.token} bounty on Taskify`}
+                />
+              </div>
             </div>
           );
         })()}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { getAddress } from "viem";
 import { formatAddress } from "@/lib/wallet-context";
+import { useCopy } from "@/lib/use-copy";
 import { IconCheck, IconCopy } from "@/components/icons";
 
 const COPIED_MS = 1800;
@@ -29,23 +30,13 @@ export default function Address({
   className?: string;
   style?: CSSProperties;
 }) {
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const { copied, copy } = useCopy(COPIED_MS);
 
   async function handleCopy(e: MouseEvent<HTMLButtonElement>) {
     // Addresses often sit inside a <Link> to the profile — copying shouldn't navigate.
     e.preventDefault();
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(checksum(value));
-    } catch {
-      return;
-    }
-    setCopied(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), COPIED_MS);
+    await copy(checksum(value));
   }
 
   return (
