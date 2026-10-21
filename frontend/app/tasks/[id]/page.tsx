@@ -22,6 +22,8 @@ import EmptyState from "@/components/ui/EmptyState";
 import Countdown from "@/components/ui/Countdown";
 import { IconSearch, IconMegaphone, IconLink } from "@/components/icons";
 import { timeAgo } from "@/lib/time";
+import ShareButton from "@/components/ui/ShareButton";
+import { absoluteUrl } from "@/lib/url";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -726,9 +728,15 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             {task.fundingType === "grant" && <Badge color="purple">Grant-Funded</Badge>}
             {task.token === "MEZO" && <Badge color="blue">Paid in MEZO</Badge>}
           </div>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--text)", margin: "0 0 16px", lineHeight: 1.25, letterSpacing: "-0.02em" }}>
-            {task.title}
-          </h1>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
+            <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--text)", margin: 0, lineHeight: 1.25, letterSpacing: "-0.02em" }}>
+              {task.title}
+            </h1>
+            <ShareButton
+              url={absoluteUrl(`/tasks/${task.id}`)}
+              title={`${task.title} — ${formatMUSD(task.amount)} ${task.token} bounty on Taskify`}
+            />
+          </div>
 
           {/* Meta row */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", fontSize: 13, color: "var(--text-dim)" }}>
