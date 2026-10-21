@@ -21,6 +21,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import EmptyState from "@/components/ui/EmptyState";
 import Countdown from "@/components/ui/Countdown";
 import { IconSearch, IconMegaphone, IconLink } from "@/components/icons";
+import { timeAgo } from "@/lib/time";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -738,6 +739,8 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             <span style={{ color: "var(--border-strong)" }}>·</span>
             <span>Task #{task.id}</span>
             <span style={{ color: "var(--border-strong)" }}>·</span>
+            <span title={formatTimestamp(task.createdAt)}>Created {timeAgo(task.createdAt * 1000)}</span>
+            <span style={{ color: "var(--border-strong)" }}>·</span>
             {isCommunity ? (
               <span>{submissions.length} participant{submissions.length !== 1 ? "s" : ""}</span>
             ) : (
@@ -970,12 +973,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                               {isSelected && "✓"}
                             </button>
                           )}
-                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: s.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                            {s.author.charAt(0).toUpperCase()}
-                          </div>
+                          <Link href={`/profile/${s.address}`} style={{ textDecoration: "none", flexShrink: 0, cursor: "pointer" }}>
+                            <div style={{ width: 36, height: 36, borderRadius: "50%", background: s.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white" }}>
+                              {s.author.charAt(0).toUpperCase()}
+                            </div>
+                          </Link>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{s.author}</span>
+                              <Link href={`/profile/${s.address}`} style={{ color: "inherit", textDecoration: "none" }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{s.author}</span>
+                              </Link>
                               <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(s.createdAt)}</span>
                               {s.isWinner && (
                                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "color-mix(in srgb, var(--success) 9%, transparent)", padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)" }}>WINNER</span>
@@ -1096,12 +1103,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     {applications.map((a, i) => (
                       <div key={a.id} style={{ display: "flex", gap: 14, paddingBottom: 20, marginBottom: 20, borderBottom: i < applications.length - 1 ? "1px solid var(--border)" : "none" }}>
-                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: a.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", flexShrink: 0 }}>
-                          {a.author.charAt(0).toUpperCase()}
-                        </div>
+                        <Link href={`/profile/${a.address}`} style={{ textDecoration: "none", flexShrink: 0, cursor: "pointer" }}>
+                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: a.avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white" }}>
+                            {a.author.charAt(0).toUpperCase()}
+                          </div>
+                        </Link>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{a.author}</span>
+                            <Link href={`/profile/${a.address}`} style={{ color: "inherit", textDecoration: "none" }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{a.author}</span>
+                            </Link>
                             <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatTimestamp(a.createdAt)}</span>
                             {task.status === "OPEN" && isTaskCreator && (
                               <button

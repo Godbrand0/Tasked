@@ -5,6 +5,7 @@ import { Badge, TierRangeBadge, StatusBadge } from "./Badge";
 import Avatar from "./Avatar";
 import Countdown from "./Countdown";
 import { IconMegaphone } from "@/components/icons";
+import { timeAgo } from "@/lib/time";
 
 const TERMINAL_STATUSES = ["FUNDS_RELEASED", "CANCELLED", "GRANT_REJECTED"];
 
@@ -47,13 +48,24 @@ export default function TaskCard({ task, creatorAvatarUrl, reserveActionSpace = 
                 <Avatar src={creatorAvatarUrl} alt={task.creatorUsername} size={26} fontSize={10} gradient="linear-gradient(135deg, var(--primary), var(--secondary))" />
                 <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{task.creatorUsername}</span>
               </div>
-              {(count || showCountdown) && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)", paddingRight: reserveActionSpace ? 96 : 0, minHeight: 18 }}>
-                  {showCountdown && <Countdown deadline={task.deadline} compact style={{ fontWeight: 600 }} />}
-                  {showCountdown && count && <span>·</span>}
-                  {count && <span style={{ whiteSpace: "nowrap" }}>{count.n} {count.noun}{count.n !== 1 ? "s" : ""}</span>}
-                </div>
-              )}
+              {(() => {
+                const ago = <span style={{ whiteSpace: "nowrap" }}>{timeAgo(task.createdAt * 1000)}</span>;
+                const pieces: React.ReactNode[] = [];
+                if (showCountdown) {
+                  pieces.push(<Countdown key="cd" deadline={task.deadline} compact style={{ fontWeight: 600 }} />);
+                  pieces.push(<span key="cd-sep">·</span>);
+                }
+                if (count) {
+                  pieces.push(<span key="count" style={{ whiteSpace: "nowrap" }}>{count.n} {count.noun}{count.n !== 1 ? "s" : ""}</span>);
+                  pieces.push(<span key="count-sep">·</span>);
+                }
+                pieces.push(<span key="ago">{ago}</span>);
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-dim)", paddingRight: reserveActionSpace ? 96 : 0, minHeight: 18 }}>
+                    {pieces}
+                  </div>
+                );
+              })()}
             </div>
           );
         })()}
