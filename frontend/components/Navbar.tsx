@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useWallet, formatAddress, formatBalance } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
+import CopyAddressRow from "@/components/ui/CopyAddressRow";
 import { ROLE_LABELS } from "@/lib/constants";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "@/components/ui/NotificationBell";
@@ -121,6 +122,7 @@ export default function Navbar() {
                     <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
                       <Address value={address}>{address}</Address>
                     </div>
+                    <CopyAddressRow address={address} />
                     <button
                       onClick={() => { disconnect(); setAddressDropdownOpen(false); }}
                       className="wallet-dropdown-item"
@@ -179,6 +181,8 @@ export default function Navbar() {
                       </div>
                       <div style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)" }}><Address value={address}>{address}</Address></div>
                     </div>
+
+                    <CopyAddressRow address={address} />
 
                     {/* Nav items */}
                     {[

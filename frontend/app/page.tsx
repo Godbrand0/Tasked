@@ -2,6 +2,7 @@
 
 import { useWallet, formatBalance, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
+import CopyAddressRow from "@/components/ui/CopyAddressRow";
 import { GOVERNANCE, MEZO_EXPLORER_URL, SECURITY_REVIEWS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -136,6 +137,7 @@ function LandingNavbar() {
                   <div style={{ padding: "10px 12px 12px", borderBottom: "1px solid var(--border)", marginBottom: 6, fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", wordBreak: "break-all" }}>
                     <Address value={address}>{address}</Address>
                   </div>
+                  <CopyAddressRow address={address} />
                   <button
                     onClick={() => { disconnect(); setAddressDropdownOpen(false); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, fontSize: 13, color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", width: "100%", textAlign: "left" }}>
