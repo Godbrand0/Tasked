@@ -56,7 +56,8 @@ create type funding_type as enum ('self', 'grant');
 create type task_kind as enum ('development', 'community');
 create type notification_type as enum (
   'task_assigned', 'work_submitted', 'funds_released', 'grant_vote_opened', 'wave_reward_ready',
-  'task_applied', 'community_task_joined', 'task_comment', 'comment_reply', 'submission_feedback'
+  'task_applied', 'community_task_joined', 'task_comment', 'comment_reply', 'submission_feedback',
+  'new_dev_task', 'new_community_task'
 );
 
 -- ============================================================================
@@ -104,6 +105,8 @@ create table profiles (
     'task_comment', true,
     'comment_reply', true
   ),
+  email_verified       boolean not null default false,
+  email_verification_sent_at timestamptz,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
@@ -330,6 +333,12 @@ create table notifications (
   created_at        timestamptz not null default now()
 );
 create index notifications_recipient_idx on notifications(recipient_address, read);
+
+-- One row per task already broadcast to new-task subscribers (insert = race guard).
+create table task_broadcasts (
+  task_id    bigint primary key,
+  created_at timestamptz not null default now()
+);
 
 -- One-time gas sponsorship for first-time contributors — Mezo gas is BTC, so
 -- a brand-new wallet can't call registerUser without first acquiring some.

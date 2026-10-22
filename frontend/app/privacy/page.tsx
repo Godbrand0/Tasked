@@ -16,7 +16,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
       "Identity verification (required to register): registration uses a Google account or email address, verified either through your Privy sign-in or through Google OAuth. Taskify receives your email address and name (and, through Google OAuth, your profile picture URL), and stores a normalized form of the email (lowercased, and for Gmail with dots and plus-tags removed) so that one identity can only be linked to one wallet. You may additionally link a GitHub or X (Twitter) account, from which Taskify receives your handle, display name, and avatar URL. Taskify requests only read-level scopes and never posts, modifies, or deletes anything in those accounts.",
       "Sign-in and wallet creation: you can sign in through Privy with an email address, a Google account, or an existing wallet (such as MetaMask, Rabby, or a WalletConnect wallet). If you sign in with email or Google, Privy creates a wallet for you. Privy receives the sign-in details you give it and operates under its own terms and privacy policy; Taskify receives a verified session from Privy and the wallet address, and never sees your Google password.",
       "Profile details: an optional display name, bio, and a profile picture you upload (stored as an image on your profile record).",
-      "Notification email (optional, opt-in): if you add an email address in settings, it is used only to mirror in-app notifications by email. Leave it blank and no email is ever sent to you.",
+      "Notification email (optional, opt-in): if you add an email address in settings, it is used only to mirror in-app notifications by email. We first send a confirmation link to that address, and emails that go to many people (new-task alerts) are sent only to an address that has been confirmed. Leave it blank and no email is ever sent to you.",
       "Content you submit: task titles and descriptions, tags, repository links, grant justifications, images attached to tasks, the motivation text you write when applying to a task, pull-request and issue links you submit as work, and comments you post on task threads. This content is stored off-chain and is visible to other users of the app.",
       "Notification preferences: the per-category toggles you set for which events notify you.",
     ],
@@ -41,7 +41,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
     title: "5. How Information Is Used",
     body: [
       "To operate core features: create and display profiles, match contributors to tasks by experience, show task content and comments, run the grant-voting and wave-reward flows, and attach verified GitHub or X handles to a profile.",
-      "To send notifications: in-app alerts for events relevant to you and, only if you opted in with an email address, the same alerts by email.",
+      "To send notifications: in-app alerts for events relevant to you and, only if you opted in with an email address, the same alerts by email. New-task alerts (when anyone posts a new Development or Community task) are off by default and only sent if you switch them on in settings.",
       "To keep the service working and secure: debugging, preventing abuse and spam, and enforcing the Terms & Conditions.",
       "Taskify does not sell your personal information and does not use it for advertising or automated decision-making that produces legal effects.",
     ],

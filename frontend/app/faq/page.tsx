@@ -196,6 +196,14 @@ const FAQ_GROUPS: FaqGroup[] = [
     group: "Notifications & email",
     items: [
       {
+        q: "How do I get an alert when a new task is posted?",
+        a: "Open Settings → Notifications, add your email, and switch on New Development tasks, New Community tasks, or both. These are off by default. You'll get an in-app notification right away, and an email once your address is confirmed. Alerts only cover tasks funded by their creator; grant-funded tasks aren't announced until they open for work.",
+      },
+      {
+        q: "Why do I need to confirm my email?",
+        a: "Anyone can type any address into a settings box, so before Taskify emails you about new tasks it sends a confirmation link to that address, and only sends alerts once you've clicked it. The link expires after 7 days; use Resend confirmation in Settings → Notifications if it lapses, or check your spam folder. Changing your email means confirming the new one.",
+      },
+      {
         q: "I'm not getting notification emails. What should I check?",
         a: "First, check Settings → Notification Preferences to confirm email notifications are turned on for the event types you care about (they're on by default, but can be toggled off individually). If they're on and you still don't see anything, check your Spam/Junk folder; new senders, including Taskify's notification address, commonly land there the first few times a mail provider sees them. If you find one there, mark it \"Not spam\" (Gmail) or \"Not junk\" (Outlook) rather than just moving it to your inbox; that's what actually retrains your provider's filter for future emails, instead of only fixing this one. It also helps other people: mail providers weigh how often a sender gets reported as legitimate versus reported as spam when deciding whether to keep flagging that sender, so marking a genuine Taskify email as \"not spam\" helps keep it out of spam for other users at the same provider too, not just you.",
       },

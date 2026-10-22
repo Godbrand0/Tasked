@@ -438,6 +438,21 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 # wallet. Without it that check is off. Also run supabase/migrations/0018.
 NEXT_PUBLIC_PRIVY_APP_ID=
 PRIVY_APP_SECRET=
+
+# Notification email (SMTP). Email silently no-ops if these are unset: in-app
+# notifications still work, but nobody receives email. Works with Gmail (smtp.gmail.com
+# + an App Password) or a transactional provider (Resend, Postmark, SendGrid). Gmail
+# caps around 500 emails/day; use a provider if opt-in new-task alerts grow past that.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM=
+# Signs the "confirm your email" link (server-only, any long random string). Falls back to
+# GAS_DRIP_SECRET if unset. New-task alert emails go only to a confirmed address, so without
+# a secret here or there nobody can confirm and those emails are not sent (in-app alerts still are).
+# Also run supabase/migrations/0019 (enum values, on their own) then 0020.
+EMAIL_VERIFY_SECRET=
 # Optional: WebSocket RPC for Mezo, if Privy asks for one for the custom chain
 NEXT_PUBLIC_MEZO_WS_URL=
 # Optional: Mezo explorer API for /wallet history. Defaults to mainnet

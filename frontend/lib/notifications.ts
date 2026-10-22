@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, LOGO_CID } from "@/lib/email";
+import { mayEmail, prefAllows } from "@/lib/notification-rules";
 
 export type NotificationType =
   | "task_assigned"
@@ -13,7 +14,9 @@ export type NotificationType =
   | "community_task_joined"
   | "task_comment"
   | "comment_reply"
-  | "submission_feedback";
+  | "submission_feedback"
+  | "new_dev_task"
+  | "new_community_task";
 
 export interface NotifyMeta {
   taskTitle?: string;
@@ -33,7 +36,11 @@ const COPY: Record<NotificationType, { subject: string; heading: string; verb: s
   task_comment:           { subject: "New comment on your task",           heading: "New comment 💬",          verb: "commented on" },
   comment_reply:          { subject: "Someone replied to your comment",    heading: "New reply ↩️",            verb: "replied to your comment on" },
   submission_feedback:    { subject: "Feedback on your submission",        heading: "Feedback on your submission 📝", verb: "left feedback on your submission for" },
+  new_dev_task:           { subject: "New development task on Taskify",    heading: "New development task 🛠️", verb: "posted" },
+  new_community_task:     { subject: "New community task on Taskify",      heading: "New community task 📣",   verb: "posted" },
 };
+
+const NEW_TASK_TYPES: NotificationType[] = ["new_dev_task", "new_community_task"];
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -46,7 +53,9 @@ function emailHtml(type: NotificationType, taskId: number | undefined, meta: Not
 
   const who = meta.actorAddress ? `<strong>${shortAddr(meta.actorAddress)}</strong>` : "Someone";
   const what = meta.taskTitle ? `<strong>&ldquo;${meta.taskTitle}&rdquo;</strong>` : "your task";
-  const sentence = `${who} ${verb} ${what}.`;
+  const isNewTask = NEW_TASK_TYPES.includes(type);
+  // A new-task alert is about the task, not about who posted it.
+  const sentence = isNewTask ? `A new task just opened: ${what}.` : `${who} ${verb} ${what}.`;
 
   return `
   <div style="background:#F3F0E9; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -81,7 +90,8 @@ function emailHtml(type: NotificationType, taskId: number | undefined, meta: Not
 // Creates a notification for `recipient` (and mirrors it by email if they've
 // set one), unless they've explicitly turned that type off in
 // notification_prefs (missing/unset defaults to enabled, so existing rows
-// created before a new type shipped still get it). Never throws — a
+// created before a new type shipped still get it) — except the opt-in
+// new-task alerts, which need the key set to true. Never throws — a
 // notification failing to send shouldn't fail the request that triggered it.
 export async function notify(recipient: string, type: NotificationType, taskId?: number, meta: NotifyMeta = {}) {
   if (!supabaseAdmin) return;
@@ -90,12 +100,12 @@ export async function notify(recipient: string, type: NotificationType, taskId?:
   try {
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("notification_prefs, email")
+      .select("notification_prefs, email, email_verified")
       .eq("address", address)
       .maybeSingle();
 
-    const prefs = (profile?.notification_prefs ?? {}) as Record<string, boolean>;
-    if (prefs[type] === false) return;
+    // Older types: on unless switched off. Opt-in types (new-task alerts): off unless switched on.
+    if (!prefAllows(profile?.notification_prefs as Record<string, unknown> | null, type)) return;
 
     // recipient_address has a foreign key into profiles(address).
     await supabaseAdmin.from("profiles").upsert({ address }, { onConflict: "address", ignoreDuplicates: true });
@@ -106,8 +116,9 @@ export async function notify(recipient: string, type: NotificationType, taskId?:
       task_id: taskId ?? null,
     });
 
-    if (profile?.email) {
-      await sendEmail(profile.email, COPY[type].subject, emailHtml(type, taskId, meta));
+    // Opt-in broadcasts only email a verified address (see lib/notification-rules.ts).
+    if (mayEmail(type, profile?.email, profile?.email_verified)) {
+      await sendEmail(profile!.email as string, COPY[type].subject, emailHtml(type, taskId, meta));
     }
   } catch {
     // best-effort — see comment above

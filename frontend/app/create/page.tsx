@@ -206,6 +206,17 @@ export default function CreatePage() {
         }).catch(() => {});
       }
 
+      // Opt-in "new task" alerts. Self-funded tasks only (a grant task isn't open
+      // until its vote passes). The server re-reads the task from the chain, so
+      // it only needs the id; best-effort like the patron notification above.
+      if (fundingType !== "grant" && taskId !== undefined) {
+        fetch("/api/notify-new-task", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId }),
+        }).catch(() => {});
+      }
+
       setSubmitted(true);
     } catch (err) {
       setSubmitError(formatContractError(err, "Transaction failed. Please try again."));
