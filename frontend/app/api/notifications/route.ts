@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireCaller } from "@/lib/verify-caller";
 
 // Notification feed — see supabase/schema.sql: notifications. Rows are meant
 // to be created by the event indexer (scripts/indexer.ts) when a relevant
@@ -52,6 +53,8 @@ export async function PATCH(req: NextRequest) {
   if (!address) {
     return NextResponse.json({ error: "address is required" }, { status: 400 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   let query = supabaseAdmin.from("notifications").update({ read: true }).eq("recipient_address", address);
   if (id) query = query.eq("id", id);

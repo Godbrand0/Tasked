@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireCaller } from "@/lib/verify-caller";
+import { getTaskCreator } from "@/lib/task-onchain";
 import { notify } from "@/lib/notifications";
 
 // Threaded feedback on a single community-task submission. The task owner
@@ -41,7 +43,8 @@ export async function POST(req: NextRequest) {
   const taskId = body?.taskId;
   const participantAddress = typeof body?.participantAddress === "string" ? body.participantAddress.toLowerCase() : null;
   const address = typeof body?.address === "string" ? body.address.toLowerCase() : null;
-  const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
+  // The task owner comes from the chain, never from the request body.
+  const creatorAddress = await getTaskCreator(taskId);
   const text = typeof body?.body === "string" ? body.body.trim() : "";
   const taskTitle = typeof body?.taskTitle === "string" ? body.taskTitle : undefined;
 
@@ -60,6 +63,8 @@ export async function POST(req: NextRequest) {
   if (address !== creatorAddress && address !== participantAddress) {
     return NextResponse.json({ error: "Only the task owner or the participant can post here" }, { status: 403 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   // author_address / participant_address FK into profiles(address).
   const { error: profileError } = await supabaseAdmin

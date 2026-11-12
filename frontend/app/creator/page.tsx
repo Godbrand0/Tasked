@@ -26,6 +26,7 @@ import {
   mapOnChainTask,
 } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { authedFetch } from "@/lib/authed-fetch";
 
 export default function CreatorPage() {
   const { username, githubVerified, avatarUrl } = useWallet();
@@ -91,7 +92,7 @@ export default function CreatorPage() {
     try {
       await send("approveAndRelease", [BigInt(taskId)]);
       if (assignee) {
-        fetch("/api/notify", {
+        authedFetch("/api/notify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ recipient: assignee, type: "funds_released", taskId, taskTitle, amount: `${amount} ${token}` }),

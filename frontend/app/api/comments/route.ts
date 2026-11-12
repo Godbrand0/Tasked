@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireCaller } from "@/lib/verify-caller";
 import { notify } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
   if (text.length > 2000) {
     return NextResponse.json({ error: "Comment is too long (max 2000 chars)" }, { status: 400 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   // task_comments.author_address has a foreign key into profiles(address) —
   // make sure a row exists before inserting the comment. No-op if it does.

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireCaller } from "@/lib/verify-caller";
+import { getTaskCreator } from "@/lib/task-onchain";
 import { notify } from "@/lib/notifications";
 
 // Community-task join + proof-of-participation link. Mirrors
@@ -77,6 +79,8 @@ export async function POST(req: NextRequest) {
   if (proofUrl.length > 500) {
     return NextResponse.json({ error: "Proof URL is too long" }, { status: 400 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   const { error: userError } = await ensureUserOnchainRow(address) ?? {};
   if (userError) {
@@ -116,6 +120,13 @@ export async function PATCH(req: NextRequest) {
   if (!taskId || !Array.isArray(winners) || winners.length === 0 || !winners.every(w => typeof w === "string")) {
     return NextResponse.json({ error: "taskId and a non-empty winners array of addresses are required" }, { status: 400 });
   }
+  // Only the task's on-chain creator may do this.
+  const creator = await getTaskCreator(taskId);
+  if (!creator) {
+    return NextResponse.json({ error: "Couldn't find this task on-chain yet. Try again in a moment." }, { status: 409 });
+  }
+  const deniedCreator = await requireCaller(req, creator);
+  if (deniedCreator) return deniedCreator;
 
   const lowered = winners.map(w => w.toLowerCase());
 

@@ -11,6 +11,7 @@ import { TASKIFY_ADDRESS, tokenAddress } from "@/lib/taskify";
 import { extractTaskId, toRawMUSD, useApproveIfNeeded, useTaskifyTx } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
 import { IconLock, IconBriefcase, IconMegaphone, IconBallot, IconCode, IconLandmark, IconImage } from "@/components/icons";
+import { authedFetch } from "@/lib/authed-fetch";
 
 type FundingType = "self" | "grant";
 type Currency = "MUSD" | "MEZO";
@@ -175,7 +176,7 @@ export default function CreatePage() {
       // in app/tasks/[id]/page.tsx).
       if (taskId !== undefined && description.trim()) {
         try {
-          const res = await fetch("/api/task-content", {
+          const res = await authedFetch("/api/task-content", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -199,7 +200,7 @@ export default function CreatePage() {
       }
 
       if (fundingType === "grant" && taskId !== undefined) {
-        fetch("/api/notify-patrons", {
+        authedFetch("/api/notify-patrons", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId, taskTitle: title, amount: `${numAmount} MUSD`, creatorAddress: address }),

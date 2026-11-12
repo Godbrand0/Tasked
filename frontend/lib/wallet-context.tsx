@@ -9,6 +9,7 @@ import { ROLE_ID, roleToString } from "@/lib/taskify";
 import { useTaskifyTx, useTaskifyUser } from "@/lib/use-taskify";
 import { assertGoogleAvailable } from "@/lib/identity";
 import type { UserRole } from "@/lib/mock";
+import { authedFetch } from "@/lib/authed-fetch";
 
 const ERC20_BALANCE_ABI = [
   {
@@ -161,7 +162,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setDisplayName("");
       return;
     }
-    fetch(`/api/profile?address=${address}`)
+    authedFetch(`/api/profile?address=${address}`)
       .then((res) => res.json())
       .then((data: { profile?: { github_handle?: string; github_avatar_url?: string; x_handle?: string; x_avatar_url?: string; google_email?: string; google_name?: string; google_avatar_url?: string; custom_avatar_url?: string; display_name?: string } }) => {
         setGithubHandle(data.profile?.github_handle ?? "");
@@ -255,7 +256,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // read stays the source of truth for role/registration regardless of
   // whether this succeeds, so a flaky network call never blocks anything.
   function syncProfile(addr: string, fields: Record<string, unknown>) {
-    fetch("/api/profile", {
+    authedFetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address: addr, ...fields }),
@@ -350,7 +351,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // so the caller (Settings) needs a real error, not a silent no-op.
   async function uploadAvatar(dataUrl: string) {
     if (!address) return;
-    const res = await fetch("/api/profile", {
+    const res = await authedFetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address, custom_avatar_url: dataUrl }),
@@ -372,7 +373,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   async function updateDisplayName(name: string) {
     if (!address) return;
     const trimmed = name.trim();
-    const res = await fetch("/api/profile", {
+    const res = await authedFetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address, display_name: trimmed }),
