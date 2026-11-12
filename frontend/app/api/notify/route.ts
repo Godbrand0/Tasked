@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { notify, type NotificationType } from "@/lib/notifications";
+import { getCallerWallets } from "@/lib/verify-caller";
 
 // Generic notification-creation endpoint for events triggered by a
 // confirmed on-chain transaction (assign, submit, approve/release) where
@@ -20,6 +21,14 @@ export async function POST(req: NextRequest) {
 
   if (!recipient || !type || !ALLOWED_TYPES.includes(type)) {
     return NextResponse.json({ error: "recipient and a valid type are required" }, { status: 400 });
+  }
+  // Only signed-in users may send notifications, and only as themselves.
+  const wallets = await getCallerWallets(req);
+  if (!wallets) {
+    return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
+  }
+  if (actorAddress && !wallets.has(actorAddress.toLowerCase())) {
+    return NextResponse.json({ error: "That wallet isn't linked to your login." }, { status: 403 });
   }
 
   await notify(recipient, type, taskId, { taskTitle, amount, actorAddress });

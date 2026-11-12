@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { callerOwns, requireCaller } from "@/lib/verify-caller";
 
 // Off-chain profile extension (bio, linked-account handles, notification
 // prefs) — see supabase/schema.sql: profiles. Registration itself
@@ -9,6 +10,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const ALLOWED_FIELDS = ["display_name", "bio", "github_handle", "github_display_name", "github_avatar_url", "x_handle", "x_display_name", "x_avatar_url", "google_email", "google_name", "google_avatar_url", "custom_avatar_url", "email", "notification_prefs"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Only the owner may read these. Everything else on a profile is public.
+const PRIVATE_FIELDS = ["email", "google_email", "google_email_normalized", "notification_prefs"] as const;
 
 export async function GET(req: NextRequest) {
   if (!supabaseAdmin) {
@@ -21,6 +24,9 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await supabaseAdmin.from("profiles").select("*").eq("address", address).maybeSingle();
+  if (data && !(await callerOwns(req, address))) {
+    for (const field of PRIVATE_FIELDS) delete (data as Record<string, unknown>)[field];
+  }
   if (error) {
     // profiles_google_email_normalized_key: that Google account is already
     // linked to a different wallet (see migrations/0018).
@@ -42,6 +48,8 @@ export async function POST(req: NextRequest) {
   if (!address) {
     return NextResponse.json({ error: "address is required" }, { status: 400 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   const update: Record<string, unknown> = { address, updated_at: new Date().toISOString() };
   for (const field of ALLOWED_FIELDS) {

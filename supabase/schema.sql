@@ -389,6 +389,13 @@ create policy "public read" on wave_snapshots_onchain for select using (true);
 create policy "public read" on wave_claims_onchain for select using (true);
 
 create policy "public read" on profiles for select using (true);
+-- Private columns (email, google_email, google_email_normalized,
+-- notification_prefs) are not readable with the anon key — see
+-- migrations/0019_hide_private_profile_columns.sql.
+revoke select on profiles from anon, authenticated;
+grant select (address, display_name, bio, github_handle, github_display_name, github_avatar_url,
+  x_handle, x_display_name, x_avatar_url, google_name, google_avatar_url, custom_avatar_url,
+  created_at, updated_at) on profiles to anon, authenticated;
 create policy "own profile write" on profiles
   for insert with check (address = auth.jwt() ->> 'address');
 create policy "own profile update" on profiles

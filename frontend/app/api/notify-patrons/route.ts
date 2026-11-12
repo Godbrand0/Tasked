@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApprovedVoterAddresses } from "@/lib/patrons";
 import { notify } from "@/lib/notifications";
+import { requireCaller } from "@/lib/verify-caller";
+import { getTaskCreator } from "@/lib/task-onchain";
 
 // Fired once when a grant application (applyForGrant) confirms on-chain —
 // every approved voter (see approvedVoters/setApprovedVoters in Taskify.sol)
@@ -12,11 +14,18 @@ export async function POST(req: NextRequest) {
   const taskId = typeof body?.taskId === "number" ? body.taskId : undefined;
   const taskTitle = typeof body?.taskTitle === "string" ? body.taskTitle : undefined;
   const amount = typeof body?.amount === "string" ? body.amount : undefined;
-  const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : undefined;
 
   if (taskId === undefined) {
     return NextResponse.json({ error: "taskId is required" }, { status: 400 });
   }
+
+  // Only the task's on-chain creator can alert voters about it.
+  const creatorAddress = await getTaskCreator(taskId);
+  if (!creatorAddress) {
+    return NextResponse.json({ error: "Couldn't find this task on-chain yet. Try again in a moment." }, { status: 409 });
+  }
+  const denied = await requireCaller(req, creatorAddress);
+  if (denied) return denied;
 
   const voters = await getApprovedVoterAddresses();
   await Promise.all(

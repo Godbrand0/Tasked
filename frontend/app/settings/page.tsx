@@ -13,6 +13,7 @@ import { useAllTasks, useTaskifyTx } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconUser, IconAward, IconBell, IconLock, IconAlertTriangle, IconCheck } from "@/components/icons";
+import { authedFetch } from "@/lib/authed-fetch";
 
 const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
@@ -222,7 +223,7 @@ function SettingsPageInner() {
 
   useEffect(() => {
     if (!address) return;
-    fetch(`/api/profile?address=${address}`)
+    authedFetch(`/api/profile?address=${address}`)
       .then(res => res.json())
       .then((data: { profile: { bio?: string; email?: string; notification_prefs?: Partial<typeof DEFAULT_NOTIFS> } | null }) => {
         if (!data.profile) return;
@@ -242,13 +243,13 @@ function SettingsPageInner() {
         if (usernameInput.trim().length === 0) throw new Error("Username can't be empty.");
         if (usernameInput.trim().length > 32) throw new Error("Username is too long (max 32 chars).");
         await updateDisplayName(usernameInput.trim());
-        await fetch("/api/profile", {
+        await authedFetch("/api/profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address, bio }),
         });
       } else if (active === "notifications") {
-        const res = await fetch("/api/profile", {
+        const res = await authedFetch("/api/profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address, notification_prefs: notifs, email }),

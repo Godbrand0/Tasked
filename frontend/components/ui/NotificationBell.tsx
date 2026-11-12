@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@/lib/wallet-context";
 import DropdownPanel, { useOutsideClick } from "@/components/ui/DropdownPanel";
 import { IconTarget, IconSend, IconCoins, IconBallot, IconWaves, IconEdit, IconHandRaised, IconBell } from "@/components/icons";
+import { authedFetch } from "@/lib/authed-fetch";
 
 interface Notification {
   id: string;
@@ -65,7 +66,7 @@ export default function NotificationBell() {
   async function markRead(id?: string) {
     if (!address) return;
     setNotifications(prev => prev.map(n => (!id || n.id === id) ? { ...n, read: true } : n));
-    await fetch("/api/notifications", {
+    await authedFetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(id ? { address, id } : { address }),

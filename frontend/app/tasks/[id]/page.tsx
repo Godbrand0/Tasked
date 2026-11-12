@@ -66,6 +66,7 @@ interface LiveFeedback {
 
 import { useWallet, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
+import { authedFetch } from "@/lib/authed-fetch";
 
 const LIFECYCLE = ["GRANT_PENDING", "OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "FUNDS_RELEASED"];
 
@@ -108,7 +109,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setSavingDescription(true);
     setDescriptionSaveError("");
     try {
-      const res = await fetch("/api/task-content", {
+      const res = await authedFetch("/api/task-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Only the description — this editor doesn't touch tags, the GitHub
@@ -394,7 +395,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setApplyError("");
     try {
       await send("applyForTask", [BigInt(task.id)]);
-      const res = await fetch("/api/applications", {
+      const res = await authedFetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, address, motivation: motivation.trim(), creatorAddress: task.creator, taskTitle: task.title }),
@@ -411,7 +412,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   }
 
   function notifyServer(recipient: string, type: "task_assigned" | "work_submitted" | "funds_released" | "submission_rejected", amountOverride?: string) {
-    fetch("/api/notify", {
+    authedFetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -464,7 +465,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
       notifyServer(task.creator, "work_submitted");
 
       try {
-        const res = await fetch("/api/task-submission", {
+        const res = await authedFetch("/api/task-submission", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId: task.id, address, prUrl: prUrl.trim(), issueUrl: issueUrl.trim() || null }),
@@ -493,7 +494,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     try {
       const receipt = await send("approveAndRelease", [BigInt(task.id)]);
       if (task.assignee) notifyServer(task.assignee, "funds_released");
-      fetch("/api/task-submission", {
+      authedFetch("/api/task-submission", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, payoutTxHash: receipt.transactionHash }),
@@ -558,7 +559,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     if (!task || !address) return;
     setCommentError("");
     try {
-      const res = await fetch("/api/comments", {
+      const res = await authedFetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, address, body, replyTo, creatorAddress: task.creator, taskTitle: task.title }),
@@ -602,7 +603,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setJoinError("");
     try {
       await send("joinCommunityTask", [BigInt(task.id), proofUrl.trim()]);
-      const res = await fetch("/api/submissions", {
+      const res = await authedFetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim(), creatorAddress: task.creator, taskTitle: task.title }),
@@ -644,7 +645,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setFeedbackSending(participant);
     setFeedbackError("");
     try {
-      const res = await fetch("/api/submissions/feedback", {
+      const res = await authedFetch("/api/submissions/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -684,7 +685,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     try {
       const winners = Array.from(selectedWinners) as `0x${string}`[];
       const receipt = await send("selectWinners", [BigInt(task.id), winners]);
-      const res = await fetch("/api/submissions", {
+      const res = await authedFetch("/api/submissions", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, winners, txHash: receipt.transactionHash }),

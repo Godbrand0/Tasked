@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireCaller } from "@/lib/verify-caller";
+import { getTaskCreator } from "@/lib/task-onchain";
 
 // Development-task work submissions — see supabase/schema.sql:
 // task_submissions. Written once, right after the on-chain submitTask()
@@ -41,6 +43,8 @@ export async function POST(req: NextRequest) {
   if (!taskId || !address || !prUrl) {
     return NextResponse.json({ error: "taskId, address, and prUrl are required" }, { status: 400 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   // task_submissions.assignee_address has a foreign key into profiles(address).
   const { error: profileError } = await supabaseAdmin
@@ -82,6 +86,13 @@ export async function PATCH(req: NextRequest) {
   if (!taskId || !payoutTxHash) {
     return NextResponse.json({ error: "taskId and payoutTxHash are required" }, { status: 400 });
   }
+  // Only the task's on-chain creator may do this.
+  const creator = await getTaskCreator(taskId);
+  if (!creator) {
+    return NextResponse.json({ error: "Couldn't find this task on-chain yet. Try again in a moment." }, { status: 409 });
+  }
+  const deniedCreator = await requireCaller(req, creator);
+  if (deniedCreator) return deniedCreator;
 
   const { data, error } = await supabaseAdmin
     .from("task_submissions")

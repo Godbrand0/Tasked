@@ -15,6 +15,7 @@ import { useWallet, formatAddress } from "@/lib/wallet-context";
 import Address from "@/components/ui/Address";
 import { useAllTasks, useAppliedTaskIds, useTaskifyTx, useTasksWithCounts, useUsersBatch, useProfilesBatch, mapOnChainTask } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { authedFetch } from "@/lib/authed-fetch";
 
 export default function ContributorPage() {
   const { username, experienceLevel, tasksCompleted, connected, isRegistered, avatarUrl } = useWallet();
@@ -88,7 +89,7 @@ export default function ContributorPage() {
     setSubmittingActive(true);
     try {
       await send("submitTask", [BigInt(activeTask.id)]);
-      fetch("/api/notify", {
+      authedFetch("/api/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipient: activeTask.creator, type: "work_submitted", taskId: activeTask.id }),

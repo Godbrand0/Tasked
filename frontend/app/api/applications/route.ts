@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireCaller } from "@/lib/verify-caller";
 import { notify } from "@/lib/notifications";
 
 // Development-task applications. applyForTask() on-chain only records
@@ -46,6 +47,8 @@ export async function POST(req: NextRequest) {
   if (motivation.length > 2000) {
     return NextResponse.json({ error: "Motivation is too long (max 2000 chars)" }, { status: 400 });
   }
+  const denied = await requireCaller(req, address);
+  if (denied) return denied;
 
   // task_applications.applicant_address has a foreign key into profiles(address).
   const { error: profileError } = await supabaseAdmin
