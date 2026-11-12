@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { oauthRedirectUri } from "@/lib/oauth";
+import { mintLinkProof } from "@/lib/link-proof";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -48,6 +49,8 @@ export async function GET(req: NextRequest) {
     github_name: user.name ?? user.login,
     github_avatar: user.avatar_url ?? "",
   });
+  const proof = mintLinkProof("github", { github_handle: user.login, github_display_name: user.name ?? user.login, github_avatar_url: user.avatar_url ?? null });
+  if (proof) params.set("link_proof", proof);
 
   return NextResponse.redirect(new URL(`/settings?${params}`, req.url));
 }

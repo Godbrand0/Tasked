@@ -77,16 +77,18 @@ interface WalletContextValue extends WalletState {
     googleEmail: string;
     googleName?: string;
     googleAvatar?: string;
+    /** Signed proof of the Google/email identity, from the OAuth callback or /api/identity/me. */
+    linkProof?: string;
   }) => Promise<void>;
   /** Re-read the native BTC balance (e.g. after a gas top-up) and return it in wei. */
   refetchNativeBalance: () => Promise<bigint>;
-  linkX: (handle: string, avatar?: string) => Promise<void>;
+  linkX: (handle: string, avatar: string | undefined, linkProof: string) => Promise<void>;
   unlinkX: () => Promise<void>;
   /** Off-chain only — there's no on-chain setGithubVerified, unlike X's setXVerified. */
-  linkGithub: (handle: string, avatar?: string) => Promise<void>;
+  linkGithub: (handle: string, avatar: string | undefined, linkProof: string) => Promise<void>;
   unlinkGithub: () => Promise<void>;
   /** Off-chain only — for legacy accounts registered before Google existed. */
-  linkGoogle: (email: string, name?: string, avatar?: string) => Promise<void>;
+  linkGoogle: (email: string, name: string | undefined, avatar: string | undefined, linkProof: string) => Promise<void>;
   /** Off-chain only — dataUrl from a client-side FileReader read, capped at ~1.5MB server-side. */
   uploadAvatar: (dataUrl: string) => Promise<void>;
   removeAvatar: () => Promise<void>;
@@ -263,6 +265,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
   }
 
+  // Awaited version of syncProfile for account linking: the server can reject
+  // an expired link proof, and Settings needs to show that.
+  async function saveProfile(addr: string, fields: Record<string, unknown>) {
+    const res = await authedFetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: addr, ...fields }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error ?? "Failed to save your profile");
+    }
+  }
+
   // Calls registerUser on-chain and waits for confirmation. Throws on
   // failure (rejected tx, wallet cancellation) so callers can surface the
   // error instead of optimistically assuming success.
@@ -273,6 +289,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     googleEmail: string;
     googleName?: string;
     googleAvatar?: string;
+    linkProof?: string;
   }) {
     if (!address) throw new Error("No wallet connected");
     // Also checked earlier by /register (before the gas top-up); repeated here
@@ -293,6 +310,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // notification email automatically instead of asking again at
       // registration. Editable/removable later from Settings.
       email: data.googleEmail || null,
+      // The server only stores google_* from this signed proof.
+      link_proof: data.linkProof || undefined,
     });
     await refetchUser();
   }
@@ -303,11 +322,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // social handle isn't worth it — and made linking fragile (it silently
   // no-op'd whenever the on-chain user row hadn't loaded yet). "X verified"
   // for display is derived from either source below, like GitHub.
-  async function linkX(handle: string, avatar?: string) {
+  async function linkX(handle: string, avatar: string | undefined, linkProof: string) {
     if (!address) return;
+    await saveProfile(address, { link_proof: linkProof });
     setXHandle(handle);
     setXAvatar(avatar ?? "");
-    syncProfile(address, { x_handle: handle, x_avatar_url: avatar || null });
   }
 
   async function unlinkX() {
@@ -321,11 +340,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // is only ever set at registration time, and stays whatever it was set to
   // then. A post-registration link is purely off-chain; "verified" status
   // for display purposes is derived below from either source.
-  async function linkGithub(handle: string, avatar?: string) {
+  async function linkGithub(handle: string, avatar: string | undefined, linkProof: string) {
     if (!address) return;
+    await saveProfile(address, { link_proof: linkProof });
     setGithubHandle(handle);
     setGithubAvatar(avatar ?? "");
-    syncProfile(address, { github_handle: handle, github_avatar_url: avatar || null });
   }
 
   async function unlinkGithub() {
@@ -338,12 +357,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Off-chain only, same as linkGithub — for accounts registered before
   // Google became the required identity, linking it after the fact from
   // Settings rather than at registration time.
-  async function linkGoogle(email: string, name?: string, avatar?: string) {
+  async function linkGoogle(email: string, name: string | undefined, avatar: string | undefined, linkProof: string) {
     if (!address) return;
+    await saveProfile(address, { link_proof: linkProof });
     setGoogleEmail(email);
     setGoogleName(name ?? "");
     setGoogleAvatar(avatar ?? "");
-    syncProfile(address, { google_email: email, google_name: name || null, google_avatar_url: avatar || null });
   }
 
   // Unlike the other link* functions this is awaited and can throw — the
