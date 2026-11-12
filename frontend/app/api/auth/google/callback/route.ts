@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mintGasGrant } from "@/lib/gas-grant";
 import { oauthRedirectUri } from "@/lib/oauth";
+import { mintLinkProof } from "@/lib/link-proof";
 
 function getReturnTo(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state") ?? "";
@@ -54,6 +55,8 @@ export async function GET(req: NextRequest) {
     google_name: user.name ?? user.email.split("@")[0],
     google_avatar: user.picture ?? "",
   });
+  const proof = mintLinkProof("google", { google_email: user.email, google_name: user.name ?? user.email.split("@")[0], google_avatar_url: user.picture ?? null });
+  if (proof) params.set("link_proof", proof);
 
   // Only present when gas sponsorship is enabled (GAS_DRIP_SECRET set). Lets
   // /register request a one-time BTC top-up for a brand-new wallet, deduped

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { callerOwns, requireCaller } from "@/lib/verify-caller";
+import { PROVIDER_FIELDS, verifyLinkProof } from "@/lib/link-proof";
 
 // Off-chain profile extension (bio, linked-account handles, notification
 // prefs) — see supabase/schema.sql: profiles. Registration itself
@@ -54,6 +55,22 @@ export async function POST(req: NextRequest) {
   const update: Record<string, unknown> = { address, updated_at: new Date().toISOString() };
   for (const field of ALLOWED_FIELDS) {
     if (field in (body ?? {})) update[field] = body[field];
+  }
+
+  // Linked-account fields (GitHub, X, Google) can be cleared freely, but only
+  // set from a signed proof minted by our own OAuth callback / Privy check.
+  // Values in the request body are ignored. See lib/link-proof.ts.
+  const LINKED = new Set(Object.values(PROVIDER_FIELDS).flat());
+  for (const field of LINKED) {
+    if (field in update && update[field] !== null) delete update[field];
+  }
+  const proofs = body && "link_proof" in body ? [body.link_proof] : [];
+  for (const token of proofs) {
+    const proof = verifyLinkProof(token);
+    if (!proof) {
+      return NextResponse.json({ error: "That account link has expired. Please connect it again." }, { status: 400 });
+    }
+    Object.assign(update, proof.fields);
   }
 
   if (typeof update.bio === "string" && update.bio.length > 500) {

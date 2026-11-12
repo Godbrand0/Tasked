@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
 import { privyServer } from "@/lib/privy-server";
 import { isGasDripConfigured, mintGasGrant } from "@/lib/gas-grant";
+import { mintLinkProof } from "@/lib/link-proof";
 
 // The identity Privy has verified for this login, for /register to use instead
 // of a second, unrelated Google sign-in. Without this, someone could log in
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       identity: { email: google.email, name: google.name ?? google.email.split("@")[0], source: "google" },
       gasGrant: mintGasGrant(google.subject),
+      linkProof: mintLinkProof("google", { google_email: google.email, google_name: google.name ?? google.email.split("@")[0] }),
     });
   }
 
@@ -68,6 +70,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       identity: { email: email.address, name: email.address.split("@")[0], source: "email" },
       gasGrant: null,
+      // Privy verified this email, so /api/profile may store it as the identity email.
+      linkProof: mintLinkProof("google", { google_email: email.address, google_name: email.address.split("@")[0] }),
       // No drip for email alone (free to fake), but linking a Google account
       // earns one: the next call finds the google_oauth account above.
       canClaimGasByLinkingGoogle: isGasDripConfigured(),

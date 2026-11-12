@@ -106,7 +106,7 @@ function SettingsPageInner() {
     window.history.replaceState({}, "", "/settings");
     setXConnecting(true);
     setXError("");
-    linkX(handle, avatar ?? undefined).catch((err) => {
+    linkX(handle, avatar ?? undefined, searchParams.get("link_proof") ?? "").catch((err) => {
       setXError(formatContractError(err, "Failed to link X"));
     }).finally(() => setXConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,7 +135,7 @@ function SettingsPageInner() {
     window.history.replaceState({}, "", "/settings");
     setGithubConnecting(true);
     setGithubError("");
-    linkGithub(handle, avatar ?? undefined).catch((err) => {
+    linkGithub(handle, avatar ?? undefined, searchParams.get("link_proof") ?? "").catch((err) => {
       setGithubError(formatContractError(err, "Failed to link GitHub"));
     }).finally(() => setGithubConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +165,7 @@ function SettingsPageInner() {
     window.history.replaceState({}, "", "/settings");
     setGoogleConnecting(true);
     setGoogleError("");
-    linkGoogle(email, name ?? undefined, avatar ?? undefined).catch((err) => {
+    linkGoogle(email, name ?? undefined, avatar ?? undefined, searchParams.get("link_proof") ?? "").catch((err) => {
       setGoogleError(formatContractError(err, "Failed to link Google"));
     }).finally(() => setGoogleConnecting(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps

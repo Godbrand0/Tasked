@@ -54,6 +54,8 @@ function RegisterPageInner() {
   const [googleAvatar, setGoogleAvatar] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [gasGrant, setGasGrant] = useState("");
+  // Signed proof of the Google/email identity; /api/profile only stores google_* from it.
+  const [linkProof, setLinkProof] = useState("");
   const { ready: privyReady, authenticated: privyAuthed, user: privyUser, getAccessToken } = usePrivy();
   // Email-only logins get no gas top-up (a throwaway email is free to fake), but
   // linking a Google account earns one — see /api/identity/me.
@@ -99,13 +101,14 @@ function RegisterPageInner() {
           body: JSON.stringify({ address }),
         });
         if (!res.ok) return;
-        const data: { identity: { email: string; name: string } | null; gasGrant: string | null; canClaimGasByLinkingGoogle?: boolean } = await res.json();
+        const data: { identity: { email: string; name: string } | null; gasGrant: string | null; linkProof?: string | null; canClaimGasByLinkingGoogle?: boolean } = await res.json();
         if (cancelled || !data.identity) return;
         setGoogleEmail(data.identity.email);
         setGoogleName(data.identity.name);
         setGoogleAvatar("");
         setGoogleVerified(true);
         setGasGrant(data.gasGrant ?? "");
+        setLinkProof(data.linkProof ?? "");
         setCanLinkGoogleForGas(Boolean(data.canClaimGasByLinkingGoogle) && !data.gasGrant);
       } catch (err) {
         console.error("[identity-me] failed:", err);
@@ -130,6 +133,7 @@ function RegisterPageInner() {
       // gas sponsorship is enabled. Used silently by handleRegister to top up
       // an empty wallet before the registerUser transaction.
       setGasGrant(searchParams.get("gas_grant") ?? "");
+      setLinkProof(searchParams.get("link_proof") ?? "");
       // Clean params from URL without triggering navigation
       window.history.replaceState({}, "", "/register");
     }
@@ -209,7 +213,7 @@ function RegisterPageInner() {
       if (!(await ensureGas())) return;
       // Google's email doubles as the notification email automatically —
       // wallet-context's register() syncs it to profiles.email directly.
-      await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), googleEmail, googleName, googleAvatar });
+      await registerWallet({ username, role, experienceLevel: Math.max(0, experienceLevel), googleEmail, googleName, googleAvatar, linkProof });
       router.push("/dashboard");
     } catch (err) {
       setRegisterError(formatContractError(err, "Registration failed. Please try again."));
