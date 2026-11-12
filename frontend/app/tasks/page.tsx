@@ -20,11 +20,13 @@ const STATUS_MAP: Record<string, string[]> = {
   "Submitted":   ["SUBMITTED"],
   "Completed":   ["FUNDS_RELEASED"],
 };
+// Visitors come here to find work they can pick up, so start on Open tasks.
+const DEFAULT_STATUS_FILTER = "Open";
 
 export default function TasksPage() {
   const { role, connected, isRegistered } = useWallet();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState(DEFAULT_STATUS_FILTER);
   const [tierFilter, setTierFilter] = useState<number | null>(null);
   const [fundingFilter, setFundingFilter] = useState<"all" | "self" | "grant">("all");
   const [kindFilter, setKindFilter] = useState<"all" | "development" | "community">("all");
@@ -56,7 +58,7 @@ export default function TasksPage() {
     return true;
   });
 
-  const activeFilterCount = [statusFilter !== "All", kindFilter !== "all", tierFilter !== null, fundingFilter !== "all"].filter(Boolean).length;
+  const activeFilterCount = [statusFilter !== DEFAULT_STATUS_FILTER, kindFilter !== "all", tierFilter !== null, fundingFilter !== "all"].filter(Boolean).length;
   const isContributor = connected && isRegistered && role === "contributor";
   const isCreator = connected && isRegistered && role === "creator";
   const canJoinCommunity = connected && isRegistered && role !== "creator";
@@ -165,7 +167,17 @@ export default function TasksPage() {
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
-            <EmptyState size="lg" icon={IconSearch} title="No tasks match your filters" description="Try adjusting your search or filters" />
+            statusFilter === DEFAULT_STATUS_FILTER && !search && activeFilterCount === 0 ? (
+              <EmptyState
+                size="lg"
+                icon={IconSearch}
+                title="No open tasks right now"
+                description="New tasks show up here as soon as they're posted."
+                action={<Button variant="outline" onClick={() => setStatusFilter("All")}>Browse all tasks</Button>}
+              />
+            ) : (
+              <EmptyState size="lg" icon={IconSearch} title="No tasks match your filters" description="Try adjusting your search or filters" />
+            )
           ) : (
             <div className="task-grid" style={{ display: "grid", gap: 20 }}>
               {filtered.map(task => {
