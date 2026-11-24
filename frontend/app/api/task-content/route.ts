@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireCaller } from "@/lib/verify-caller";
 import { getTaskCreator } from "@/lib/task-onchain";
 import { MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
+import { screenTask } from "@/lib/moderation";
 
 // Rich task content the contract deliberately doesn't store — Taskify.sol's
 // Task struct only has `title`. See supabase/schema.sql: task_content.
@@ -102,5 +103,8 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ content: data }, { status: 201 });
+  // Check the new text against the flagged keywords; a match holds the task
+  // for admin review (lib/moderation.ts).
+  const moderation = await screenTask(Number(taskId));
+  return NextResponse.json({ content: data, moderation }, { status: 201 });
 }

@@ -23,6 +23,9 @@ import Countdown from "@/components/ui/Countdown";
 import { IconSearch, IconMegaphone, IconLink } from "@/components/icons";
 import ShareButton from "@/components/ui/ShareButton";
 import { absoluteUrl } from "@/lib/url";
+import { ModerationBanner, ModeratedNotice, ReportButton } from "@/components/ui/TaskModeration";
+import { useTaskModeration } from "@/lib/use-moderation";
+import { isAdmin } from "@/lib/admins";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -90,6 +93,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { user: assigneeUser } = useTaskifyUser(assigneeAddr);
   const { vote: grantVote, refetch: refetchGrantVote } = useGrantVote(taskId);
   const { applied: appliedOnchain, refetch: refetchApplied } = useTaskApplicantAppliedAt(taskId, address);
+  const { data: moderationStatus = "live", refetch: refetchModeration } = useTaskModeration(taskId);
 
   const [offchainContent, setOffchainContent] = useState<{ description: string; tags: string[]; github_repo_url: string | null; grant_justification: string | null; images: string[] } | null>(null);
   useEffect(() => {
@@ -397,6 +401,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const isCreator = role === "creator";
   const isAssignee = Boolean(address && task.assignee && address.toLowerCase() === task.assignee.toLowerCase());
   const isTaskCreator = Boolean(address && address.toLowerCase() === task.creator.toLowerCase());
+  const viewerIsAdmin = isAdmin(address);
   const isCommunity = task.kind === "community";
   const maxWinners = task.maxWinners ?? 1;
   // The contract is the source of truth: if this wallet joined on-chain, never
@@ -737,6 +742,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
+  // Held for review or removed: only the creator and admins can see it.
+  if ((moderationStatus === "pending_review" || moderationStatus === "hidden") && !isTaskCreator && !viewerIsAdmin) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+        <Navbar />
+        <ModeratedNotice status={moderationStatus} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <Navbar />
@@ -748,6 +763,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           <span>/</span>
           <span style={{ color: "var(--text)" }}>#{task.id} {task.title}</span>
         </div>
+
+        {(isTaskCreator || viewerIsAdmin) && (
+          <ModerationBanner taskId={task.id} status={moderationStatus} admin={viewerIsAdmin} onChange={() => void refetchModeration()} />
+        )}
 
         {/* Status + title */}
         <div style={{ marginBottom: 28 }}>
@@ -761,10 +780,13 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--text)", margin: 0, lineHeight: 1.25, letterSpacing: "-0.02em" }}>
               {task.title}
             </h1>
-            <ShareButton
-              url={absoluteUrl(`/tasks/${task.id}`)}
-              title={`${task.title} — ${formatMUSD(task.amount)} ${task.token} bounty on Taskify`}
-            />
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <ShareButton
+                url={absoluteUrl(`/tasks/${task.id}`)}
+                title={`${task.title} — ${formatMUSD(task.amount)} ${task.token} bounty on Taskify`}
+              />
+              {!isTaskCreator && <ReportButton taskId={task.id} canReportCreator={appliedOnchain} />}
+            </div>
           </div>
 
           {/* Meta row */}
