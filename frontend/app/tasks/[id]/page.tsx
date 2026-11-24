@@ -349,6 +349,20 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     return () => { cancelled = true; };
   }, [task?.id, task?.kind, task?.creator, address]);
 
+  // Hooks must all run before the early return below, or React crashes when
+  // the task finishes loading (more hooks than the previous render).
+  const inSubmissionList = Boolean(address) && submissions.some(s => s.address.toLowerCase() === address.toLowerCase());
+
+  // Self-heal: joined on-chain but missing from the list (an earlier save
+  // failed) → copy it over once the list has loaded.
+  const healedJoin = useRef(false);
+  useEffect(() => {
+    if (healedJoin.current || submissionsLoading || !appliedOnchain || inSubmissionList || task?.kind !== "community") return;
+    healedJoin.current = true;
+    void saveJoinFromChain();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionsLoading, appliedOnchain, inSubmissionList, task?.kind]);
+
   if (!task) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -389,7 +403,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   // show the join form again (a second joinCommunityTask always reverts with
   // AlreadyApplied). The Supabase list only adds the proof link for display,
   // and can lag or miss a join whose save failed.
-  const inSubmissionList = Boolean(address) && submissions.some(s => s.address.toLowerCase() === address.toLowerCase());
   const joined = inSubmissionList || (task?.kind === "community" && appliedOnchain);
 
   // Copies an on-chain join into the participant list. The server reads the
@@ -416,16 +429,6 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }]);
     return true;
   }
-
-  // Self-heal: joined on-chain but missing from the list (an earlier save
-  // failed) → copy it over once the list has loaded.
-  const healedJoin = useRef(false);
-  useEffect(() => {
-    if (healedJoin.current || submissionsLoading || !appliedOnchain || inSubmissionList || task?.kind !== "community") return;
-    healedJoin.current = true;
-    void saveJoinFromChain();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionsLoading, appliedOnchain, inSubmissionList, task?.kind]);
 
   async function handleApply() {
     if (!motivation.trim() || !task || !address) return;
