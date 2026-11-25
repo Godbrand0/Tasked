@@ -70,6 +70,7 @@ export default function CreatePage() {
   const [submitError, setSubmitError] = useState("");
   const [createdTaskId, setCreatedTaskId] = useState<number | null>(null);
   const [descriptionSaveFailed, setDescriptionSaveFailed] = useState(false);
+  const [heldForReview, setHeldForReview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fee = fundingType === "self" ? 0.03 : 0.05;
@@ -192,11 +193,23 @@ export default function CreatePage() {
             }),
           });
           if (!res.ok) setDescriptionSaveFailed(true);
+          else if ((await res.json().catch(() => null))?.moderation === "pending_review") setHeldForReview(true);
         } catch {
           setDescriptionSaveFailed(true);
         }
       } else if (taskId === undefined && description.trim()) {
         setDescriptionSaveFailed(true);
+      }
+
+      // No description saved means /api/task-content didn't screen the task,
+      // so screen the on-chain title on its own.
+      if (taskId !== undefined && !description.trim()) {
+        const res = await fetch("/api/moderation/screen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId }),
+        }).catch(() => null);
+        if ((await res?.json().catch(() => null))?.moderation === "pending_review") setHeldForReview(true);
       }
 
       if (fundingType === "grant" && taskId !== undefined) {
@@ -259,7 +272,7 @@ export default function CreatePage() {
             {taskKind === "community" ? <IconMegaphone size={52} /> : fundingType === "self" ? <IconLock size={52} /> : <IconBallot size={52} />}
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>
-            {taskKind === "community" ? "Community task is live!" : fundingType === "self" ? "Task posted & escrow locked!" : "Grant application submitted!"}
+            {heldForReview ? "Task posted, pending review" : taskKind === "community" ? "Community task is live!" : fundingType === "self" ? "Task posted & escrow locked!" : "Grant application submitted!"}
           </h1>
           <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 32 }}>
             {taskKind === "community"
@@ -268,6 +281,11 @@ export default function CreatePage() {
               ? `${numAmount.toLocaleString()} ${currency} is now locked in escrow. Your task is live in the bounty board.`
               : "Your grant application enters a 3-day community voting period. Voting weight comes from patrons' veBTC position on Mezo Earn."}
           </p>
+          {heldForReview && (
+            <div role="status" style={{ background: "color-mix(in srgb, var(--warning) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--warning) 30%, transparent)", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-muted)", textAlign: "left", lineHeight: 1.6 }}>
+              <strong style={{ color: "var(--text)" }}>Your task is being reviewed.</strong> Something in it matched our content guidelines, so it won&apos;t appear on the bounty board until our team checks it, usually within a day. You&apos;ll get a notification when it&apos;s approved.
+            </div>
+          )}
           {descriptionSaveFailed && (
             <div style={{ background: "var(--warning-tint, #fff3cd)", border: "1px solid var(--warning, #e0a100)", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "var(--text-muted)", textAlign: "left" }}>
               Your task is live, but the description couldn&apos;t be saved. {createdTaskId !== null ? "Open the task and add it from there." : "Try adding it again from the task page once it appears in the bounty board."}

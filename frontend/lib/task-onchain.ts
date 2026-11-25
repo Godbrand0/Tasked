@@ -17,20 +17,23 @@ const ZERO = "0x0000000000000000000000000000000000000000";
  * fallback RPC node can be a block or two behind.
  */
 export async function getTaskCreator(taskId: unknown): Promise<string | null> {
+  return (await getTaskInfo(taskId))?.creator ?? null;
+}
+
+/** On-chain creator (lowercased) and title of `taskId`, with the same retries as getTaskCreator. */
+export async function getTaskInfo(taskId: unknown): Promise<{ creator: string; title: string } | null> {
   const id = Number(taskId);
   if (!Number.isInteger(id) || id < 1) return null;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const creator = await readCreator(taskId);
-    if (creator) return creator;
+    const info = await readTask(id);
+    if (info) return info;
     if (attempt < 2) await new Promise((r) => setTimeout(r, 1500));
   }
   return null;
 }
 
-async function readCreator(taskId: unknown): Promise<string | null> {
-  const id = Number(taskId);
-  if (!Number.isInteger(id) || id < 1 || !TASKIFY_ADDRESS) return null;
-
+async function readTask(id: number): Promise<{ creator: string; title: string } | null> {
+  if (!TASKIFY_ADDRESS) return null;
   const client = createPublicClient({ transport: fallback(MEZO_RPC_URLS.map((url) => http(url))) });
   try {
     const row = (await client.readContract({
@@ -40,8 +43,57 @@ async function readCreator(taskId: unknown): Promise<string | null> {
       args: [BigInt(id)],
     })) as readonly unknown[];
     const creator = String(row[FIELDS.indexOf("creator")] ?? "").toLowerCase();
-    return creator && creator !== ZERO ? creator : null;
+    if (!creator || creator === ZERO) return null;
+    return { creator, title: String(row[FIELDS.indexOf("title")] ?? "") };
   } catch {
     return null;
   }
+}
+
+/** True if `address` applied to or joined `taskId` on-chain (both set taskApplicantAppliedAt). */
+export async function hasTakenPart(taskId: unknown, address: string): Promise<boolean> {
+  const id = Number(taskId);
+  if (!Number.isInteger(id) || id < 1 || !TASKIFY_ADDRESS || !/^0x[0-9a-fA-F]{40}$/.test(address)) return false;
+  const client = createPublicClient({ transport: fallback(MEZO_RPC_URLS.map((url) => http(url))) });
+  try {
+    const appliedAt = (await client.readContract({
+      address: TASKIFY_ADDRESS,
+      abi: TASKIFY_ABI,
+      functionName: "taskApplicantAppliedAt",
+      args: [BigInt(id), address as `0x${string}`],
+    })) as bigint;
+    return appliedAt > BigInt(0);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A community-task join as recorded by Taskify.sol: when `participant` joined
+ * `taskId` and the proof link they submitted. Null if they haven't joined (or
+ * the read failed). Only the wallet itself can call joinCommunityTask, so a
+ * non-null result proves the join without any login check.
+ */
+export async function getCommunityJoin(
+  taskId: unknown,
+  participant: string,
+): Promise<{ joinedAt: number; proofUrl: string } | null> {
+  const id = Number(taskId);
+  if (!Number.isInteger(id) || id < 1 || !TASKIFY_ADDRESS || !/^0x[0-9a-fA-F]{40}$/.test(participant)) return null;
+  const client = createPublicClient({ transport: fallback(MEZO_RPC_URLS.map((url) => http(url))) });
+  // Retry briefly: the client calls this right after its join tx confirms,
+  // and a fallback RPC node can be a block or two behind.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const [joinedAt, proofUrl] = await Promise.all([
+        client.readContract({ address: TASKIFY_ADDRESS, abi: TASKIFY_ABI, functionName: "taskApplicantAppliedAt", args: [BigInt(id), participant as `0x${string}`] }) as Promise<bigint>,
+        client.readContract({ address: TASKIFY_ADDRESS, abi: TASKIFY_ABI, functionName: "taskSubmissions", args: [BigInt(id), participant as `0x${string}`] }) as Promise<string>,
+      ]);
+      if (joinedAt > BigInt(0)) return { joinedAt: Number(joinedAt), proofUrl };
+    } catch {
+      // fall through to retry
+    }
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1500));
+  }
+  return null;
 }

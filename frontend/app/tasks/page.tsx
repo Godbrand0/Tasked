@@ -11,6 +11,7 @@ import { IconSearch } from "@/components/icons";
 import { TIERS } from "@/lib/constants";
 import { useWallet } from "@/lib/wallet-context";
 import { useAllTasks, useUsersBatch, useProfilesBatch, useTasksWithCounts, mapOnChainTask } from "@/lib/use-taskify";
+import { useHiddenTaskIds, visibleTasks } from "@/lib/use-moderation";
 
 const STATUS_FILTERS = ["All", "Open", "In Progress", "Submitted", "Completed"];
 const STATUS_MAP: Record<string, string[]> = {
@@ -24,7 +25,7 @@ const STATUS_MAP: Record<string, string[]> = {
 const DEFAULT_STATUS_FILTER = "Open";
 
 export default function TasksPage() {
-  const { role, connected, isRegistered } = useWallet();
+  const { role, connected, isRegistered, address: viewerAddress } = useWallet();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(DEFAULT_STATUS_FILTER);
   const [tierFilter, setTierFilter] = useState<number | null>(null);
@@ -32,7 +33,13 @@ export default function TasksPage() {
   const [kindFilter, setKindFilter] = useState<"all" | "development" | "community">("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const { data: onchainTasks, isLoading: tasksLoading } = useAllTasks();
+  const { data: allOnchainTasks, isLoading: tasksLoading } = useAllTasks();
+  // Tasks held for review or removed by an admin stay off the board.
+  const hiddenTaskIds = useHiddenTaskIds();
+  const onchainTasks = useMemo(
+    () => visibleTasks(allOnchainTasks ?? [], hiddenTaskIds, viewerAddress),
+    [allOnchainTasks, hiddenTaskIds, viewerAddress]
+  );
   const { data: usersByAddress } = useUsersBatch((onchainTasks ?? []).map(t => t.creator));
   // Off-chain overrides (custom display name, uploaded/Google avatar) —
   // useUsersBatch only ever returns the permanent on-chain username.

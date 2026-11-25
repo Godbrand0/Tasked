@@ -12,6 +12,7 @@ import Address from "@/components/ui/Address";
 import { formatVotingWeight, GRANT_PASS_THRESHOLD } from "@/lib/taskify";
 import { useAllTasks, useGrantVotesBatch, useIsApprovedVoter, useTaskifyTx, useTaskifyUser, useVotingWeight } from "@/lib/use-taskify";
 import { formatContractError } from "@/lib/errors";
+import { useHiddenTaskIds, visibleTasks } from "@/lib/use-moderation";
 import EmptyState from "@/components/ui/EmptyState";
 import Countdown from "@/components/ui/Countdown";
 import { IconBallot, IconZap } from "@/components/icons";
@@ -28,7 +29,8 @@ export default function VotePage() {
 
   const { user } = useTaskifyUser(address);
   const { data: allTasks } = useAllTasks();
-  const grantTasks = (allTasks ?? []).filter(t => t.status === 8); // GRANT_PENDING
+  const hiddenTaskIds = useHiddenTaskIds();
+  const grantTasks = visibleTasks(allTasks ?? [], hiddenTaskIds, address).filter(t => t.status === 8); // GRANT_PENDING
   const taskIds = grantTasks.map(t => t.id);
   const { data: votesById, refetch: refetchVotes } = useGrantVotesBatch(taskIds, address);
 

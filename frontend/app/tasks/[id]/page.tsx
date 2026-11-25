@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useEffect, useState } from "react";
+import { Suspense, use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
 import Navbar from "@/components/Navbar";
@@ -23,6 +23,9 @@ import Countdown from "@/components/ui/Countdown";
 import { IconSearch, IconMegaphone, IconLink } from "@/components/icons";
 import ShareButton from "@/components/ui/ShareButton";
 import { absoluteUrl } from "@/lib/url";
+import { ModerationBanner, ModeratedNotice, ReportButton } from "@/components/ui/TaskModeration";
+import { useTaskModeration } from "@/lib/use-moderation";
+import { isAdmin } from "@/lib/admins";
 
 function formatTimestamp(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -90,6 +93,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { user: assigneeUser } = useTaskifyUser(assigneeAddr);
   const { vote: grantVote, refetch: refetchGrantVote } = useGrantVote(taskId);
   const { applied: appliedOnchain, refetch: refetchApplied } = useTaskApplicantAppliedAt(taskId, address);
+  const { data: moderationStatus = "live", refetch: refetchModeration } = useTaskModeration(taskId);
 
   const [offchainContent, setOffchainContent] = useState<{ description: string; tags: string[]; github_repo_url: string | null; grant_justification: string | null; images: string[] } | null>(null);
   useEffect(() => {
@@ -349,6 +353,20 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     return () => { cancelled = true; };
   }, [task?.id, task?.kind, task?.creator, address]);
 
+  // Hooks must all run before the early return below, or React crashes when
+  // the task finishes loading (more hooks than the previous render).
+  const inSubmissionList = Boolean(address) && submissions.some(s => s.address.toLowerCase() === address.toLowerCase());
+
+  // Self-heal: joined on-chain but missing from the list (an earlier save
+  // failed) → copy it over once the list has loaded.
+  const healedJoin = useRef(false);
+  useEffect(() => {
+    if (healedJoin.current || submissionsLoading || !appliedOnchain || inSubmissionList || task?.kind !== "community") return;
+    healedJoin.current = true;
+    void saveJoinFromChain();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionsLoading, appliedOnchain, inSubmissionList, task?.kind]);
+
   if (!task) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -383,14 +401,39 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
   const isCreator = role === "creator";
   const isAssignee = Boolean(address && task.assignee && address.toLowerCase() === task.assignee.toLowerCase());
   const isTaskCreator = Boolean(address && address.toLowerCase() === task.creator.toLowerCase());
+  const viewerIsAdmin = isAdmin(address);
   const isCommunity = task.kind === "community";
   const maxWinners = task.maxWinners ?? 1;
-  // Derived from the actual participant list, not a one-shot local flag —
-  // otherwise a page reload (or a join that succeeded on-chain but whose
-  // local state update got interrupted, e.g. by an RPC hiccup) leaves the
-  // join form showing again, letting someone try to join a second time and
-  // hit a real on-chain AlreadyApplied() revert.
-  const joined = Boolean(address) && submissions.some(s => s.address.toLowerCase() === address.toLowerCase());
+  // The contract is the source of truth: if this wallet joined on-chain, never
+  // show the join form again (a second joinCommunityTask always reverts with
+  // AlreadyApplied). The Supabase list only adds the proof link for display,
+  // and can lag or miss a join whose save failed.
+  const joined = inSubmissionList || (task?.kind === "community" && appliedOnchain);
+
+  // Copies an on-chain join into the participant list. The server reads the
+  // join straight from the contract, so this is safe to call any time.
+  async function saveJoinFromChain(): Promise<boolean> {
+    if (!task || !address) return false;
+    const res = await fetch("/api/submissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId: task.id, address, taskTitle: task.title }),
+    }).catch(() => null);
+    if (!res?.ok) return false;
+    const data = await res.json().catch(() => null);
+    const s = data?.submission as { participant_address: string; proof_url: string; joined_at: string; is_winner: boolean } | undefined;
+    if (!s) return false;
+    setSubmissions(prev => prev.some(p => p.address.toLowerCase() === s.participant_address.toLowerCase()) ? prev : [...prev, {
+      address: s.participant_address,
+      author: formatAddress(s.participant_address),
+      avatarColor: colorForAddress(s.participant_address),
+      proofUrl: s.proof_url,
+      createdAt: Math.floor(new Date(s.joined_at).getTime() / 1000),
+      isWinner: s.is_winner,
+      payoutTxHash: null,
+    }]);
+    return true;
+  }
 
   async function handleApply() {
     if (!motivation.trim() || !task || !address) return;
@@ -606,23 +649,11 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     setJoinError("");
     try {
       await send("joinCommunityTask", [BigInt(task.id), proofUrl.trim()]);
-      const res = await authedFetch("/api/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, address, proofUrl: proofUrl.trim(), creatorAddress: task.creator, taskTitle: task.title }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to join");
-      const s = data.submission as { participant_address: string; proof_url: string; joined_at: string; is_winner: boolean };
-      setSubmissions(prev => [...prev, {
-        address: s.participant_address,
-        author: formatAddress(s.participant_address),
-        avatarColor: colorForAddress(s.participant_address),
-        proofUrl: s.proof_url,
-        createdAt: Math.floor(new Date(s.joined_at).getTime() / 1000),
-        isWinner: s.is_winner,
-        payoutTxHash: null,
-      }]);
+      // The join is done once the tx confirms. Saving it to the list is
+      // best-effort: if it fails, `joined` still flips via the on-chain read,
+      // and the self-heal effect retries the save on the next page load.
+      await refetchApplied();
+      await saveJoinFromChain();
     } catch (err) {
       setJoinError(formatContractError(err, "Failed to join"));
     } finally {
@@ -711,6 +742,16 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
+  // Held for review or removed: only the creator and admins can see it.
+  if ((moderationStatus === "pending_review" || moderationStatus === "hidden") && !isTaskCreator && !viewerIsAdmin) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+        <Navbar />
+        <ModeratedNotice status={moderationStatus} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <Navbar />
@@ -722,6 +763,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
           <span>/</span>
           <span style={{ color: "var(--text)" }}>#{task.id} {task.title}</span>
         </div>
+
+        {(isTaskCreator || viewerIsAdmin) && (
+          <ModerationBanner taskId={task.id} status={moderationStatus} admin={viewerIsAdmin} onChange={() => void refetchModeration()} />
+        )}
 
         {/* Status + title */}
         <div style={{ marginBottom: 28 }}>
@@ -735,10 +780,13 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
             <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--text)", margin: 0, lineHeight: 1.25, letterSpacing: "-0.02em" }}>
               {task.title}
             </h1>
-            <ShareButton
-              url={absoluteUrl(`/tasks/${task.id}`)}
-              title={`${task.title} — ${formatMUSD(task.amount)} ${task.token} bounty on Taskify`}
-            />
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <ShareButton
+                url={absoluteUrl(`/tasks/${task.id}`)}
+                title={`${task.title} — ${formatMUSD(task.amount)} ${task.token} bounty on Taskify`}
+              />
+              {!isTaskCreator && <ReportButton taskId={task.id} canReportCreator={appliedOnchain} />}
+            </div>
           </div>
 
           {/* Meta row */}

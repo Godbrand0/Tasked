@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireCaller } from "@/lib/verify-caller";
-import { getTaskCreator } from "@/lib/task-onchain";
+import { getCommunityJoin, getTaskCreator } from "@/lib/task-onchain";
 import { notify } from "@/lib/notifications";
 
 // Community-task join + proof-of-participation link. Mirrors
@@ -61,6 +61,12 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ submissions: data });
 }
 
+// Records a community-task join. The join itself happens on-chain
+// (joinCommunityTask), so this copies it from the contract instead of
+// trusting the request: the participant, proof link and join time all come
+// from Taskify.sol. Only the wallet can join on-chain, so no login check is
+// needed, and anyone may trigger the copy (useful to backfill a join whose
+// save failed). Idempotent: an existing row is returned as-is.
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
@@ -69,18 +75,26 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const taskId = body?.taskId;
   const address = typeof body?.address === "string" ? body.address.toLowerCase() : null;
-  const proofUrl = typeof body?.proofUrl === "string" ? body.proofUrl.trim() : "";
-  const creatorAddress = typeof body?.creatorAddress === "string" ? body.creatorAddress.toLowerCase() : null;
   const taskTitle = typeof body?.taskTitle === "string" ? body.taskTitle : undefined;
 
-  if (!taskId || !address || !proofUrl) {
-    return NextResponse.json({ error: "taskId, address, and proofUrl are required" }, { status: 400 });
+  if (!taskId || !address) {
+    return NextResponse.json({ error: "taskId and address are required" }, { status: 400 });
   }
-  if (proofUrl.length > 500) {
-    return NextResponse.json({ error: "Proof URL is too long" }, { status: 400 });
+
+  const join = await getCommunityJoin(taskId, address);
+  if (!join) {
+    return NextResponse.json({ error: "We couldn't find your join on-chain yet. Refresh in a moment." }, { status: 409 });
   }
-  const denied = await requireCaller(req, address);
-  if (denied) return denied;
+  const proofUrl = join.proofUrl.slice(0, 500);
+
+  const select = "task_id, participant_address, proof_url, joined_at, is_winner";
+  const { data: existing } = await supabaseAdmin
+    .from("community_submissions")
+    .select(select)
+    .eq("task_id", taskId)
+    .eq("participant_address", address)
+    .maybeSingle();
+  if (existing) return NextResponse.json({ submission: existing });
 
   const { error: userError } = await ensureUserOnchainRow(address) ?? {};
   if (userError) {
@@ -89,15 +103,22 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("community_submissions")
-    .insert({ task_id: taskId, participant_address: address, proof_url: proofUrl, joined_at: new Date().toISOString() })
-    .select("task_id, participant_address, proof_url, joined_at, is_winner")
-    .single();
-
+    .upsert(
+      { task_id: taskId, participant_address: address, proof_url: proofUrl, joined_at: new Date(join.joinedAt * 1000).toISOString() },
+      { onConflict: "task_id,participant_address", ignoreDuplicates: true },
+    )
+    .select(select)
+    .maybeSingle();
   if (error) {
-    const status = error.code === "23505" ? 409 : 500;
-    return NextResponse.json({ error: error.code === "23505" ? "You've already joined this task." : error.message }, { status });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data) {
+    // Lost a race with a parallel save of the same join; return that row.
+    const { data: row } = await supabaseAdmin.from("community_submissions").select(select).eq("task_id", taskId).eq("participant_address", address).maybeSingle();
+    return NextResponse.json({ submission: row });
   }
 
+  const creatorAddress = await getTaskCreator(taskId);
   if (creatorAddress && creatorAddress !== address) {
     await notify(creatorAddress, "community_task_joined", taskId, { taskTitle, actorAddress: address });
   }
