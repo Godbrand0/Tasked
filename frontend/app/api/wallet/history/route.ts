@@ -29,7 +29,8 @@ interface ExplorerTransfer {
   transaction_hash: string;
   from: { hash: string };
   to: { hash: string };
-  token: { address: string; symbol?: string };
+  // Blockscout renamed token.address to token.address_hash; accept either.
+  token: { address_hash?: string; address?: string; symbol?: string };
   total: { value: string };
 }
 
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
 
   const me = address.toLowerCase();
   const items = (data.items ?? []).flatMap((t) => {
-    const token = TOKENS.get(t.token?.address?.toLowerCase());
+    const token = TOKENS.get((t.token?.address_hash ?? t.token?.address ?? "").toLowerCase());
     if (!token) return []; // other tokens in the wallet aren't ours to show
     const outgoing = t.from.hash.toLowerCase() === me;
     return [{
