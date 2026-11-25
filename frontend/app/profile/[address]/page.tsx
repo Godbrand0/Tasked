@@ -13,11 +13,13 @@ import { formatAddress } from "@/lib/wallet-context";
 import { IconUser } from "@/components/icons";
 import { formatMUSD, formatEarnedBreakdown, earnedByToken, TIERS } from "@/lib/constants";
 import { useAllTasks, useTaskifyUser, mapOnChainTask } from "@/lib/use-taskify";
+import { useCreatorStanding } from "@/lib/use-moderation";
 
 export default function ProfilePage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = use(params);
   const { user, isLoading: userLoading } = useTaskifyUser(address);
   const { data: onchainTasks } = useAllTasks();
+  const standing = useCreatorStanding(address);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [githubHandleOffchain, setGithubHandleOffchain] = useState("");
   const [wonCommunityTaskIds, setWonCommunityTaskIds] = useState<Set<number>>(new Set());
@@ -103,6 +105,11 @@ export default function ProfilePage({ params }: { params: Promise<{ address: str
                 <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0 }}>{user.username || <Address value={address} />}</h1>
                 {githubVerified && <Badge color="green">✓ GitHub Verified</Badge>}
                 {user.role === 2 && <TierBadge tier={user.experienceLevel} />}
+                {standing && (
+                  <span title={standing === "blocked" ? "Taskify has blocked this creator from posting tasks" : "Taskify has received reports that this creator didn't pay as promised"}>
+                    <Badge color="red">{standing === "blocked" ? "Blocked creator" : "Reported for non-payment"}</Badge>
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", marginBottom: 14 }}><Address value={address}>{address}</Address></div>
               <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>

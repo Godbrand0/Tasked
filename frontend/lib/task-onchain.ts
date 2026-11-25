@@ -17,20 +17,23 @@ const ZERO = "0x0000000000000000000000000000000000000000";
  * fallback RPC node can be a block or two behind.
  */
 export async function getTaskCreator(taskId: unknown): Promise<string | null> {
+  return (await getTaskInfo(taskId))?.creator ?? null;
+}
+
+/** On-chain creator (lowercased) and title of `taskId`, with the same retries as getTaskCreator. */
+export async function getTaskInfo(taskId: unknown): Promise<{ creator: string; title: string } | null> {
   const id = Number(taskId);
   if (!Number.isInteger(id) || id < 1) return null;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const creator = await readCreator(taskId);
-    if (creator) return creator;
+    const info = await readTask(id);
+    if (info) return info;
     if (attempt < 2) await new Promise((r) => setTimeout(r, 1500));
   }
   return null;
 }
 
-async function readCreator(taskId: unknown): Promise<string | null> {
-  const id = Number(taskId);
-  if (!Number.isInteger(id) || id < 1 || !TASKIFY_ADDRESS) return null;
-
+async function readTask(id: number): Promise<{ creator: string; title: string } | null> {
+  if (!TASKIFY_ADDRESS) return null;
   const client = createPublicClient({ transport: fallback(MEZO_RPC_URLS.map((url) => http(url))) });
   try {
     const row = (await client.readContract({
@@ -40,9 +43,28 @@ async function readCreator(taskId: unknown): Promise<string | null> {
       args: [BigInt(id)],
     })) as readonly unknown[];
     const creator = String(row[FIELDS.indexOf("creator")] ?? "").toLowerCase();
-    return creator && creator !== ZERO ? creator : null;
+    if (!creator || creator === ZERO) return null;
+    return { creator, title: String(row[FIELDS.indexOf("title")] ?? "") };
   } catch {
     return null;
+  }
+}
+
+/** True if `address` applied to or joined `taskId` on-chain (both set taskApplicantAppliedAt). */
+export async function hasTakenPart(taskId: unknown, address: string): Promise<boolean> {
+  const id = Number(taskId);
+  if (!Number.isInteger(id) || id < 1 || !TASKIFY_ADDRESS || !/^0x[0-9a-fA-F]{40}$/.test(address)) return false;
+  const client = createPublicClient({ transport: fallback(MEZO_RPC_URLS.map((url) => http(url))) });
+  try {
+    const appliedAt = (await client.readContract({
+      address: TASKIFY_ADDRESS,
+      abi: TASKIFY_ABI,
+      functionName: "taskApplicantAppliedAt",
+      args: [BigInt(id), address as `0x${string}`],
+    })) as bigint;
+    return appliedAt > BigInt(0);
+  } catch {
+    return false;
   }
 }
 

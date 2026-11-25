@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/lib/wallet-context";
 import DropdownPanel, { useOutsideClick } from "@/components/ui/DropdownPanel";
-import { IconTarget, IconSend, IconCoins, IconBallot, IconWaves, IconEdit, IconHandRaised, IconBell } from "@/components/icons";
+import { IconTarget, IconSend, IconCoins, IconBallot, IconWaves, IconEdit, IconHandRaised, IconBell, IconAlertTriangle, IconCheck } from "@/components/icons";
 import { authedFetch } from "@/lib/authed-fetch";
 
 interface Notification {
   id: string;
-  type: "task_assigned" | "work_submitted" | "funds_released" | "grant_vote_opened" | "wave_reward_ready" | "task_applied" | "community_task_joined" | "submission_feedback";
+  type: "task_assigned" | "work_submitted" | "funds_released" | "grant_vote_opened" | "wave_reward_ready" | "task_applied" | "community_task_joined" | "submission_feedback"
+    | "task_flagged" | "task_reported" | "creator_reported" | "task_approved" | "task_removed";
   task_id: number | null;
   read: boolean;
   created_at: string;
@@ -24,7 +25,15 @@ const META: Record<Notification["type"], { icon: React.ComponentType<{ size?: nu
   task_applied: { icon: IconEdit, label: "New applicant on your task" },
   community_task_joined: { icon: IconHandRaised, label: "Someone joined your community task" },
   submission_feedback: { icon: IconEdit, label: "Feedback on your submission" },
+  task_flagged: { icon: IconAlertTriangle, label: "A task needs your review" },
+  task_reported: { icon: IconAlertTriangle, label: "A task was reported" },
+  creator_reported: { icon: IconAlertTriangle, label: "A creator was reported for not paying" },
+  task_approved: { icon: IconCheck, label: "Your task was approved and is live" },
+  task_removed: { icon: IconAlertTriangle, label: "Your task was removed from Taskify" },
 };
+
+// Admin alerts open the review queue rather than the task.
+const ADMIN_TYPES = new Set<Notification["type"]>(["task_flagged", "task_reported", "creator_reported"]);
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -76,7 +85,8 @@ export default function NotificationBell() {
   function handleClickNotification(n: Notification) {
     if (!n.read) markRead(n.id);
     setOpen(false);
-    if (n.task_id != null) router.push(`/tasks/${n.task_id}`);
+    if (ADMIN_TYPES.has(n.type)) router.push("/admin");
+    else if (n.task_id != null) router.push(`/tasks/${n.task_id}`);
   }
 
   if (!connected || !isRegistered) return null;

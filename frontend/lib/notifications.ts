@@ -13,7 +13,12 @@ export type NotificationType =
   | "community_task_joined"
   | "task_comment"
   | "comment_reply"
-  | "submission_feedback";
+  | "submission_feedback"
+  | "task_flagged"
+  | "task_reported"
+  | "creator_reported"
+  | "task_approved"
+  | "task_removed";
 
 export interface NotifyMeta {
   taskTitle?: string;
@@ -33,19 +38,30 @@ const COPY: Record<NotificationType, { subject: string; heading: string; verb: s
   task_comment:           { subject: "New comment on your task",           heading: "New comment 💬",          verb: "commented on" },
   comment_reply:          { subject: "Someone replied to your comment",    heading: "New reply ↩️",            verb: "replied to your comment on" },
   submission_feedback:    { subject: "Feedback on your submission",        heading: "Feedback on your submission 📝", verb: "left feedback on your submission for" },
+  task_flagged:           { subject: "A task needs your review",           heading: "Task held for review 🚩",  verb: "posted a task that matched a flagged keyword:" },
+  task_reported:          { subject: "A task was reported",                heading: "Task reported 🚩",         verb: "reported" },
+  creator_reported:       { subject: "A creator was reported for not paying", heading: "Creator reported 🚩",   verb: "reported the creator of" },
+  task_approved:          { subject: "Your task is live",                  heading: "Task approved ✅",         verb: "approved" },
+  task_removed:           { subject: "Your task was removed from Taskify", heading: "Task removed",            verb: "removed" },
 };
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+function escapeHtml(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function emailHtml(type: NotificationType, taskId: number | undefined, meta: NotifyMeta) {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "";
-  const link = taskId !== undefined ? `${base}/tasks/${taskId}` : `${base}/dashboard`;
+  // Admin alerts link to the review queue; everything else to the task.
+  const adminAlert = type === "task_flagged" || type === "task_reported" || type === "creator_reported";
+  const link = adminAlert ? `${base}/admin` : taskId !== undefined ? `${base}/tasks/${taskId}` : `${base}/dashboard`;
   const { heading, verb } = COPY[type];
 
   const who = meta.actorAddress ? `<strong>${shortAddr(meta.actorAddress)}</strong>` : "Someone";
-  const what = meta.taskTitle ? `<strong>&ldquo;${meta.taskTitle}&rdquo;</strong>` : "your task";
+  const what = meta.taskTitle ? `<strong>&ldquo;${escapeHtml(meta.taskTitle)}&rdquo;</strong>` : "your task";
   const sentence = `${who} ${verb} ${what}.`;
 
   return `
@@ -61,10 +77,10 @@ function emailHtml(type: NotificationType, taskId: number | undefined, meta: Not
         ${meta.amount ? `
         <div style="background: #F1EEE7; border: 1px solid #E3DFD6; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;">
           <span style="font-size: 12px; color: #6E6B62; text-transform: uppercase; letter-spacing: 0.05em;">Amount</span><br/>
-          <span style="font-size: 18px; font-weight: 800; color: #16824F;">${meta.amount}</span>
+          <span style="font-size: 18px; font-weight: 800; color: #16824F;">${escapeHtml(meta.amount)}</span>
         </div>` : ""}
         <a href="${link}" style="display: inline-block; background: #E0003F; color: #FFFFFF; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 14px;">
-          ${taskId !== undefined ? "View Task" : "View Dashboard"} →
+          ${adminAlert ? "Review" : taskId !== undefined ? "View Task" : "View Dashboard"} →
         </a>
       </div>
       <div style="border-top: 1px solid #E3DFD6; padding: 16px 28px; background: #F3F0E9;">
