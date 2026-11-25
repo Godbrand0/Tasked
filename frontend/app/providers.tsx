@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { defineChain } from "viem";
 import { WalletProvider } from "@/lib/wallet-context";
 import { IdentityConflictGate } from "@/components/IdentityConflictGate";
+import { SessionBanner } from "@/components/SessionBanner";
 import { useTheme } from "@/lib/theme-context";
 import { MEZO_CHAIN_ID, MEZO_IS_TESTNET, MEZO_NETWORK_NAME } from "@/lib/constants";
 import { MEZO_RPC_URLS } from "@/lib/rpc";
@@ -106,6 +107,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <WalletProvider>
             {children}
             <IdentityConflictGate />
+            <SessionBanner />
           </WalletProvider>
         </WagmiProvider>
       </QueryClientProvider>
