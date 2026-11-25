@@ -14,6 +14,7 @@ import { authedFetch } from "@/lib/authed-fetch";
 import { isAdmin } from "@/lib/admins";
 import { useAllTasks } from "@/lib/use-taskify";
 import { TASK_REASONS, CREATOR_REASONS } from "@/lib/moderation-reasons";
+import AnalyticsPanel from "@/components/admin/AnalyticsPanel";
 
 // Moderation dashboard for the wallets in lib/admins.ts. The API re-checks
 // every request (app/api/admin/moderation), so this page's own admin check is
@@ -24,7 +25,7 @@ interface Report { id: string; kind: "task" | "creator"; task_id: number; target
 interface Standing { address: string; status: "warned" | "blocked"; note: string | null; updated_at: string }
 interface Queue { tasks: ModRow[]; reports: Report[]; standings: Standing[]; keywords: string[] }
 
-type Tab = "review" | "reports" | "removed" | "creators" | "keywords";
+type Tab = "analytics" | "review" | "reports" | "removed" | "creators" | "keywords";
 
 const REASON_LABELS: Record<string, string> = { ...TASK_REASONS, ...CREATOR_REASONS };
 
@@ -42,7 +43,7 @@ export default function AdminPage() {
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<Tab>("review");
+  const [tab, setTab] = useState<Tab>("analytics");
   const [showClosedReports, setShowClosedReports] = useState(false);
   const [newKeyword, setNewKeyword] = useState("");
   const [standingTarget, setStandingTarget] = useState("");
@@ -101,6 +102,7 @@ export default function AdminPage() {
   const reports = showClosedReports ? queue?.reports ?? [] : openReports;
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
+    { id: "analytics", label: "Analytics" },
     { id: "review", label: "Review queue", count: pending.length },
     { id: "reports", label: "Reports", count: openReports.length },
     { id: "removed", label: "Removed", count: removed.length },
@@ -117,9 +119,11 @@ export default function AdminPage() {
   return (
     <PageShell>
       <Container style={{ padding: "40px 24px 80px", maxWidth: 960 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 6px", letterSpacing: "-0.02em" }}>Moderation</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 6px", letterSpacing: "-0.02em" }}>Admin</h1>
         <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 24px", lineHeight: 1.6 }}>
-          Removing a task only hides it on Taskify. Its reward stays locked in the contract until the creator cancels it.
+          {tab === "analytics"
+            ? "How Taskify is doing. Task and money numbers come straight from the contract."
+            : "Removing a task only hides it on Taskify. Its reward stays locked in the contract until the creator cancels it."}
         </p>
 
         <div role="tablist" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
@@ -136,10 +140,12 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {actionError && <p role="alert" style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{actionError}</p>}
-        {loadError && <p role="alert" style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{loadError}</p>}
+        {tab === "analytics" && address && <AnalyticsPanel tasks={onchainTasks} address={address} />}
 
-        {!queue ? (
+        {tab !== "analytics" && actionError && <p role="alert" style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{actionError}</p>}
+        {tab !== "analytics" && loadError && <p role="alert" style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{loadError}</p>}
+
+        {tab === "analytics" ? null : !queue ? (
           !loadError && <LoadingState label="Loading moderation queue…" />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
