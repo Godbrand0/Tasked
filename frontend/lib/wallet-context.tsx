@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useAccount, useBalance, useReadContract } from "wagmi";
-import { useCreateWallet, usePrivy } from "@privy-io/react-auth";
+import { useCreateWallet, usePrivy, useWallets } from "@privy-io/react-auth";
+import { useSetActiveWallet } from "@privy-io/wagmi";
 import { formatUnits } from "viem";
 import { CONTRACT_ADDRESSES, MUSD_DECIMALS } from "@/lib/constants";
 import { ROLE_ID, roleToString } from "@/lib/taskify";
@@ -70,6 +71,21 @@ interface WalletContextValue extends WalletState {
   disconnect: () => void;
   /** Masked address of the wallet this login's Gmail/email is already tied to, when it isn't this one. Null when there's no conflict (or it hasn't been checked). */
   identityConflict: string | null;
+  /**
+   * Whether saves to our API will work for the connected wallet:
+   *   ok          signed in, and this wallet belongs to the login
+   *   signed_out  a wallet is connected but there's no Privy session (the
+   *               extension reconnected on its own, or the session expired);
+   *               every save fails with "Please sign in again"
+   *   unlinked    signed in, but this wallet isn't one of the login's wallets;
+   *               every save fails with "That wallet isn't linked to your login"
+   *   unknown     still loading, or nothing connected
+   */
+  session: "ok" | "signed_out" | "unlinked" | "unknown";
+  /** Sign in with the connected wallet, or link it to the current login. */
+  signInWithWallet: () => Promise<void>;
+  /** Switch the site to a wallet that already belongs to the login, if one is connected. Null when there isn't one. */
+  switchToLinkedWallet: (() => Promise<void>) | null;
   register: (data: {
     username: string;
     role: UserRole;
@@ -104,6 +120,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
   const { login, logout, ready, authenticated, user, getAccessToken } = usePrivy();
   const { createWallet } = useCreateWallet();
+  const { wallets, ready: walletsReady } = useWallets();
+  const { setActiveWallet } = useSetActiveWallet();
   const creatingWallet = useRef(false);
   const [identityConflict, setIdentityConflict] = useState<string | null>(null);
   const { send } = useTaskifyTx();
@@ -245,6 +263,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       return;
     }
     login();
+  }
+
+  // See WalletContextValue.session.
+  const linkedAddresses = new Set(
+    (user?.linkedAccounts ?? [])
+      .filter((a) => a.type === "wallet" && "address" in a && typeof a.address === "string")
+      .map((a) => (a as { address: string }).address.toLowerCase()),
+  );
+  const session: WalletContextValue["session"] =
+    !ready || !isConnected || !address ? "unknown"
+    : !authenticated ? "signed_out"
+    : !user ? "unknown"
+    : linkedAddresses.has(address.toLowerCase()) ? "ok"
+    : "unlinked";
+
+  const activeConnected = wallets.find((w) => w.address.toLowerCase() === address?.toLowerCase());
+  const linkedConnected = walletsReady
+    ? wallets.find((w) => linkedAddresses.has(w.address.toLowerCase()) && w.address.toLowerCase() !== address?.toLowerCase())
+    : undefined;
+
+  async function signInWithWallet() {
+    // loginOrLink signs in with this wallet when there's no session, or links
+    // it to the current login when there is one. Either way Privy asks the
+    // wallet for a signature.
+    if (activeConnected) await activeConnected.loginOrLink();
+    else login();
   }
 
   function handleDisconnect() {
@@ -444,6 +488,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     connect: handleConnect,
     disconnect: handleDisconnect,
     identityConflict,
+    session,
+    signInWithWallet,
+    switchToLinkedWallet: linkedConnected ? () => setActiveWallet(linkedConnected) : null,
     register,
     linkX,
     unlinkX,
