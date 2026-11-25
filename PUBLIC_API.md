@@ -9,7 +9,7 @@ GET https://www.taskifybounties.com/api/public/tasks
 GET https://www.taskifybounties.com/api/public/tasks?status=open
 ```
 
-- Without `status`, it returns every task, newest first.
+- Without `status`, it returns every task, newest first. Tasks that Taskify has held for review or removed are left out.
 - With `status`, it returns only tasks with that status. Case doesn't matter. An unknown status returns `400` with the list of valid ones.
 
 Responses are cached for about 60 seconds, so polling every 1–2 minutes is plenty. If the chain can't be read, you get `503`; just try again on the next poll.

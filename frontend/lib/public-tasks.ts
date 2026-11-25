@@ -5,6 +5,7 @@ import { MEZO_RPC_URLS } from "@/lib/rpc";
 import { MEZO_ADDRESS, MUSD_ADDRESS, STATUS_NAME, TASKIFY_ABI, TASKIFY_ADDRESS } from "@/lib/taskify";
 import { MUSD_DECIMALS } from "@/lib/constants";
 import { plainSnippet } from "@/lib/task-preview-text";
+import { NOT_VISIBLE } from "@/lib/moderation";
 
 // Public, read-only task feed for third-party integrations (e.g. the Mezo
 // Discord bot's quest board). Everything here is already public: on-chain task
@@ -92,7 +93,7 @@ async function buildPublicTasks(): Promise<PublicTask[]> {
     ids.map((id) => client.readContract({ address, abi: TASKIFY_ABI, functionName: "tasks", args: [BigInt(id)] })),
   )) as readonly unknown[][];
 
-  const raw = rows.map((row, i) => {
+  const allRaw = rows.map((row, i) => {
     const f = (name: string) => row[FIELDS.indexOf(name)];
     return {
       id: ids[i],
@@ -109,6 +110,17 @@ async function buildPublicTasks(): Promise<PublicTask[]> {
       maxWinners: Number(f("maxWinners")),
     };
   }).filter((t) => t.creator !== ZERO);
+
+  // Leave out tasks held for review or removed by an admin (lib/moderation.ts).
+  // If the lookup fails, fail closed rather than publish them. A missing table
+  // (migration 0020 not run yet) just means nothing has been moderated.
+  let raw = allRaw;
+  if (supabaseAdmin) {
+    const { data: hidden, error } = await supabaseAdmin.from("task_moderation").select("task_id").in("status", NOT_VISIBLE as string[]);
+    if (error && error.code !== "42P01" && error.code !== "PGRST205") throw new Error(`moderation lookup failed: ${error.message}`);
+    const hiddenIds = new Set((hidden ?? []).map((h) => Number(h.task_id)));
+    raw = allRaw.filter((t) => !hiddenIds.has(t.id));
+  }
 
   // Off-chain extras: descriptions, payout records, display names.
   const descriptions = new Map<number, string>();
