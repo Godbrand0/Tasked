@@ -23,6 +23,23 @@ export function SessionBanner() {
     return () => clearTimeout(t);
   }, [problem, session, address]);
 
+  // The wallet reconnected on its own but the login session is gone: ask the
+  // wallet for the sign-in signature straight away instead of waiting for a
+  // click. Once per wallet per tab, so cancelling it doesn't loop; the bar
+  // stays for a manual retry.
+  useEffect(() => {
+    if (!settled || session !== "signed_out" || !address) return;
+    const key = `taskify:auto-signin:${address.toLowerCase()}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      return; // no storage: can't guard against loops, leave it to the button
+    }
+    void run(signInWithWallet);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settled, session, address]);
+
   if (!problem || !settled) return null;
 
   const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "This wallet";

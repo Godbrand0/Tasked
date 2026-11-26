@@ -43,7 +43,7 @@ export default function RegisterPage() {
 function RegisterPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { connected, isRegistered, address, refetchNativeBalance, connect, register: registerWallet } = useWallet();
+  const { connected, isRegistered, address, refetchNativeBalance, connect, register: registerWallet, session } = useWallet();
 
   const [step, setStep] = useState<Step>(connected ? "identity" : "wallet");
   const [role, setRole] = useState<UserRole | null>(null);
@@ -62,7 +62,13 @@ function RegisterPageInner() {
   const [canLinkGoogleForGas, setCanLinkGoogleForGas] = useState(false);
   const [linkError, setLinkError] = useState("");
   const { linkGoogle } = useLinkAccount({
-    onError: (err) => setLinkError(`Couldn't link Google (${String(err).replace(/_/g, " ")}). Try again, or add a little BTC to your wallet instead.`),
+    onError: (err) => {
+      const code = String(err);
+      if (code === "oauth_user_denied" || code === "exited_link_flow") return;
+      setLinkError(code === "linked_to_another_user"
+        ? "That Google account already has its own Taskify login, so it can't be added to this wallet. Use a different Google account, or sign out and use “Sign in with Google”."
+        : `Couldn't link Google (${code.replace(/_/g, " ")}). Try again.`);
+    },
   });
   // Changes when an account is linked, so the identity below is re-read (Google now wins).
   const linkedAccountCount = privyUser?.linkedAccounts?.length ?? 0;
@@ -148,9 +154,16 @@ function RegisterPageInner() {
   const STEPS: Step[] = ["wallet", "identity", "role", "confirm"];
   const stepIdx = STEPS.indexOf(step);
 
+  // Signed in (e.g. with a wallet): link Google into the Privy login itself, so
+  // signing in with Google later reaches this same account and wallet. The
+  // identity effect above re-runs on the new linked account and fills in the
+  // Gmail, gas grant and link proof. Without a session, fall back to the
+  // standalone Google OAuth.
   function handleGoogleConnect() {
     setGoogleError("");
-    window.location.href = "/api/auth/google?return_to=%2Fregister";
+    setLinkError("");
+    if (privyAuthed) linkGoogle();
+    else window.location.href = "/api/auth/google?return_to=%2Fregister";
   }
 
   // Mezo gas is BTC — a brand-new wallet can't send registerUser until it
@@ -209,6 +222,15 @@ function RegisterPageInner() {
     setSubmitting(true);
     setRegisterError("");
     setNeedsGasHelp(false);
+    // Without a session that owns this wallet, the on-chain registration would
+    // go through but the profile (Gmail, name) would silently fail to save.
+    if (session !== "ok") {
+      setRegisterError(session === "unlinked"
+        ? "This wallet isn't part of the account you're signed in with. Sign out using the bar at the bottom, then sign in with this wallet."
+        : "You're not signed in. Sign in with this wallet using the bar at the bottom, then register.");
+      setSubmitting(false);
+      return;
+    }
     try {
       // First, before the gas top-up spends sponsor BTC on a wallet that
       // registration is about to reject.
@@ -310,6 +332,11 @@ function RegisterPageInner() {
                     Required: your Google account becomes your Taskify identity. GitHub and X are optional and can be linked later from Settings.
                   </div>
                 </div>
+                {linkError && (
+                  <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 8, padding: "8px 12px", width: "100%", textAlign: "center" }}>
+                    {linkError}
+                  </div>
+                )}
                 {googleError && (
                   <div style={{ fontSize: 13, color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 19%, transparent)", borderRadius: 8, padding: "8px 12px", width: "100%", textAlign: "center" }}>
                     {googleError}
