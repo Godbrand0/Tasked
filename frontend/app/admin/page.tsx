@@ -89,7 +89,7 @@ export default function AdminPage() {
             icon={IconLock}
             title={connected ? "Admins only" : "Sign in to continue"}
             description={connected ? "This page is only available to Taskify admins." : "Connect an admin wallet to open the moderation queue."}
-            action={connected ? <Button href="/tasks" variant="outline">Back to tasks</Button> : <Button onClick={connect}>Connect wallet</Button>}
+            action={connected ? <Button href="/tasks" variant="outline">Back to tasks</Button> : <Button onClick={connect}>Sign in</Button>}
           />
         </Container>
       </PageShell>

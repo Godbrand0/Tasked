@@ -66,8 +66,8 @@ function WalletPageInner() {
 
         {!connected || !address ? (
           <div style={card}>
-            <EmptyState size="lg" icon={IconSend} title="Connect your wallet" description="Connect to see your balances and send tokens."
-              action={<Button variant="primary" size="sm" onClick={connect}>Connect Wallet</Button>} />
+            <EmptyState size="lg" icon={IconSend} title="Sign in to see your wallet" description="Sign in to see your balances and send tokens."
+              action={<Button variant="primary" size="sm" onClick={connect}>Sign in</Button>} />
           </div>
         ) : (
           <>

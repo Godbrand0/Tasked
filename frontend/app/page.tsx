@@ -80,7 +80,7 @@ const LANDING_NAV_LINKS: [string, string][] = [["/docs", "How it works"], ["#fea
 
 function LandingNavbar() {
   const router = useRouter();
-  const { connected, isRegistered, connect, disconnect, role, address } = useWallet();
+  const { connected, isRegistered, signIn, disconnect, role, address } = useWallet();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const addressDropdownRef = useRef<HTMLDivElement>(null);
@@ -119,7 +119,7 @@ function LandingNavbar() {
 
         <div className="nav-actions landing-nav-actions" style={{ display: "flex", alignItems: "center", justifySelf: "end" }}>
           <ThemeToggle />
-          {/* Connect Wallet: shows abbreviated address when connected (with a disconnect dropdown) — hidden on mobile, Launch App covers the same action */}
+          {/* Signed in: abbreviated address with a sign-out dropdown. Signed out: "Sign in" (desktop; the mobile menu has its own). */}
           {connected ? (
             <div ref={addressDropdownRef} style={{ position: "relative" }} className="hidden min-[1200px]:block">
               <button
@@ -144,29 +144,29 @@ function LandingNavbar() {
                       <polyline points="16 17 21 12 16 7" />
                       <line x1="21" y1="12" x2="9" y2="12" />
                     </svg>
-                    Disconnect
+                    Sign out
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <button
-              onClick={connect}
+              onClick={() => signIn()}
               className="landing-btn-outline btn-motion hidden min-[1200px]:flex"
               style={{ alignItems: "center", gap: 8, color: "var(--text)", fontSize: 14, fontWeight: 600, padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 8, boxShadow: "var(--shadow-md)", cursor: "pointer", transition: "all 0.15s" }}>
-              Connect Wallet
+              Sign in
             </button>
           )}
 
-          {/* Launch App: routes based on role */}
+          {/* Primary action: Sign up → Finish sign-up → Dashboard, depending on where the user is */}
           <button
             onClick={() => {
-              if (!connected) { connect(); return; }
+              if (!connected) { signIn(); return; }
               router.push(isRegistered ? dashboardHref : "/register");
             }}
             className="landing-btn-primary btn-motion nav-mobile-btn"
             style={{ background: "var(--primary)", color: "var(--bg)", fontSize: 14, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none", boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent)", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
-            Launch App <IconArrow />
+            {!connected ? "Sign up" : isRegistered ? "Dashboard" : "Finish sign-up"} <IconArrow />
           </button>
 
           {/* Mobile menu toggle */}
@@ -202,9 +202,14 @@ function LandingNavbar() {
                 <Address value={address} />
               </div>
               <button onClick={disconnect} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
-                Disconnect
+                Sign out
               </button>
             </div>
+          )}
+          {!connected && (
+            <button onClick={() => { setMobileMenuOpen(false); signIn(); }} style={{ marginTop: 8, padding: "10px 12px", borderRadius: 8, color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", fontSize: 15, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
+              Sign in
+            </button>
           )}
         </div>
       )}
@@ -258,7 +263,7 @@ function FloatingBadge({ style, className, children }: { style: React.CSSPropert
 }
 
 function Hero() {
-  const { connect } = useWallet();
+  const { signIn } = useWallet();
   return (
     <section className="hero-section" style={{ padding: "96px 24px 80px", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 800, height: 600, background: "radial-gradient(ellipse, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 70%)", pointerEvents: "none" }} />
@@ -282,7 +287,7 @@ function Hero() {
             Post Development tasks matched by experience tier, or Community tasks anyone can join. MUSD locks in escrow either way. No trust required.
           </p>
           <div className="hero-in" style={{ display: "flex", gap: 12, flexWrap: "wrap", animationDelay: "180ms" }}>
-            <button onClick={connect} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => signIn("/create")} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Post a Task <IconArrow />
             </button>
             <a href="/tasks" className="btn-motion" style={{ background: "transparent", color: "var(--text)", fontWeight: 600, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -491,7 +496,8 @@ function ExperienceSection() {
 // ─── User Roles ───────────────────────────────────────────────────────────────
 
 function RolesSection() {
-  const { connect } = useWallet();
+  const { signIn } = useWallet();
+  const router = useRouter();
   const roles = [
     {
       icon: <IconCode />,
@@ -508,6 +514,7 @@ function RolesSection() {
         "Wave pool rewards for active self-funded owners",
       ],
       cta: "Post a Task",
+      href: "/create",
     },
     {
       icon: <IconUsers />,
@@ -524,6 +531,7 @@ function RolesSection() {
         "Public profile at /profile/[address]",
       ],
       cta: "Find Work",
+      href: "/tasks",
     },
     {
       icon: <IconVote />,
@@ -540,6 +548,7 @@ function RolesSection() {
         "Taskify never custodies your veBTC; it stays on Mezo Earn",
       ],
       cta: "Support & Vote",
+      href: "/vote",
     },
   ];
 
@@ -557,7 +566,7 @@ function RolesSection() {
         </Reveal>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
-          {roles.map(({ icon, color, bg, title, subtitle, desc, features, cta }, i) => (
+          {roles.map(({ icon, color, bg, title, subtitle, desc, features, cta, href }, i) => (
             <Reveal key={title} delay={i * 100} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, display: "flex", flexDirection: "column" }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, border: `1px solid ${color}30`, display: "flex", alignItems: "center", justifyContent: "center", color, marginBottom: 20 }}>
                 {icon}
@@ -573,7 +582,7 @@ function RolesSection() {
                   </li>
                 ))}
               </ul>
-              <button onClick={connect} className="btn-motion" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: bg, border: `1px solid ${color}30`, color, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" }}>
+              <button onClick={() => (href === "/tasks" ? router.push(href) : signIn(href))} className="btn-motion" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, background: bg, border: `1px solid ${color}30`, color, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" }}>
                 {cta} <IconArrow />
               </button>
             </Reveal>
@@ -838,7 +847,7 @@ function GovernanceSection() {
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function CTASection() {
-  const { connect } = useWallet();
+  const { signIn } = useWallet();
   return (
     <section style={{ padding: "96px 24px" }}>
       <Reveal style={{ maxWidth: 960, margin: "0 auto", background: "linear-gradient(135deg, var(--surface) 0%, var(--bg-alt) 100%)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", borderRadius: 24, padding: "64px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
@@ -852,13 +861,13 @@ function CTASection() {
             Post a task, find work, or invest in the builders shaping the Bitcoin-secured ecosystem.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={connect} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => signIn("/create")} className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Post a Task <IconArrow />
             </button>
             <a href="/tasks" className="btn-motion" style={{ background: "color-mix(in srgb, var(--secondary) 9%, transparent)", color: "var(--secondary-light)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, textDecoration: "none", border: "1px solid color-mix(in srgb, var(--secondary) 19%, transparent)", display: "flex", alignItems: "center", gap: 8 }}>
               Find Work
             </a>
-            <button onClick={connect} className="btn-motion" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => signIn("/vote")} className="btn-motion" style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", color: "var(--success)", fontWeight: 700, fontSize: 15, padding: "14px 28px", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               Become a Patron
             </button>
           </div>

@@ -540,7 +540,7 @@ function SettingsPageInner() {
                     <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)", wordBreak: "break-all" }}>{TASKIFY_ADDRESS ?? "not configured"}</div>
                   </div>
                   <button onClick={() => disconnect()} className="btn-motion" style={{ background: "color-mix(in srgb, var(--danger-strong) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--danger-strong) 19%, transparent)", color: "var(--danger)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, cursor: "pointer", marginTop: 4 }}>
-                    Disconnect Wallet
+                    Sign out
                   </button>
                 </div>
               </div>

@@ -86,7 +86,7 @@ export default function VotePage() {
           <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconBallot size={44} /></div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Grant voting</h1>
           <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
-            Connect your wallet and register to vote on grant applications, once approved. See{" "}
+            Sign up to vote on grant applications, once approved. See{" "}
             <Link href="/support" style={{ color: "var(--primary)" }}>Support</Link> to deposit into the pool instead.
           </p>
           <Link href="/register" className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>

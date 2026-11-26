@@ -60,7 +60,7 @@ export default function SupportPage() {
           <div style={{ display: "flex", justifyContent: "center", color: "var(--success)", marginBottom: 20 }}><IconLandmark size={44} /></div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Support the grant pool</h1>
           <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
-            Connect your wallet and register to deposit MUSD into the grant pool. Any registered wallet (Owner or Contributor) can support.
+            Sign up to deposit MUSD into the grant pool. Any registered wallet (Owner or Contributor) can support.
           </p>
           <Link href="/register" className="btn-motion" style={{ background: "var(--success)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
             Register →

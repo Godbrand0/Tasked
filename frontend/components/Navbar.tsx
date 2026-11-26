@@ -44,7 +44,7 @@ function TaskedLogo() {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, avatarUrl, connect, disconnect } = useWallet();
+  const { connected, isRegistered, username, role, address, musdBalance, mezoBalance, avatarUrl, signIn, disconnect } = useWallet();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -92,15 +92,15 @@ export default function Navbar() {
         <div className="nav-actions" style={{ display: "flex", alignItems: "center", justifySelf: "end" }}>
           <ThemeToggle />
           {!connected ? (
-            /* Not connected: connect + launch (Connect Wallet text button hidden on mobile — Launch App does the same thing) */
+            /* Signed out: Sign in + Sign up (both open the same login; new accounts land on /register). Sign in is desktop-only; the mobile menu has its own. */
             <>
               <div className="hidden min-[1200px]:flex">
-                <Button onClick={connect} variant="outline" style={{ fontWeight: 500 }}>
-                  Connect Wallet
+                <Button onClick={() => signIn(pathname)} variant="outline" style={{ fontWeight: 500 }}>
+                  Sign in
                 </Button>
               </div>
-              <Button onClick={connect} variant="primary" className="nav-mobile-btn">
-                Launch App
+              <Button onClick={() => signIn(pathname)} variant="primary" className="nav-mobile-btn">
+                Sign up
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Button>
             </>
@@ -130,13 +130,13 @@ export default function Navbar() {
                         <polyline points="16 17 21 12 16 7" />
                         <line x1="21" y1="12" x2="9" y2="12" />
                       </svg>
-                      Disconnect & switch account
+                      Sign out & switch account
                     </button>
                   </DropdownPanel>
                 )}
               </div>
               <Button href="/register" variant="primary" className="nav-mobile-btn">
-                Launch App
+                Finish sign-up
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Button>
             </>
@@ -204,7 +204,7 @@ export default function Navbar() {
                           <polyline points="16 17 21 12 16 7" />
                           <line x1="21" y1="12" x2="9" y2="12" />
                         </svg>
-                        Disconnect
+                        Sign out
                       </button>
                     </div>
                   </DropdownPanel>
@@ -264,7 +264,7 @@ export default function Navbar() {
                 <Address value={address} />
               </div>
               <button onClick={disconnect} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
-                Disconnect
+                Sign out
               </button>
             </div>
           )}
@@ -278,8 +278,8 @@ export default function Navbar() {
             </Link>
           )}
           {!connected && (
-            <button onClick={connect} style={{ marginTop: 8, padding: "10px 12px", borderRadius: "var(--radius-sm)", color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", fontSize: 15, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
-              Connect Wallet
+            <button onClick={() => signIn(pathname)} style={{ marginTop: 8, padding: "10px 12px", borderRadius: "var(--radius-sm)", color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", fontSize: 15, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
+              Sign in
             </button>
           )}
         </div>
