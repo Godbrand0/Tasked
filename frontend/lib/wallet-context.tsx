@@ -66,8 +66,21 @@ export interface WalletState {
   totalEarned: number;
 }
 
+/** sessionStorage key for where to send the user after signing in (see signIn). */
+export const AFTER_SIGN_IN_KEY = "taskify:after-sign-in";
+/** Window event signIn() fires when the user is already signed in. */
+export const SIGN_IN_EVENT = "taskify:sign-in";
+
 interface WalletContextValue extends WalletState {
   connect: () => void;
+  /**
+   * Sign in or sign up: opens the login modal (or skips it when already signed
+   * in) and, once we know whether the account is registered, sends the user to
+   * /register or to `next` (default /dashboard). See PostSignInRedirect.
+   */
+  signIn: (next?: string) => void;
+  /** True once the on-chain registration lookup for the connected wallet has returned. */
+  registrationKnown: boolean;
   disconnect: () => void;
   /** Masked address of the wallet this login's Gmail/email is already tied to, when it isn't this one. Null when there's no conflict (or it hasn't been checked). */
   identityConflict: string | null;
@@ -155,7 +168,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [ready, authenticated, address, getAccessToken]);
 
-  const { user: onchainUser, refetch: refetchUser } = useTaskifyUser(address);
+  const { user: onchainUser, refetch: refetchUser, loaded: registrationLoaded } = useTaskifyUser(address);
   // githubHandle/xHandle display info (avatar, verified flags) lives off-chain
   // in Supabase's profiles table — the contract only stores the username
   // string and a self-declared xVerified bool. Merged in below.
@@ -256,6 +269,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, authenticated, user?.id, hasLinkedWallet]);
+
+  function handleSignIn(next?: string) {
+    try { sessionStorage.setItem(AFTER_SIGN_IN_KEY, `${Date.now()}|${next || "/dashboard"}`); } catch { /* storage blocked: no redirect */ }
+    if (!authenticated || !isConnected) handleConnect();
+    else window.dispatchEvent(new Event(SIGN_IN_EVENT));
+  }
 
   function handleConnect() {
     if (authenticated) {
@@ -486,6 +505,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     tasksCompleted: onchainUser.tasksCompleted,
     totalEarned: Number(formatUnits(onchainUser.totalEarned, MUSD_DECIMALS)),
     connect: handleConnect,
+    signIn: handleSignIn,
+    registrationKnown: Boolean(address) && registrationLoaded,
     disconnect: handleDisconnect,
     identityConflict,
     session,

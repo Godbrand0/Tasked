@@ -9,6 +9,7 @@ import { WalletProvider } from "@/lib/wallet-context";
 import { IdentityConflictGate } from "@/components/IdentityConflictGate";
 import { SessionBanner } from "@/components/SessionBanner";
 import { GoogleLinkPrompt } from "@/components/GoogleLinkPrompt";
+import { PostSignInRedirect } from "@/components/PostSignInRedirect";
 import { useTheme } from "@/lib/theme-context";
 import { MEZO_CHAIN_ID, MEZO_IS_TESTNET, MEZO_NETWORK_NAME } from "@/lib/constants";
 import { MEZO_RPC_URLS } from "@/lib/rpc";
@@ -95,6 +96,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           accentColor: "#ff0044",
           logo: "/logo.jpg",
           showWalletLoginFirst: false,
+          // Same wording as the site's Sign in / Sign up buttons: one modal does both.
+          landingHeader: "Sign in or sign up",
+          loginMessage: "New here? Pick any option and we'll set up your account.",
           walletChainType: "ethereum-only",
           walletList: ["detected_ethereum_wallets", "metamask", "wallet_connect_qr"],
         },
@@ -110,6 +114,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <IdentityConflictGate />
             <SessionBanner />
             <GoogleLinkPrompt />
+            <PostSignInRedirect />
           </WalletProvider>
         </WagmiProvider>
       </QueryClientProvider>

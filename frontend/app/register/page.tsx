@@ -263,7 +263,7 @@ function RegisterPageInner() {
 
       <div style={{ textAlign: "center", marginBottom: 36 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
-          {step === "wallet" ? "Sign in or connect a wallet" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
+          {step === "wallet" ? "Sign in or sign up" : step === "identity" ? "Set up your profile" : step === "role" ? "Choose your role" : "Confirm & register"}
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", margin: 0 }}>
           {step === "wallet" ? "Use email, Google, or a wallet you already have. You get a Mezo address that identifies you on Taskify." : step === "identity" ? "This information verifies your identity and isn't shared publicly." : step === "role" ? "Your role shapes your Taskify experience." : ""}
@@ -292,7 +292,7 @@ function RegisterPageInner() {
               Sign in with email or Google and we'll create a wallet for you, or connect one you already own. Your wallet address becomes your permanent identity on Taskify.
             </p>
             <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
-              Sign in or connect wallet →
+              Continue with email, Google or a wallet →
             </button>
           </div>
           <div style={{ fontSize: 12, color: "color-mix(in srgb, var(--text-faint) 50%, transparent)", lineHeight: 1.6 }}>

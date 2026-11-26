@@ -1309,7 +1309,7 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 ) : !connected || !isRegistered ? (
                   <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, textAlign: "center", fontSize: 13, color: "var(--text-dim)" }}>
-                    <button onClick={connect} style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Connect wallet</button> to join the discussion
+                    <button onClick={connect} style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Sign in</button> to join the discussion
                   </div>
                 ) : null}
               </Section>
@@ -1380,10 +1380,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   <SideCard>
                     <SideCardTitle>Join this Task</SideCardTitle>
                     <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
-                      Connect your wallet and register to join; any role works, no experience tier required.
+                      Sign up to join; any role works, no experience tier required.
                     </p>
                     <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
-                      Connect Wallet to Join
+                      Sign in to Join
                     </button>
                   </SideCard>
                 ) : isCreator ? null : (
@@ -1438,10 +1438,10 @@ function TaskDetailPageInner({ params }: { params: Promise<{ id: string }> }) {
                   <SideCard>
                     <SideCardTitle>Apply for this Bounty</SideCardTitle>
                     <p style={{ fontSize: 13, color: "var(--text-dim)", textAlign: "justify", marginBottom: 14, lineHeight: 1.6 }}>
-                      Connect your wallet and register to apply for this task.
+                      Sign up to apply for this task.
                     </p>
                     <button onClick={connect} className="btn-motion" style={{ width: "100%", background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 10, border: "none", cursor: "pointer" }}>
-                      Connect Wallet to Apply
+                      Sign in to Apply
                     </button>
                   </SideCard>
                 ) : isContributor ? (

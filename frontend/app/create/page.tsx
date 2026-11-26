@@ -235,12 +235,12 @@ export default function CreatePage() {
         <Navbar />
         <div style={{ maxWidth: 500, margin: "120px auto", textAlign: "center", padding: "0 24px" }}>
           <div style={{ display: "flex", justifyContent: "center", color: "var(--text-faint)", marginBottom: 20 }}><IconLock size={44} /></div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Connect your wallet</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Sign in to post a task</h1>
           <p style={{ fontSize: 15, color: "var(--text-dim)", textAlign: "justify", lineHeight: 1.7, marginBottom: 28 }}>
-            You need a connected Ethereum wallet and a registered Taskify account to post a task.
+            You need a Taskify account to post a task. Sign up with email, Google or a wallet; it takes a minute.
           </p>
           <Link href="/register" className="btn-motion" style={{ background: "var(--primary)", color: "var(--bg)", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
-            Get Started →
+            Sign up →
           </Link>
         </div>
       </div>

@@ -159,7 +159,7 @@ export function useTaskifyUser(address: string | undefined) {
       }
     : EMPTY_USER;
 
-  return { user, isLoading, refetch };
+  return { user, isLoading, refetch, loaded: t !== undefined };
 }
 
 export interface OnChainPatron {
