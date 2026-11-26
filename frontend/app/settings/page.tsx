@@ -14,6 +14,7 @@ import { formatContractError } from "@/lib/errors";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { IconUser, IconAward, IconBell, IconLock, IconAlertTriangle, IconCheck } from "@/components/icons";
 import { authedFetch } from "@/lib/authed-fetch";
+import { useLinkGoogleToLogin } from "@/lib/use-link-google";
 
 const DEFAULT_NOTIFS = { task_assigned: true, work_submitted: true, funds_released: true, grant_vote_opened: true, wave_reward_ready: true, task_applied: true, community_task_joined: true, task_comment: true, comment_reply: true };
 type NotifKey = keyof typeof DEFAULT_NOTIFS;
@@ -171,9 +172,13 @@ function SettingsPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, address]);
 
+  // Links Google into the Privy login itself (see lib/use-link-google.ts), so
+  // signing in with Google or with this wallet reaches the same account.
+  const googleLink = useLinkGoogleToLogin();
+
   function handleGoogleConnect() {
     setGoogleError("");
-    window.location.href = "/api/auth/google?return_to=%2Fsettings";
+    googleLink.link();
   }
 
   function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -390,14 +395,19 @@ function SettingsPageInner() {
                         </div>
                       </div>
                     </div>
-                    {!googleVerified && (
-                      <button onClick={handleGoogleConnect} disabled={googleConnecting} className="btn-motion"
-                        style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: googleConnecting ? "not-allowed" : "pointer", opacity: googleConnecting ? 0.7 : 1, whiteSpace: "nowrap" }}>
-                        {googleConnecting ? "Connecting…" : "Continue with Google"}
+                    {(!googleVerified || !googleLink.loginHasGoogle) && (
+                      <button onClick={handleGoogleConnect} disabled={googleConnecting || googleLink.linking} className="btn-motion"
+                        style={{ background: "color-mix(in srgb, var(--success) 9%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 19%, transparent)", color: "var(--success)", fontWeight: 600, fontSize: 13, padding: "8px 16px", borderRadius: 8, cursor: googleConnecting || googleLink.linking ? "not-allowed" : "pointer", opacity: googleConnecting || googleLink.linking ? 0.7 : 1, whiteSpace: "nowrap" }}>
+                        {googleConnecting || googleLink.linking ? "Connecting…" : googleVerified ? "Link to my login" : "Continue with Google"}
                       </button>
                     )}
                   </div>
-                  {googleError && <div style={{ fontSize: 12, color: "var(--danger)" }}>{googleError}</div>}
+                  {googleVerified && !googleLink.loginHasGoogle && !googleLink.error && (
+                    <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.5 }}>
+                      Your Gmail is saved, but it isn&apos;t part of your login yet. Link it so signing in with Google or with this wallet always opens the same account.
+                    </div>
+                  )}
+                  {(googleError || googleLink.error) && <div style={{ fontSize: 12, color: "var(--danger)" }}>{googleError || googleLink.error}</div>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, gap: 12, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
