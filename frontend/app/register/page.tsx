@@ -178,7 +178,10 @@ function RegisterPageInner() {
       // 409 = wallet isn't fresh / already topped up → it likely already has
       // gas from elsewhere; fall through and let registerUser try. Otherwise
       // surface the "get some BTC" path.
-      if (res.status !== 409) {
+      // A 409 with still no BTC means no top-up is coming, so don't make the
+      // user wait 18s for one; tell them why and show how to get gas.
+      if (res.status === 409) balance = await refetchNativeBalance();
+      if (res.status !== 409 || balance <= BigInt(0)) {
         setRegisterError(
           (data.error ?? "We couldn't finish setting up your wallet automatically.") +
             (data.reason ? ` [${data.reason}${data.detail ? `: ${data.detail}` : ""}]` : ""),
